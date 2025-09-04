@@ -2,41 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+/* Dream Catcher Design System - Dark Theme with Gold Accents 
 All colors MUST be HSL.
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 220 27% 4%;
+    --foreground: 0 0% 95%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 220 25% 6%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 220 25% 6%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 47 96% 53%;
+    --primary-foreground: 220 27% 4%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 220 20% 15%;
+    --secondary-foreground: 0 0% 95%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 220 20% 12%;
+    --muted-foreground: 0 0% 60%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 47 96% 53%;
+    --accent-foreground: 220 27% 4%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 95%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 220 20% 15%;
+    --input: 220 20% 15%;
+    --ring: 47 96% 53%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+    
+    /* Dream Catcher specific tokens */
+    --hero-gradient: linear-gradient(135deg, hsl(220 27% 4%) 0%, hsl(220 25% 8%) 50%, hsl(220 27% 4%) 100%);
+    --gold-gradient: linear-gradient(135deg, hsl(47 96% 53%) 0%, hsl(47 85% 60%) 50%, hsl(47 96% 53%) 100%);
+    --card-gradient: linear-gradient(135deg, hsl(220 25% 6%) 0%, hsl(220 20% 8%) 100%);
+    --glow-gold: 0 0 30px hsl(47 96% 53% / 0.3);
+    --text-gold: 47 96% 53%;
+    --text-secondary: 0 0% 70%;
 
     --sidebar-background: 0 0% 98%;
 
@@ -56,8 +64,8 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 220 27% 4%;
+    --foreground: 0 0% 95%;
 
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
