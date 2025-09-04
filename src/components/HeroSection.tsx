@@ -25,7 +25,7 @@ const HeroSection = () => {
             
             <div className="flex flex-col sm:flex-row gap-4">
               <Button size="lg" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium px-8 py-6 text-lg">
-                Get Started
+                My Dream Journal
               </Button>
               <Button variant="outline" size="lg" className="border-primary/30 text-foreground hover:bg-primary/10 px-8 py-6 text-lg">
                 Explore Dreams
