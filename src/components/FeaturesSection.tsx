@@ -25,7 +25,7 @@ const features = [
 
 const FeaturesSection = () => {
   return (
-    <section id="features" className="py-24">
+    <section id="features" className="py-24 features-section">
       <div className="container mx-auto px-6">
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-foreground">
@@ -39,9 +39,12 @@ const FeaturesSection = () => {
         
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {features.map((feature, index) => (
-            <Card key={index} className="bg-gradient-to-br from-card/80 to-card/40 border-border/50 p-8 hover:scale-105 transition-transform duration-300">
+            <Card 
+              key={index} 
+              className="feature-card float-element bg-gradient-to-br from-card/80 to-card/40 border-border/50 backdrop-blur-sm p-8 hover:scale-105 hover:shadow-[0_20px_60px_rgba(255,107,157,0.3)] transition-all duration-300"
+            >
               <div className="text-center space-y-4">
-                <div className="text-4xl mb-4">{feature.icon}</div>
+                <div className="text-4xl mb-4 animate-pulse-glow">{feature.icon}</div>
                 <h3 className="text-xl font-semibold text-foreground mb-3">
                   {feature.title}
                 </h3>

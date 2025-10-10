@@ -1,6 +1,6 @@
 const ExperienceSection = () => {
   return (
-    <section className="py-24 bg-gradient-to-b from-background to-secondary/10">
+    <section className="py-24 bg-gradient-to-b from-background to-secondary/10 experience-section">
       <div className="container mx-auto px-6">
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-foreground">
@@ -13,7 +13,7 @@ const ExperienceSection = () => {
         
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Left side - App Interface Preview */}
-          <div className="relative">
+          <div className="relative experience-mockup">
             <div className="bg-gradient-to-br from-card/90 to-card/60 backdrop-blur-sm border border-border/50 rounded-3xl p-8 shadow-2xl">
               <div className="bg-secondary/30 rounded-2xl p-6 mb-6">
                 <div className="flex items-center justify-between mb-4">

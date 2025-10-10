@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import HeroSection from "@/components/HeroSection";
 import FeaturesSection from "@/components/FeaturesSection";
@@ -5,28 +6,30 @@ import ResearchSection from "@/components/ResearchSection";
 import ExperienceSection from "@/components/ExperienceSection";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
-import { ShaderAnimation } from "@/components/ui/shader-animation";
+import { DreamyBackground } from "@/components/animations/DreamyBackground";
+import { initScrollAnimations } from "@/utils/gsap-animations";
 
 const Index = () => {
+  useEffect(() => {
+    // Initialize GSAP scroll animations
+    initScrollAnimations();
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
-      <div className="relative">
-        {/* Unified shader background for hero and features */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="h-full w-full">
-            <ShaderAnimation />
-          </div>
-        </div>
-        <div className="relative z-10">
-          <HeroSection />
-          <FeaturesSection />
-        </div>
+      {/* WebGL Dreamy Background */}
+      <DreamyBackground />
+      
+      {/* Content */}
+      <div className="relative z-10">
+        <Navigation />
+        <HeroSection />
+        <FeaturesSection />
+        <ResearchSection />
+        <ExperienceSection />
+        <CTASection />
+        <Footer />
       </div>
-      <ResearchSection />
-      <ExperienceSection />
-      <CTASection />
-      <Footer />
     </div>
   );
 };

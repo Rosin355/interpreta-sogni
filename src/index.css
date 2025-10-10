@@ -8,43 +8,60 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 0%;
-    --foreground: 300 3% 77%;
+    /* Deep space background */
+    --background: 232 71% 8%;
+    --foreground: 0 0% 95%;
 
-    --card: 250 17% 22%;
-    --card-foreground: 300 3% 77%;
+    --card: 235 45% 15%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 250 17% 22%;
-    --popover-foreground: 300 3% 77%;
+    --popover: 235 45% 15%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 262 32% 33%;
-    --primary-foreground: 300 3% 77%;
+    /* Primary purple/blue */
+    --primary: 245 58% 51%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 250 17% 22%;
-    --secondary-foreground: 300 3% 77%;
+    --secondary: 235 45% 15%;
+    --secondary-foreground: 0 0% 95%;
 
-    --muted: 250 17% 20%;
-    --muted-foreground: 278 30% 71%;
+    --muted: 235 30% 20%;
+    --muted-foreground: 240 5% 65%;
 
-    --accent: 278 30% 71%;
-    --accent-foreground: 222 20% 16%;
+    /* Accent pink/rose */
+    --accent: 330 81% 70%;
+    --accent-foreground: 235 71% 8%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 300 3% 77%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 250 17% 25%;
-    --input: 250 17% 22%;
-    --ring: 262 32% 33%;
+    --border: 235 30% 25%;
+    --input: 235 45% 15%;
+    --ring: 245 58% 51%;
 
     --radius: 0.75rem;
     
-    /* Dream Catcher specific tokens */
-    --hero-gradient: linear-gradient(135deg, hsl(0 0% 0%) 0%, hsl(250 17% 22%) 50%, hsl(0 0% 0%) 100%);
-    --primary-gradient: linear-gradient(135deg, hsl(262 32% 33%) 0%, hsl(278 30% 71%) 50%, hsl(262 32% 33%) 100%);
-    --card-gradient: linear-gradient(135deg, hsl(250 17% 22%) 0%, hsl(250 17% 25%) 100%);
-    --glow-primary: 0 0 30px hsl(278 30% 71% / 0.3);
-    --text-accent: 278 30% 71%;
-    --text-secondary: 300 3% 70%;
+    /* Dreamy color tokens - inspired by uploaded image */
+    --dream-deep: 232 71% 8%;
+    --dream-space: 235 45% 20%;
+    --dream-nebula-blue: 245 58% 51%;
+    --dream-nebula-purple: 270 50% 50%;
+    --dream-cloud-pink: 330 81% 70%;
+    --dream-cloud-peach: 25 100% 76%;
+    --dream-cloud-rose: 350 100% 88%;
+    --dream-glow-gold: 45 100% 51%;
+    --dream-glow-orange: 25 100% 63%;
+    --dream-star-white: 0 0% 100%;
+    --dream-star-blue: 210 100% 85%;
+    --dream-star-pink: 330 100% 90%;
+    
+    /* Gradients */
+    --hero-gradient: linear-gradient(135deg, hsl(232 71% 8%) 0%, hsl(235 45% 20%) 50%, hsl(232 71% 8%) 100%);
+    --primary-gradient: linear-gradient(135deg, hsl(245 58% 51%) 0%, hsl(270 50% 50%) 100%);
+    --card-gradient: linear-gradient(135deg, hsl(235 45% 15%) 0%, hsl(235 30% 20%) 100%);
+    --glow-primary: 0 0 30px hsl(330 81% 70% / 0.5);
+    --text-accent: 330 81% 70%;
+    --text-secondary: 240 5% 65%;
 
     --sidebar-background: 0 0% 98%;
 
@@ -64,33 +81,33 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 0 0% 0%;
-    --foreground: 300 3% 77%;
+    --background: 232 71% 8%;
+    --foreground: 0 0% 95%;
 
-    --card: 250 17% 22%;
-    --card-foreground: 300 3% 77%;
+    --card: 235 45% 15%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 250 17% 22%;
-    --popover-foreground: 300 3% 77%;
+    --popover: 235 45% 15%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 262 32% 33%;
-    --primary-foreground: 300 3% 77%;
+    --primary: 245 58% 51%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 250 17% 22%;
-    --secondary-foreground: 300 3% 77%;
+    --secondary: 235 45% 15%;
+    --secondary-foreground: 0 0% 95%;
 
-    --muted: 250 17% 20%;
-    --muted-foreground: 278 30% 71%;
+    --muted: 235 30% 20%;
+    --muted-foreground: 240 5% 65%;
 
-    --accent: 278 30% 71%;
-    --accent-foreground: 222 20% 16%;
+    --accent: 330 81% 70%;
+    --accent-foreground: 235 71% 8%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 300 3% 77%;
+    --destructive-foreground: 0 0% 95%;
 
-    --border: 250 17% 25%;
-    --input: 250 17% 22%;
-    --ring: 278 30% 71%;
+    --border: 235 30% 25%;
+    --input: 235 45% 15%;
+    --ring: 245 58% 51%;
     --sidebar-background: 222 20% 16%;
     --sidebar-foreground: 300 3% 77%;
     --sidebar-primary: 262 32% 33%;
