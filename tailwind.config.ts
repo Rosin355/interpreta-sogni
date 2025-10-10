@@ -19,6 +19,11 @@ export default {
 		},
 		extend: {
 			colors: {
+				'color-1': 'hsl(var(--color-1))',
+				'color-2': 'hsl(var(--color-2))',
+				'color-3': 'hsl(var(--color-3))',
+				'color-4': 'hsl(var(--color-4))',
+				'color-5': 'hsl(var(--color-5))',
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
@@ -104,6 +109,10 @@ export default {
 				'twinkle': {
 					'0%, 100%': { opacity: '1' },
 					'50%': { opacity: '0.3' }
+				},
+				'rainbow': {
+					'0%': { backgroundPosition: '0%' },
+					'100%': { backgroundPosition: '200%' }
 				}
 			},
 			animation: {
@@ -113,7 +122,8 @@ export default {
 				'float': 'float 6s ease-in-out infinite',
 				'pulse-glow': 'pulse-glow 3s ease-in-out infinite',
 				'gradient-shift': 'gradient-shift 4s ease infinite',
-				'twinkle': 'twinkle 3s ease-in-out infinite'
+				'twinkle': 'twinkle 3s ease-in-out infinite',
+				'rainbow': 'rainbow var(--speed, 2s) infinite linear'
 			}
 		}
 	},

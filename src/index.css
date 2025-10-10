@@ -8,6 +8,13 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
+    /* Rainbow button colors - based on existing gradient-shift palette */
+    --color-1: 245 58% 63%;
+    --color-2: 330 81% 70%;
+    --color-3: 210 100% 63%;
+    --color-4: 195 100% 63%;
+    --color-5: 270 100% 63%;
+
     /* Deep space background */
     --background: 232 71% 8%;
     --foreground: 0 0% 95%;

@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { RainbowButton } from "@/components/ui/rainbow-button";
 
 const Navigation = () => {
   return (
@@ -27,9 +28,9 @@ const Navigation = () => {
           <Button variant="ghost" size="sm">
             Accedi
           </Button>
-          <Button size="sm" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium">
+          <RainbowButton className="h-9 px-3 text-sm">
             Inizia
-          </Button>
+          </RainbowButton>
         </div>
       </div>
     </nav>
