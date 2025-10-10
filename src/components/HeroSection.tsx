@@ -2,12 +2,12 @@ import { Button } from "@/components/ui/button";
 
 const HeroSection = () => {
   return (
-    <section className="min-h-screen relative overflow-hidden bg-gradient-to-br from-background via-background/95 to-secondary/20">
+    <section className="relative overflow-hidden bg-gradient-to-br from-background via-background/95 to-secondary/20">
       {/* Background decoration */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.1),transparent_50%)]" />
       
       <div className="container mx-auto px-6 pt-24 pb-16">
-        <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[80vh]">
+        <div className="grid lg:grid-cols-2 gap-12 items-center py-12">
           {/* Left side - Text content */}
           <div className="space-y-8">
             <div className="space-y-4">
