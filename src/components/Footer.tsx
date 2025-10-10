@@ -9,7 +9,7 @@ const Footer = () => {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Moon className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold text-foreground">Dream Catcher</span>
+              <span className="text-xl font-bold text-foreground">Sogni per illuminarsi</span>
             </div>
             <p className="text-sm text-muted-foreground">
               Esplora l'universo dei tuoi sogni e contribuisci alla ricerca globale.
@@ -52,7 +52,7 @@ const Footer = () => {
         {/* Bottom bar */}
         <div className="pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            © 2025 Dream Catcher. Tutti i diritti riservati.
+            © 2025 Sogni per illuminarsi. Tutti i diritti riservati.
           </p>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>Fatto con</span>

@@ -31,22 +31,6 @@ const HeroSection = () => {
                 Esplora i Sogni
               </Button>
             </div>
-            
-            {/* Stats */}
-            <div className="flex flex-wrap gap-8 pt-8">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-blue-500" />
-                <span className="text-sm text-muted-foreground">10.000+ Sogni Registrati</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-primary" />
-                <span className="text-sm text-muted-foreground">1.500+ Contributori alla Ricerca</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-gray-500" />
-                <span className="text-sm text-muted-foreground">75+ Paesi</span>
-              </div>
-            </div>
           </div>
           
           {/* Right side - Dream Journal UI Preview */}

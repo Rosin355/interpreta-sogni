@@ -4,7 +4,7 @@ const ExperienceSection = () => {
       <div className="container mx-auto px-6">
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-foreground">
-            Prova Dream Catcher
+            Prova Sogni per illuminarsi
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
             Documenta, analizza e condividi i tuoi sogni con la nostra interfaccia intuitiva
@@ -17,7 +17,7 @@ const ExperienceSection = () => {
             <div className="bg-gradient-to-br from-card/90 to-card/60 backdrop-blur-sm border border-border/50 rounded-3xl p-8 shadow-2xl">
               <div className="bg-secondary/30 rounded-2xl p-6 mb-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-foreground">Dream Catcher - I Miei Sogni</h3>
+                  <h3 className="text-lg font-semibold text-foreground">Sogni per illuminarsi - I Miei Sogni</h3>
                   <div className="flex space-x-2">
                     <div className="w-3 h-3 rounded-full bg-red-500/60" />
                     <div className="w-3 h-3 rounded-full bg-yellow-500/60" />
