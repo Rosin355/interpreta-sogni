@@ -13,7 +13,7 @@ const Index = () => {
       <Navigation />
       <div className="relative">
         {/* Unified shader background for hero and features */}
-        <div className="absolute inset-0 opacity-30 pointer-events-none">
+        <div className="absolute inset-0 pointer-events-none">
           <div className="h-full w-full">
             <ShaderAnimation />
           </div>

@@ -40,11 +40,18 @@ export function ShaderAnimation() {
         float lineWidth = 0.002;
 
         vec3 color = vec3(0.0);
+        
+        // Single expanding wave effect
+        float dist = length(uv);
+        float wave = abs(sin((dist - t) * 2.0));
+        
         for(int j = 0; j < 3; j++){
-          for(int i=0; i < 5; i++){
-            color[j] += lineWidth*float(i*i) / abs(fract(t - 0.01*float(j)+float(i)*0.01)*5.0 - length(uv) + mod(uv.x+uv.y, 0.2));
-          }
+          color[j] += lineWidth * 30.0 / (wave + 0.1);
         }
+        
+        // Fade out over time
+        float fadeOut = smoothstep(0.0, 150.0, time);
+        color *= (1.0 - fadeOut);
         
         gl_FragColor = vec4(color[0],color[1],color[2],1.0);
       }
