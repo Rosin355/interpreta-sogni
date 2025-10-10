@@ -89,10 +89,16 @@ export function ShaderAnimation() {
     onWindowResize()
     window.addEventListener("resize", onWindowResize, false)
 
-    // Animation loop
+    // Animation loop - runs once until maxTime
+    const maxTime = 150 // Animation stops after this value
     const animate = () => {
       const animationId = requestAnimationFrame(animate)
-      uniforms.time.value += 0.05
+      
+      // Only update time if below max
+      if (uniforms.time.value < maxTime) {
+        uniforms.time.value += 0.05
+      }
+      
       renderer.render(scene, camera)
 
       if (sceneRef.current) {

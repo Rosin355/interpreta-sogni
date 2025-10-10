@@ -1,15 +1,9 @@
 import { Button } from "@/components/ui/button";
-import { ShaderAnimation } from "@/components/ui/shader-animation";
 
 const HeroSection = () => {
   return (
-    <section className="relative overflow-hidden h-[700px]">
-      {/* Shader Background */}
-      <div className="absolute inset-0 opacity-30">
-        <ShaderAnimation />
-      </div>
-      
-      <div className="container mx-auto px-6 pt-24 pb-16 relative z-10 h-full flex items-center">
+    <section className="relative overflow-hidden">
+      <div className="container mx-auto px-6 pt-24 pb-16 h-[700px] flex items-center">
         <div className="grid lg:grid-cols-2 gap-12 items-center w-full">
           {/* Left side - Text content */}
           <div className="space-y-8">

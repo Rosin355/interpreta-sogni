@@ -5,13 +5,24 @@ import ResearchSection from "@/components/ResearchSection";
 import ExperienceSection from "@/components/ExperienceSection";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
+import { ShaderAnimation } from "@/components/ui/shader-animation";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <HeroSection />
-      <FeaturesSection />
+      <div className="relative">
+        {/* Unified shader background for hero and features */}
+        <div className="absolute inset-0 opacity-30 pointer-events-none">
+          <div className="h-full w-full">
+            <ShaderAnimation />
+          </div>
+        </div>
+        <div className="relative z-10">
+          <HeroSection />
+          <FeaturesSection />
+        </div>
+      </div>
       <ResearchSection />
       <ExperienceSection />
       <CTASection />
