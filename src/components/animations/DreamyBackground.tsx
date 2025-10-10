@@ -1,7 +1,6 @@
 import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Points, PointMaterial, Sphere } from '@react-three/drei';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
 
 // Starfield Component
@@ -129,11 +128,12 @@ function GlowingRing() {
   return (
     <mesh ref={ringRef} position={[0, 0, -5]}>
       <torusGeometry args={[3, 0.6, 16, 100]} />
-      <meshBasicMaterial
+      <meshStandardMaterial
         color="#ff8c42"
+        emissive="#ff8c42"
+        emissiveIntensity={0.8}
         transparent
-        opacity={0.6}
-        blending={THREE.AdditiveBlending}
+        opacity={0.7}
       />
     </mesh>
   );
@@ -192,16 +192,6 @@ function DreamScene() {
       <NebulaClouds />
       <GlowingRing />
       <ForegroundClouds />
-      
-      {/* Post-processing effects */}
-      <EffectComposer>
-        <Bloom
-          intensity={0.8}
-          luminanceThreshold={0.2}
-          luminanceSmoothing={0.9}
-          radius={0.85}
-        />
-      </EffectComposer>
     </>
   );
 }
