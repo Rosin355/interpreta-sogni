@@ -9,17 +9,17 @@ const CTASection = () => {
       <div className="container mx-auto px-6 relative z-10">
         <div className="text-center max-w-4xl mx-auto">
           <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-foreground">
-            Explore the Dreamverse
+            Esplora l'Universo Onirico
           </h2>
           <p className="text-xl text-muted-foreground leading-relaxed mb-8">
-            Join thousands of dreamers documenting their dream experiences and contributing to our understanding of the human mind.
+            Unisciti a migliaia di sognatori che documentano le loro esperienze oniriche e contribuiscono alla nostra comprensione della mente umana.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium px-8 py-6 text-lg">
-              Start Your Dream Journey
+              Inizia il Tuo Viaggio Onirico
             </Button>
             <Button variant="outline" size="lg" className="border-primary/30 text-foreground hover:bg-primary/10 px-8 py-6 text-lg">
-              Learn More
+              Scopri di Più
             </Button>
           </div>
         </div>

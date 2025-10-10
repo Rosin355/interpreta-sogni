@@ -12,23 +12,23 @@ const HeroSection = () => {
           <div className="space-y-8">
             <div className="space-y-4">
               <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
-                Explore the{" "}
+                Esplora l'{" "}
                 <span className="bg-gradient-to-r from-primary via-primary/90 to-primary/70 bg-clip-text text-transparent">
-                  Universe
+                  Universo
                 </span>{" "}
-                of Your Dreams
+                dei Tuoi Sogni
               </h1>
               <p className="text-xl text-muted-foreground leading-relaxed max-w-xl">
-                Record, analyze, and discover patterns in your dreams while contributing to groundbreaking dream research.
+                Registra, analizza e scopri i pattern nei tuoi sogni mentre contribuisci a una ricerca rivoluzionaria sui sogni.
               </p>
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4">
               <Button size="lg" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium px-8 py-6 text-lg">
-                My Dream Journal
+                Il Mio Diario dei Sogni
               </Button>
               <Button variant="outline" size="lg" className="border-primary/30 text-foreground hover:bg-primary/10 px-8 py-6 text-lg">
-                Explore Dreams
+                Esplora i Sogni
               </Button>
             </div>
             
@@ -36,15 +36,15 @@ const HeroSection = () => {
             <div className="flex flex-wrap gap-8 pt-8">
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 rounded-full bg-blue-500" />
-                <span className="text-sm text-muted-foreground">10,000+ Dreams Recorded</span>
+                <span className="text-sm text-muted-foreground">10.000+ Sogni Registrati</span>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 rounded-full bg-primary" />
-                <span className="text-sm text-muted-foreground">1,500+ Research Contributors</span>
+                <span className="text-sm text-muted-foreground">1.500+ Contributori alla Ricerca</span>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 rounded-full bg-gray-500" />
-                <span className="text-sm text-muted-foreground">75+ Countries</span>
+                <span className="text-sm text-muted-foreground">75+ Paesi</span>
               </div>
             </div>
           </div>
@@ -54,7 +54,7 @@ const HeroSection = () => {
             <div className="bg-gradient-to-br from-card/90 to-card/60 backdrop-blur-sm border border-border/50 rounded-2xl p-6 shadow-2xl">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-foreground">Dream Journal</h3>
+                  <h3 className="text-lg font-semibold text-foreground">Diario dei Sogni</h3>
                   <div className="flex space-x-2">
                     <div className="w-3 h-3 rounded-full bg-red-500/60" />
                     <div className="w-3 h-3 rounded-full bg-yellow-500/60" />
@@ -63,17 +63,17 @@ const HeroSection = () => {
                 </div>
                 
                 <p className="text-sm text-muted-foreground">
-                  Record your dreams with rich details and emotional context
+                  Registra i tuoi sogni con dettagli ricchi e contesto emotivo
                 </p>
                 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-secondary/30 rounded-lg p-4 h-24 flex items-center justify-center relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20" />
-                    <span className="text-xs text-muted-foreground relative z-10">Flying</span>
+                    <span className="text-xs text-muted-foreground relative z-10">Volare</span>
                   </div>
                   <div className="bg-secondary/30 rounded-lg p-4 h-24 flex flex-col items-center justify-center">
-                    <span className="text-xs font-medium text-foreground">Black & White</span>
-                    <span className="text-xs text-muted-foreground">Vivid</span>
+                    <span className="text-xs font-medium text-foreground">Bianco e Nero</span>
+                    <span className="text-xs text-muted-foreground">Vivido</span>
                   </div>
                 </div>
                 
@@ -81,8 +81,8 @@ const HeroSection = () => {
                   <div className="flex items-center space-x-2">
                     <div className="w-12 h-12 bg-green-500/30 rounded-full" />
                     <div>
-                      <span className="text-sm font-medium text-foreground">Nature Scene</span>
-                      <p className="text-xs text-muted-foreground">Peaceful meadow with flowing water</p>
+                      <span className="text-sm font-medium text-foreground">Scena Naturale</span>
+                      <p className="text-xs text-muted-foreground">Prato pacifico con acqua corrente</p>
                     </div>
                   </div>
                 </div>

@@ -2,8 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 const dreamPatterns = [
-  "Flying", "Falling", "Chase", "Lost", "Water", 
-  "Family", "Childhood", "Test", "Late", "Teeth"
+  "Volare", "Cadere", "Inseguimento", "Perso", "Acqua", 
+  "Famiglia", "Infanzia", "Esame", "In Ritardo", "Denti"
 ];
 
 const ResearchSection = () => {
@@ -12,15 +12,15 @@ const ResearchSection = () => {
       <div className="container mx-auto px-6">
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-foreground">
-            Mapping the Dreamverse Together
+            Mappare l'Universo Onirico Insieme
           </h2>
           <p className="text-xl text-muted-foreground max-w-4xl mx-auto leading-relaxed mb-8">
-            Our global dream research initiative aims to map collective dream patterns, understand emotional contexts, 
-            and create a comprehensive atlas of the human dreamscape. By participating, you contribute to ground-breaking 
-            research about how we dream.
+            La nostra iniziativa globale di ricerca sui sogni mira a mappare i pattern onirici collettivi, comprendere i contesti emotivi 
+            e creare un atlante completo del panorama onirico umano. Partecipando, contribuisci a una ricerca rivoluzionaria 
+            su come sogniamo.
           </p>
           <Button className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium">
-            Explore Research Insights
+            Esplora le Scoperte della Ricerca
           </Button>
         </div>
         
@@ -33,9 +33,9 @@ const ResearchSection = () => {
                   <span className="text-primary text-xl">🔒</span>
                 </div>
                 <div>
-                  <h4 className="text-lg font-semibold text-foreground mb-2">Anonymized Contributions</h4>
+                  <h4 className="text-lg font-semibold text-foreground mb-2">Contributi Anonimi</h4>
                   <p className="text-muted-foreground">
-                    Your dream data is shared anonymously to protect your privacy while advancing our understanding
+                    I tuoi dati onirici sono condivisi in forma anonima per proteggere la tua privacy mentre facciamo avanzare la nostra comprensione
                   </p>
                 </div>
               </div>
@@ -45,9 +45,9 @@ const ResearchSection = () => {
                   <span className="text-primary text-xl">🧠</span>
                 </div>
                 <div>
-                  <h4 className="text-lg font-semibold text-foreground mb-2">Pattern Recognition</h4>
+                  <h4 className="text-lg font-semibold text-foreground mb-2">Riconoscimento dei Pattern</h4>
                   <p className="text-muted-foreground">
-                    Advanced algorithms identify patterns across thousands of dreams, revealing shared human experiences
+                    Algoritmi avanzati identificano i pattern attraverso migliaia di sogni, rivelando esperienze umane condivise
                   </p>
                 </div>
               </div>
@@ -57,7 +57,7 @@ const ResearchSection = () => {
           {/* Right side - Dream patterns and stats */}
           <div className="space-y-8">
             <div>
-              <h3 className="text-2xl font-bold text-foreground mb-6">Global Dream Patterns</h3>
+              <h3 className="text-2xl font-bold text-foreground mb-6">Pattern Onirici Globali</h3>
               <div className="grid grid-cols-2 gap-3">
                 {dreamPatterns.map((pattern, index) => (
                   <Card key={index} className="bg-gradient-to-r from-card/60 to-card/30 border-border/30 p-4 text-center hover:from-primary/10 hover:to-primary/5 transition-all duration-300">
@@ -68,23 +68,23 @@ const ResearchSection = () => {
             </div>
             
             <div className="bg-gradient-to-br from-card/80 to-card/40 border border-border/50 rounded-2xl p-8">
-              <p className="text-sm text-muted-foreground mb-4">Analyzing dream patterns across</p>
+              <p className="text-sm text-muted-foreground mb-4">Analizzando i pattern onirici attraverso</p>
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-3xl font-bold text-primary">10,000+</span>
-                  <span className="text-muted-foreground">recorded dreams worldwide</span>
+                  <span className="text-3xl font-bold text-primary">10.000+</span>
+                  <span className="text-muted-foreground">sogni registrati nel mondo</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-3xl font-bold text-blue-400">42%</span>
-                  <span className="text-muted-foreground">report emotional dreams</span>
+                  <span className="text-muted-foreground">riporta sogni emotivi</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-3xl font-bold text-green-400">23%</span>
-                  <span className="text-muted-foreground">experience lucid dreams</span>
+                  <span className="text-muted-foreground">sperimenta sogni lucidi</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-3xl font-bold text-purple-400">78%</span>
-                  <span className="text-muted-foreground">recall dreams weekly</span>
+                  <span className="text-muted-foreground">ricorda i sogni settimanalmente</span>
                 </div>
               </div>
             </div>

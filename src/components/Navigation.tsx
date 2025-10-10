@@ -13,22 +13,22 @@ const Navigation = () => {
         
         <div className="hidden md:flex items-center space-x-8">
           <a href="#explore" className="text-muted-foreground hover:text-foreground transition-colors">
-            Explore
+            Esplora
           </a>
           <a href="#research" className="text-muted-foreground hover:text-foreground transition-colors">
-            Research
+            Ricerca
           </a>
           <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">
-            Features
+            Funzionalità
           </a>
         </div>
         
         <div className="flex items-center space-x-4">
           <Button variant="ghost" size="sm">
-            Login
+            Accedi
           </Button>
           <Button size="sm" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-medium">
-            Get Started
+            Inizia
           </Button>
         </div>
       </div>

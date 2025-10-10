@@ -3,23 +3,23 @@ import { Card } from "@/components/ui/card";
 const features = [
   {
     icon: "🌙",
-    title: "Dream Journal",
-    description: "Record and explore your dreams in a private digital journal with intelligent analysis"
+    title: "Diario dei Sogni",
+    description: "Registra ed esplora i tuoi sogni in un diario digitale privato con analisi intelligente"
   },
   {
     icon: "🔄",
-    title: "Dream Patterns",
-    description: "Discover recurring themes and emotions in your dream history with visual analytics"
+    title: "Pattern dei Sogni",
+    description: "Scopri temi ed emozioni ricorrenti nella tua storia onirica con analisi visive"
   },
   {
     icon: "👥",
-    title: "Dream Circles",
-    description: "Share dreams with trusted friends or dream circles and gain new perspectives"
+    title: "Cerchie dei Sogni",
+    description: "Condividi i sogni con amici fidati o cerchie oniriche e ottieni nuove prospettive"
   },
   {
     icon: "🌍",
-    title: "Research Initiative",
-    description: "Contribute to our global dream research and help map the collective dreamscape"
+    title: "Iniziativa di Ricerca",
+    description: "Contribuisci alla nostra ricerca globale sui sogni e aiuta a mappare il panorama onirico collettivo"
   }
 ];
 
@@ -29,11 +29,11 @@ const FeaturesSection = () => {
       <div className="container mx-auto px-6">
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-foreground">
-            Unlock the Power of Your Dreams
+            Sblocca il Potere dei Tuoi Sogni
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Our intuitive tools help you document, analyze, and understand your dreams while 
-            participating in groundbreaking dream research.
+            I nostri strumenti intuitivi ti aiutano a documentare, analizzare e comprendere i tuoi sogni mentre 
+            partecipi a ricerche rivoluzionarie sui sogni.
           </p>
         </div>
         

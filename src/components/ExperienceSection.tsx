@@ -4,10 +4,10 @@ const ExperienceSection = () => {
       <div className="container mx-auto px-6">
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-foreground">
-            Experience Dream Catcher
+            Prova Dream Catcher
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Document, analyze, and share your dreams with our intuitive interface
+            Documenta, analizza e condividi i tuoi sogni con la nostra interfaccia intuitiva
           </p>
         </div>
         
@@ -17,7 +17,7 @@ const ExperienceSection = () => {
             <div className="bg-gradient-to-br from-card/90 to-card/60 backdrop-blur-sm border border-border/50 rounded-3xl p-8 shadow-2xl">
               <div className="bg-secondary/30 rounded-2xl p-6 mb-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-foreground">Dream Catcher - My Dreams</h3>
+                  <h3 className="text-lg font-semibold text-foreground">Dream Catcher - I Miei Sogni</h3>
                   <div className="flex space-x-2">
                     <div className="w-3 h-3 rounded-full bg-red-500/60" />
                     <div className="w-3 h-3 rounded-full bg-yellow-500/60" />
@@ -32,8 +32,8 @@ const ExperienceSection = () => {
                         <span className="text-blue-200 text-sm">🌊</span>
                       </div>
                       <div>
-                        <h4 className="font-medium text-foreground">Ocean Journey</h4>
-                        <p className="text-sm text-muted-foreground">Swimming with dolphins in crystal clear water...</p>
+                        <h4 className="font-medium text-foreground">Viaggio nell'Oceano</h4>
+                        <p className="text-sm text-muted-foreground">Nuotando con i delfini in acqua cristallina...</p>
                       </div>
                     </div>
                   </div>
@@ -44,8 +44,8 @@ const ExperienceSection = () => {
                         <span className="text-green-200 text-sm">🌳</span>
                       </div>
                       <div>
-                        <h4 className="font-medium text-foreground">Forest Adventure</h4>
-                        <p className="text-sm text-muted-foreground">Walking through an enchanted forest...</p>
+                        <h4 className="font-medium text-foreground">Avventura nella Foresta</h4>
+                        <p className="text-sm text-muted-foreground">Camminando attraverso una foresta incantata...</p>
                       </div>
                     </div>
                   </div>
@@ -56,8 +56,8 @@ const ExperienceSection = () => {
                         <span className="text-purple-200 text-sm">✨</span>
                       </div>
                       <div>
-                        <h4 className="font-medium text-foreground">Flying Dream</h4>
-                        <p className="text-sm text-muted-foreground">Soaring above the clouds with complete freedom...</p>
+                        <h4 className="font-medium text-foreground">Sogno di Volo</h4>
+                        <p className="text-sm text-muted-foreground">Volteggiando sopra le nuvole in completa libertà...</p>
                       </div>
                     </div>
                   </div>
@@ -70,23 +70,23 @@ const ExperienceSection = () => {
           <div className="space-y-8">
             <div className="space-y-6">
               <div>
-                <h3 className="text-2xl font-bold text-foreground mb-4">Detailed Dream Journal</h3>
+                <h3 className="text-2xl font-bold text-foreground mb-4">Diario dei Sogni Dettagliato</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Record every detail of your dreams with emotion tagging, person recognition, and rich content formatting.
+                  Registra ogni dettaglio dei tuoi sogni con etichettatura emotiva, riconoscimento delle persone e formattazione ricca del contenuto.
                 </p>
               </div>
               
               <div>
-                <h3 className="text-2xl font-bold text-foreground mb-4">Pattern Analysis</h3>
+                <h3 className="text-2xl font-bold text-foreground mb-4">Analisi dei Pattern</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Identify recurring themes, emotions and patterns in your dream history with visual analytics.
+                  Identifica temi, emozioni e pattern ricorrenti nella tua storia onirica con analisi visive.
                 </p>
               </div>
               
               <div>
-                <h3 className="text-2xl font-bold text-foreground mb-4">Dream Sharing</h3>
+                <h3 className="text-2xl font-bold text-foreground mb-4">Condivisione dei Sogni</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Share dreams selectively with friends or dream circles to gain new perspectives.
+                  Condividi i sogni selettivamente con amici o cerchie oniriche per ottenere nuove prospettive.
                 </p>
               </div>
             </div>
