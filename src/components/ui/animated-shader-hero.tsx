@@ -377,6 +377,9 @@ const Hero: React.FC<HeroProps> = ({
         style={{ background: 'hsl(var(--background))' }}
       />
       
+      {/* Cloud divider at the top */}
+      <CloudDivider flip={true} />
+      
       {/* Hero Content Overlay */}
       <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-foreground">
         {/* Trust Badge */}
