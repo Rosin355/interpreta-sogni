@@ -3,9 +3,9 @@ import { RainbowButton } from "@/components/ui/rainbow-button";
 const HeroSection = () => {
   return <section className="relative overflow-hidden">
       <div className="container mx-auto px-6 pt-24 pb-16 h-[700px] flex items-center">
-        <div className="grid lg:grid-cols-2 gap-12 items-center w-full">
-          {/* Left side - Text content */}
-          <div className="space-y-8 hero-content">
+        <div className="flex justify-center items-center w-full">
+          {/* Centered content */}
+          <div className="space-y-8 hero-content text-center max-w-4xl">
             <div className="space-y-4">
               <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
                 Esplora l'{" "}
@@ -14,12 +14,12 @@ const HeroSection = () => {
                 </span>{" "}
                 dei Tuoi Sogni
               </h1>
-              <p className="text-xl text-muted-foreground leading-relaxed max-w-xl">
+              <p className="text-xl text-muted-foreground leading-relaxed mx-auto">
                 Registra, analizza e scopri i pattern nei tuoi sogni mentre contribuisci a una ricerca rivoluzionaria sui sogni.
               </p>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-4 hero-buttons">
+            <div className="flex flex-col sm:flex-row gap-4 hero-buttons justify-center">
               <RainbowButton className="px-8 py-6 text-lg">
                 Il Mio Diario dei Sogni
               </RainbowButton>
@@ -27,11 +27,6 @@ const HeroSection = () => {
                 Esplora i Sogni
               </Button>
             </div>
-          </div>
-          
-          {/* Right side - Dream Journal UI Preview */}
-          <div className="relative">
-            
           </div>
         </div>
       </div>
