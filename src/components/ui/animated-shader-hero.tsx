@@ -373,7 +373,7 @@ const Hero: React.FC<HeroProps> = ({
       
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 w-full h-full object-contain touch-none"
+        className="absolute inset-0 w-full h-full object-cover touch-none"
         style={{ background: 'hsl(var(--background))' }}
       />
       
