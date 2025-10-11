@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+import CloudDivider from './cloud-divider';
 
 // Types for component props
 interface HeroProps {
@@ -425,6 +426,9 @@ const Hero: React.FC<HeroProps> = ({
           )}
         </div>
       </div>
+      
+      {/* Cloud divider at the bottom */}
+      <CloudDivider />
     </div>
   );
 };
