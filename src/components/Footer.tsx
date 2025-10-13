@@ -7,7 +7,7 @@ const Footer = () => {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Moon className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold text-foreground">Dream Catcher</span>
+              <span className="text-xl font-bold text-foreground">Interpreta i tuoi Sogni</span>
             </div>
             <p className="text-sm text-muted-foreground">
               Esplora l'universo dei tuoi sogni e contribuisci alla ricerca globale.
