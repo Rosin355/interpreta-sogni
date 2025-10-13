@@ -49,7 +49,7 @@ const Footer = () => {
 
         {/* Bottom bar */}
         <div className="pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">© 2025 Sogni per illuminarsi di Jessica Marin. Tutti i diritti riservati.</p>
+          <p className="text-sm text-muted-foreground">© 2025 Interpreta i tuoi Sogni di Jessica Marin. Tutti i diritti riservati.</p>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>Fatto con</span>
             <Heart className="h-4 w-4 text-primary fill-primary" />
