@@ -25,12 +25,12 @@ const Navigation = () => {
         </div>
         
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="sm">
-            Accedi
+          <Button variant="outline-white" size="sm">
+            Login
           </Button>
-          <RainbowButton className="h-9 px-3 text-sm">
-            Inizia
-          </RainbowButton>
+          <Button variant="cta" size="sm">
+            Get Started
+          </Button>
         </div>
       </div>
     </nav>
