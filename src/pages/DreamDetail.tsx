@@ -81,15 +81,39 @@ const DreamDetail = () => {
   };
 
   const handleInterpret = async () => {
+    if (!id) return;
+    
     setInterpretationLoading(true);
     
-    // Placeholder per futura implementazione AI
-    toast({
-      title: "Funzionalità in arrivo",
-      description: "L'interpretazione AI sarà disponibile presto!",
-    });
-    
-    setInterpretationLoading(false);
+    try {
+      const { data, error } = await supabase.functions.invoke('interpret-dream', {
+        body: { dreamId: id }
+      });
+
+      if (error) {
+        console.error('Errore nell\'interpretazione:', error);
+        toast({
+          title: "Errore",
+          description: error.message || "Impossibile interpretare il sogno",
+          variant: "destructive",
+        });
+      } else if (data?.interpretation) {
+        setDream({ ...dream, interpretation: data.interpretation });
+        toast({
+          title: "Successo",
+          description: "Interpretazione generata con successo!",
+        });
+      }
+    } catch (error) {
+      console.error('Errore:', error);
+      toast({
+        title: "Errore",
+        description: "Si è verificato un errore durante l'interpretazione",
+        variant: "destructive",
+      });
+    } finally {
+      setInterpretationLoading(false);
+    }
   };
 
   if (loading) {
@@ -204,10 +228,20 @@ const DreamDetail = () => {
             </CardHeader>
             <CardContent>
               {dream.interpretation ? (
-                <div className="prose prose-sm max-w-none">
+                <div className="space-y-4">
                   <p className="text-muted-foreground whitespace-pre-wrap">
                     {dream.interpretation}
                   </p>
+                  <Button
+                    onClick={handleInterpret}
+                    disabled={interpretationLoading}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    {interpretationLoading ? "Rigenerazione..." : "Rigenera Interpretazione"}
+                  </Button>
                 </div>
               ) : (
                 <div className="text-center py-8">

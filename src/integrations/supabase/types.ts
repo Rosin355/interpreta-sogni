@@ -46,43 +46,58 @@ export type Database = {
       }
       dreams: {
         Row: {
+          auto_style: boolean | null
           content: string
           created_at: string | null
           dream_date: string
           id: string
+          image_style: string | null
+          image_url: string | null
           interpretation: string | null
           is_private: boolean | null
           mood: string | null
+          no_recall: boolean | null
           tags: string[] | null
           title: string
           updated_at: string | null
           user_id: string
+          visibility: string | null
         }
         Insert: {
+          auto_style?: boolean | null
           content: string
           created_at?: string | null
           dream_date: string
           id?: string
+          image_style?: string | null
+          image_url?: string | null
           interpretation?: string | null
           is_private?: boolean | null
           mood?: string | null
+          no_recall?: boolean | null
           tags?: string[] | null
           title: string
           updated_at?: string | null
           user_id: string
+          visibility?: string | null
         }
         Update: {
+          auto_style?: boolean | null
           content?: string
           created_at?: string | null
           dream_date?: string
           id?: string
+          image_style?: string | null
+          image_url?: string | null
           interpretation?: string | null
           is_private?: boolean | null
           mood?: string | null
+          no_recall?: boolean | null
           tags?: string[] | null
           title?: string
           updated_at?: string | null
           user_id?: string
+          visibility?: string | null
         }
         Relationships: []
       }
