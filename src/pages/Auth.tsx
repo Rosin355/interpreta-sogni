@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { z } from "zod";
+import Navigation from "@/components/Navigation";
 
 const loginSchema = z.object({
   email: z.string().email("Email non valida").max(255, "Email troppo lunga"),
@@ -160,7 +161,9 @@ const Auth = () => {
 
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-dream-space to-background p-4">
+    <>
+      <Navigation />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-dream-space to-background p-4 pt-24">
       <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm border-border shadow-xl">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
@@ -261,6 +264,7 @@ const Auth = () => {
         </CardContent>
       </Card>
     </div>
+    </>
   );
 };
 
