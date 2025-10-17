@@ -7,8 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, CalendarIcon, Clock } from "lucide-react";
+import { format } from "date-fns";
+import { it } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 const NewDream = () => {
   const navigate = useNavigate();
@@ -17,9 +23,27 @@ const NewDream = () => {
     title: "",
     content: "",
     dream_date: new Date().toISOString().split("T")[0],
+    dream_time: new Date().toTimeString().slice(0, 5),
     mood: "",
     tags: "",
   });
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+  const moodOptions = [
+    { value: "felicita", label: "😊 Felicità" },
+    { value: "tristezza", label: "😢 Tristezza" },
+    { value: "rabbia", label: "😠 Rabbia" },
+    { value: "paura", label: "😨 Paura" },
+    { value: "sorpresa", label: "😲 Sorpresa" },
+    { value: "disgusto", label: "🤢 Disgusto" },
+    { value: "ansia", label: "😰 Ansia" },
+    { value: "calma", label: "😌 Calma" },
+    { value: "eccitazione", label: "🤩 Eccitazione" },
+    { value: "confusione", label: "😕 Confusione" },
+    { value: "noia", label: "😑 Noia" },
+    { value: "vergogna", label: "😳 Vergogna" },
+    { value: "orgoglio", label: "😎 Orgoglio" },
+  ];
 
   useEffect(() => {
     checkAuth();
@@ -125,16 +149,57 @@ const NewDream = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="dream_date">Data del Sogno *</Label>
-                  <Input
-                    id="dream_date"
-                    type="date"
-                    value={formData.dream_date}
-                    onChange={(e) =>
-                      setFormData({ ...formData, dream_date: e.target.value })
-                    }
-                    required
-                  />
+                  <Label>Data del Sogno *</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !selectedDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {selectedDate ? (
+                          format(selectedDate, "PPP", { locale: it })
+                        ) : (
+                          <span>Seleziona una data</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={(date) => {
+                          if (date) {
+                            setSelectedDate(date);
+                            setFormData({
+                              ...formData,
+                              dream_date: format(date, "yyyy-MM-dd"),
+                            });
+                          }
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="dream_time">Ora del Sogno</Label>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="dream_time"
+                      type="time"
+                      value={formData.dream_time}
+                      onChange={(e) =>
+                        setFormData({ ...formData, dream_time: e.target.value })
+                      }
+                      className="flex-1"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -153,14 +218,23 @@ const NewDream = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="mood">Umore</Label>
-                  <Input
-                    id="mood"
-                    placeholder="Es: Felice, Ansioso, Confuso"
+                  <Select
                     value={formData.mood}
-                    onChange={(e) =>
-                      setFormData({ ...formData, mood: e.target.value })
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, mood: value })
                     }
-                  />
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleziona un'emozione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {moodOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
