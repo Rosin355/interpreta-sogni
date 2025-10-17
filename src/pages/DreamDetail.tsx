@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, Edit, Trash2, Sparkles } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Sparkles, Image as ImageIcon } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import {
@@ -19,6 +20,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 const DreamDetail = () => {
   const { id } = useParams();
@@ -26,6 +37,9 @@ const DreamDetail = () => {
   const [dream, setDream] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [interpretationLoading, setInterpretationLoading] = useState(false);
+  const [imageGenerating, setImageGenerating] = useState(false);
+  const [regenerateStyle, setRegenerateStyle] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -116,6 +130,54 @@ const DreamDetail = () => {
     }
   };
 
+  const handleGenerateImage = async (style?: string) => {
+    if (!id || !dream) return;
+
+    setImageGenerating(true);
+    setDialogOpen(false);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-dream-image', {
+        body: {
+          dreamId: id,
+          content: dream.content,
+          mood: dream.mood,
+          imageStyle: style || regenerateStyle,
+          autoStyle: !style && !regenerateStyle
+        }
+      });
+
+      if (error) {
+        console.error('Errore generazione immagine:', error);
+        toast({
+          title: "Errore",
+          description: error.message || "Impossibile generare l'immagine",
+          variant: "destructive",
+        });
+      } else if (data?.image_url) {
+        setDream({ 
+          ...dream, 
+          image_url: data.image_url, 
+          image_style: data.image_style 
+        });
+        toast({
+          title: "Successo",
+          description: "Immagine generata con successo!",
+        });
+      }
+    } catch (error) {
+      console.error('Errore:', error);
+      toast({
+        title: "Errore",
+        description: "Si è verificato un errore durante la generazione",
+        variant: "destructive",
+      });
+    } finally {
+      setImageGenerating(false);
+      setRegenerateStyle("");
+    }
+  };
+
   if (loading) {
     return (
       <>
@@ -188,6 +250,88 @@ const DreamDetail = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Immagine Generata */}
+              {dream.image_url ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">Immagine del Sogno</h3>
+                    <Badge variant="secondary" className="capitalize">
+                      {dream.image_style || 'auto'}
+                    </Badge>
+                  </div>
+                  <div className="relative aspect-video rounded-lg overflow-hidden">
+                    <img
+                      src={dream.image_url}
+                      alt={dream.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        disabled={imageGenerating}
+                      >
+                        <ImageIcon className="h-4 w-4" />
+                        Rigenera Immagine
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Rigenera Immagine</DialogTitle>
+                        <DialogDescription>
+                          Scegli uno stile per la nuova immagine del sogno
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="regen-style">Stile</Label>
+                          <Select
+                            value={regenerateStyle}
+                            onValueChange={setRegenerateStyle}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Lascia scegliere all'AI" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="realistico">🎬 Realistico</SelectItem>
+                              <SelectItem value="onirico">✨ Onirico/Surreale</SelectItem>
+                              <SelectItem value="artistico">🎨 Artistico/Pittorico</SelectItem>
+                              <SelectItem value="minimalista">⚪ Minimalista</SelectItem>
+                              <SelectItem value="fantastico">🧙 Fantastico</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button
+                          onClick={() => handleGenerateImage()}
+                          disabled={imageGenerating}
+                          className="w-full"
+                        >
+                          {imageGenerating ? "Generazione..." : "Rigenera"}
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              ) : (
+                <div className="border-2 border-dashed rounded-lg p-8 text-center space-y-3">
+                  <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground" />
+                  <p className="text-muted-foreground">
+                    Nessuna immagine generata per questo sogno
+                  </p>
+                  <Button
+                    onClick={() => handleGenerateImage()}
+                    disabled={imageGenerating}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    {imageGenerating ? "Generazione..." : "Genera Immagine"}
+                  </Button>
+                </div>
+              )}
               {dream.mood && (
                 <div>
                   <h3 className="font-semibold mb-2">Umore</h3>

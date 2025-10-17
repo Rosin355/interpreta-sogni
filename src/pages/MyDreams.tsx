@@ -128,8 +128,37 @@ const MyDreams = () => {
                 <Card
                   key={dream.id}
                   onClick={() => navigate(`/dreams/${dream.id}`)}
-                  className="cursor-pointer hover:shadow-lg transition-shadow"
+                  className="cursor-pointer hover:shadow-lg transition-shadow overflow-hidden"
                 >
+                  {/* Thumbnail Immagine */}
+                  {dream.image_url ? (
+                    <div className="aspect-video w-full overflow-hidden bg-muted">
+                      <img
+                        src={dream.image_url}
+                        alt={dream.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="aspect-video w-full bg-gradient-to-br from-primary/5 to-primary/10 flex items-center justify-center">
+                      <div className="text-muted-foreground/30">
+                        <svg
+                          className="w-16 h-16"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+                  )}
+
                   <CardHeader>
                     <div className="flex items-start justify-between mb-2">
                       <CardTitle className="text-xl">{dream.title}</CardTitle>

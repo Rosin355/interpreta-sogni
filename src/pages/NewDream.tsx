@@ -10,8 +10,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, CalendarIcon, Clock } from "lucide-react";
+import { ArrowLeft, Save, CalendarIcon, Clock, Image, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -28,6 +31,10 @@ const NewDream = () => {
     tags: "",
   });
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [autoStyle, setAutoStyle] = useState(true);
+  const [imageStyle, setImageStyle] = useState("");
+  const [generateImage, setGenerateImage] = useState(true);
+  const [imageGenerating, setImageGenerating] = useState(false);
 
   const moodOptions = [
     { value: "felicita", label: "😊 Felicità" },
@@ -106,6 +113,41 @@ const NewDream = () => {
         title: "Successo",
         description: "Sogno salvato con successo!",
       });
+
+      // Genera immagine se richiesto
+      if (generateImage) {
+        setImageGenerating(true);
+        try {
+          const { error: imageError } = await supabase.functions.invoke('generate-dream-image', {
+            body: {
+              dreamId: data.id,
+              content: formData.content,
+              mood: formData.mood,
+              imageStyle: imageStyle,
+              autoStyle: autoStyle
+            }
+          });
+
+          if (imageError) {
+            console.error('Errore generazione immagine:', imageError);
+            toast({
+              title: "Avviso",
+              description: "Sogno salvato ma impossibile generare l'immagine. Puoi generarla in seguito.",
+              variant: "default",
+            });
+          } else {
+            toast({
+              title: "Immagine generata!",
+              description: "L'immagine del sogno è stata creata con successo",
+            });
+          }
+        } catch (err) {
+          console.error('Errore:', err);
+        } finally {
+          setImageGenerating(false);
+        }
+      }
+
       navigate(`/dreams/${data.id}`);
     }
     
@@ -252,14 +294,79 @@ const NewDream = () => {
                   </p>
                 </div>
 
+                {/* Stile Visivo */}
+                <Collapsible className="space-y-2">
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full flex items-center justify-between"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Image className="h-4 w-4" />
+                        Stile Visivo (opzionale)
+                      </span>
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-4 pt-2">
+                    <div className="flex items-center justify-between space-x-2">
+                      <Label htmlFor="auto-style" className="flex-1">
+                        Lascia che l'AI scelga il miglior stile per il tuo sogno
+                      </Label>
+                      <Switch
+                        id="auto-style"
+                        checked={autoStyle}
+                        onCheckedChange={setAutoStyle}
+                      />
+                    </div>
+
+                    {!autoStyle && (
+                      <div className="space-y-2">
+                        <Label htmlFor="image-style">Seleziona Stile</Label>
+                        <Select
+                          value={imageStyle}
+                          onValueChange={setImageStyle}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Scegli uno stile" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="realistico">🎬 Realistico</SelectItem>
+                            <SelectItem value="onirico">✨ Onirico/Surreale</SelectItem>
+                            <SelectItem value="artistico">🎨 Artistico/Pittorico</SelectItem>
+                            <SelectItem value="minimalista">⚪ Minimalista</SelectItem>
+                            <SelectItem value="fantastico">🧙 Fantastico</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </CollapsibleContent>
+                </Collapsible>
+
+                {/* Checkbox Genera Immagine */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="generate-image"
+                    checked={generateImage}
+                    onCheckedChange={(checked) => setGenerateImage(checked as boolean)}
+                  />
+                  <Label
+                    htmlFor="generate-image"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Genera immagine automaticamente con AI
+                  </Label>
+                </div>
+
                 <div className="flex gap-4">
                   <Button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || imageGenerating}
                     className="flex-1 gap-2"
                   >
                     <Save className="h-4 w-4" />
-                    {loading ? "Salvataggio..." : "Salva Sogno"}
+                    {imageGenerating ? "Generazione immagine..." : loading ? "Salvataggio..." : "Salva Sogno"}
                   </Button>
                   <Button
                     type="button"
