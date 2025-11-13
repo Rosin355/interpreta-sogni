@@ -7,10 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Plus, BookOpen, TrendingUp, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { dreamCategories, categorizeDreams } from "@/utils/dream-categories";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [dreams, setDreams] = useState<any[]>([]);
+  const [allDreams, setAllDreams] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, thisWeek: 0, thisMonth: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -30,17 +33,25 @@ const Dashboard = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data, error } = await supabase
+    // Fetch ultimi 5 sogni per la sezione recenti
+    const { data: recentData, error: recentError } = await supabase
       .from("dreams")
       .select("*")
       .eq("user_id", user.id)
       .order("dream_date", { ascending: false })
       .limit(5);
 
-    if (error) {
-      console.error("Errore nel caricamento dei sogni:", error);
+    // Fetch tutti i sogni per le statistiche
+    const { data: allData, error: allError } = await supabase
+      .from("dreams")
+      .select("*")
+      .eq("user_id", user.id);
+
+    if (recentError || allError) {
+      console.error("Errore nel caricamento dei sogni:", recentError || allError);
     } else {
-      setDreams(data || []);
+      setDreams(recentData || []);
+      setAllDreams(allData || []);
       
       // Calcola statistiche
       const now = new Date();
@@ -48,9 +59,9 @@ const Dashboard = () => {
       const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       
       setStats({
-        total: data?.length || 0,
-        thisWeek: data?.filter(d => new Date(d.created_at) > weekAgo).length || 0,
-        thisMonth: data?.filter(d => new Date(d.created_at) > monthAgo).length || 0,
+        total: allData?.length || 0,
+        thisWeek: allData?.filter(d => new Date(d.created_at) > weekAgo).length || 0,
+        thisMonth: allData?.filter(d => new Date(d.created_at) > monthAgo).length || 0,
       });
     }
     setLoading(false);
@@ -97,6 +108,77 @@ const Dashboard = () => {
             </Card>
           </div>
 
+          {/* Analisi Categorie Sogni */}
+          {!loading && allDreams.length > 0 && (
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Distribuzione Tipi di Sogni</CardTitle>
+                <CardDescription>Analisi delle categorie dei tuoi sogni</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col md:flex-row items-center gap-8">
+                  <div className="w-full md:w-1/2">
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={Object.entries(categorizeDreams(allDreams)).map(([id, count]) => {
+                            const category = dreamCategories.find(c => c.id === id) || dreamCategories[dreamCategories.length - 1];
+                            return {
+                              name: category.name,
+                              value: count,
+                              color: category.color
+                            };
+                          })}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={100}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {Object.entries(categorizeDreams(allDreams)).map(([id], index) => {
+                            const category = dreamCategories.find(c => c.id === id) || dreamCategories[dreamCategories.length - 1];
+                            return <Cell key={`cell-${index}`} fill={category.color} />;
+                          })}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(var(--card))', 
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '0.5rem'
+                          }}
+                        />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="w-full md:w-1/2 space-y-3">
+                    {Object.entries(categorizeDreams(allDreams)).map(([id, count]) => {
+                      const category = dreamCategories.find(c => c.id === id) || dreamCategories[dreamCategories.length - 1];
+                      const percentage = ((count / allDreams.length) * 100).toFixed(1);
+                      return (
+                        <div key={id} className="flex items-center justify-between p-3 bg-card/50 rounded-lg border border-border">
+                          <div className="flex items-center gap-3">
+                            <div 
+                              className="w-4 h-4 rounded-full" 
+                              style={{ backgroundColor: category.color }}
+                            />
+                            <span className="font-medium">{category.name}</span>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold">{count}</div>
+                            <div className="text-xs text-muted-foreground">{percentage}%</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Sogni recenti */}
           <Card>
             <CardHeader>
@@ -141,14 +223,23 @@ const Dashboard = () => {
                       <p className="text-muted-foreground line-clamp-2">{dream.content}</p>
                       {dream.tags && dream.tags.length > 0 && (
                         <div className="flex gap-2 mt-2">
-                          {dream.tags.slice(0, 3).map((tag: string, idx: number) => (
-                            <span
-                              key={idx}
-                              className="text-xs bg-primary/10 text-primary px-2 py-1 rounded"
-                            >
-                              {tag}
-                            </span>
-                          ))}
+                          {dream.tags.slice(0, 3).map((tag: string, idx: number) => {
+                            const { getCategoryFromTag } = require("@/utils/dream-categories");
+                            const category = getCategoryFromTag(tag);
+                            return (
+                              <span
+                                key={idx}
+                                className="text-xs px-2 py-1 rounded font-medium border"
+                                style={{
+                                  backgroundColor: `${category.color}33`,
+                                  color: category.color,
+                                  borderColor: `${category.color}66`
+                                }}
+                              >
+                                {tag}
+                              </span>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
