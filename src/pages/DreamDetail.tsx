@@ -360,6 +360,49 @@ const DreamDetail = () => {
                   </div>
                 </div>
               )}
+
+              {/* Visibilità */}
+              <div>
+                <h3 className="font-semibold mb-2">Visibilità</h3>
+                <Select
+                  value={dream.visibility || "private"}
+                  onValueChange={async (value) => {
+                    const { error } = await supabase
+                      .from("dreams")
+                      .update({ visibility: value })
+                      .eq("id", id);
+                    
+                    if (error) {
+                      toast({
+                        title: "Errore",
+                        description: "Impossibile aggiornare la visibilità",
+                        variant: "destructive",
+                      });
+                    } else {
+                      setDream({ ...dream, visibility: value });
+                      toast({
+                        title: "Visibilità aggiornata",
+                        description: value === "public" 
+                          ? "Il tuo sogno è ora pubblico e visibile nella pagina Esplora" 
+                          : "Il tuo sogno è ora privato",
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full md:w-[200px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="private">🔒 Privato</SelectItem>
+                    <SelectItem value="public">🌍 Pubblico</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {dream.visibility === "public" 
+                    ? "Questo sogno è visibile a tutti gli utenti nella pagina Esplora" 
+                    : "Solo tu puoi vedere questo sogno"}
+                </p>
+              </div>
             </CardContent>
           </Card>
 
