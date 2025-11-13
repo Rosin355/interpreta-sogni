@@ -91,9 +91,9 @@ const Collections = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-background/95">
-        <Navigation />
-        <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-b from-background to-background/95">
+      <Navigation />
+      <div className="container mx-auto px-4 py-8 mt-20">
           <div className="animate-pulse">Caricamento...</div>
         </div>
       </div>
