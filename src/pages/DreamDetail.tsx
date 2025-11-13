@@ -8,6 +8,7 @@ import { getTagColor } from "@/utils/tag-colors";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Edit, Trash2, Sparkles, Image as ImageIcon } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import {
@@ -417,9 +418,22 @@ const DreamDetail = () => {
             <CardContent>
               {dream.interpretation ? (
                 <div className="space-y-4">
-                  <p className="text-muted-foreground whitespace-pre-wrap">
-                    {dream.interpretation}
-                  </p>
+                  <div className="prose prose-invert max-w-none">
+                    <ReactMarkdown
+                      components={{
+                        h1: ({node, ...props}) => <h1 className="text-2xl font-bold text-foreground mb-4" {...props} />,
+                        h2: ({node, ...props}) => <h2 className="text-xl font-bold text-foreground mb-3" {...props} />,
+                        h3: ({node, ...props}) => <h3 className="text-lg font-semibold text-foreground mb-2" {...props} />,
+                        strong: ({node, ...props}) => <strong className="font-bold text-foreground" {...props} />,
+                        p: ({node, ...props}) => <p className="text-muted-foreground mb-3" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc list-inside text-muted-foreground mb-3 space-y-1" {...props} />,
+                        ol: ({node, ...props}) => <ol className="list-decimal list-inside text-muted-foreground mb-3 space-y-1" {...props} />,
+                        li: ({node, ...props}) => <li className="text-muted-foreground" {...props} />,
+                      }}
+                    >
+                      {dream.interpretation}
+                    </ReactMarkdown>
+                  </div>
                   <Button
                     onClick={handleInterpret}
                     disabled={interpretationLoading}
