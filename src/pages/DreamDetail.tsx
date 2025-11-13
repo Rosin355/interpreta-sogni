@@ -11,6 +11,7 @@ import { ArrowLeft, Edit, Trash2, Sparkles, Image as ImageIcon } from "lucide-re
 import ReactMarkdown from "react-markdown";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+import { VoiceNoteRecorder } from "@/components/VoiceNoteRecorder";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -464,6 +465,9 @@ const DreamDetail = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Voice Notes */}
+          <VoiceNoteRecorder dreamId={id!} />
         </div>
       </div>
     </>
