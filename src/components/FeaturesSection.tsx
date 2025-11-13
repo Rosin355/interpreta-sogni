@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import dreamsHero from "@/assets/dreams-hero.jpg";
 
 const features = [
   {
@@ -35,6 +36,13 @@ const FeaturesSection = () => {
             I nostri strumenti intuitivi ti aiutano a documentare, analizzare e comprendere i tuoi sogni mentre 
             partecipi a ricerche rivoluzionarie sui sogni.
           </p>
+          <div className="mt-12 mb-8">
+            <img 
+              src={dreamsHero} 
+              alt="Una persona che dorme serenamente sotto un cielo stellato onirico" 
+              className="rounded-2xl shadow-2xl w-full max-w-4xl mx-auto"
+            />
+          </div>
         </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
