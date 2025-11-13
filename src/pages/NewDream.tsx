@@ -21,6 +21,7 @@ import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { getCategoryFromTag } from "@/utils/dream-categories";
+import { VoiceRecorder } from "@/components/VoiceRecorder";
 
 interface SuggestedTag {
   tag: string;
@@ -355,7 +356,19 @@ const NewDream = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="content">Descrizione del Sogno *</Label>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label htmlFor="content">Descrizione del Sogno *</Label>
+                    <VoiceRecorder
+                      onTranscription={(text) => {
+                        setFormData({
+                          ...formData,
+                          content: formData.content 
+                            ? `${formData.content}\n\n${text}` 
+                            : text
+                        });
+                      }}
+                    />
+                  </div>
                   <Textarea
                     id="content"
                     placeholder="Descrivi il tuo sogno in dettaglio..."

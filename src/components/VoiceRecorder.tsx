@@ -1,0 +1,155 @@
+import { useState, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Mic, Square, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+
+interface VoiceRecorderProps {
+  onTranscription: (text: string) => void;
+}
+
+export const VoiceRecorder = ({ onTranscription }: VoiceRecorderProps) => {
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm',
+      });
+
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await transcribeAudio(audioBlob);
+        
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+
+      toast({
+        title: "Registrazione avviata",
+        description: "Parla nel microfono per registrare il tuo sogno",
+      });
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      toast({
+        title: "Errore",
+        description: "Impossibile accedere al microfono. Verifica i permessi del browser.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    setIsTranscribing(true);
+
+    try {
+      // Convert blob to base64
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      
+      reader.onloadend = async () => {
+        const base64Audio = reader.result?.toString().split(',')[1];
+
+        if (!base64Audio) {
+          throw new Error('Failed to convert audio to base64');
+        }
+
+        const { data, error } = await supabase.functions.invoke('transcribe-audio', {
+          body: { audio: base64Audio }
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        if (data?.text) {
+          onTranscription(data.text);
+          toast({
+            title: "Trascrizione completata",
+            description: "Il testo è stato aggiunto al contenuto del sogno",
+          });
+        }
+
+        setIsTranscribing(false);
+      };
+
+      reader.onerror = () => {
+        throw new Error('Failed to read audio file');
+      };
+    } catch (error) {
+      console.error('Error transcribing audio:', error);
+      toast({
+        title: "Errore",
+        description: "Impossibile trascrivere l'audio. Riprova.",
+        variant: "destructive",
+      });
+      setIsTranscribing(false);
+    }
+  };
+
+  return (
+    <div className="flex gap-2">
+      {!isRecording && !isTranscribing && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={startRecording}
+          className="gap-2"
+        >
+          <Mic className="h-4 w-4" />
+          Registra Vocalmente
+        </Button>
+      )}
+
+      {isRecording && (
+        <Button
+          type="button"
+          variant="destructive"
+          size="sm"
+          onClick={stopRecording}
+          className="gap-2 animate-pulse"
+        >
+          <Square className="h-4 w-4" />
+          Stop Registrazione
+        </Button>
+      )}
+
+      {isTranscribing && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled
+          className="gap-2"
+        >
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Trascrizione in corso...
+        </Button>
+      )}
+    </div>
+  );
+};
