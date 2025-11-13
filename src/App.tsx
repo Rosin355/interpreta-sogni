@@ -9,6 +9,9 @@ import Dashboard from "./pages/Dashboard";
 import MyDreams from "./pages/MyDreams";
 import NewDream from "./pages/NewDream";
 import DreamDetail from "./pages/DreamDetail";
+import Collections from "./pages/Collections";
+import CollectionDetail from "./pages/CollectionDetail";
+import Timeline from "./pages/Timeline";
 import NotFound from "./pages/NotFound";
 
 const App = () => (
@@ -23,6 +26,9 @@ const App = () => (
         <Route path="/my-dreams" element={<MyDreams />} />
         <Route path="/dreams/new" element={<NewDream />} />
         <Route path="/dreams/:id" element={<DreamDetail />} />
+        <Route path="/collections" element={<Collections />} />
+        <Route path="/collections/:id" element={<CollectionDetail />} />
+        <Route path="/timeline" element={<Timeline />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

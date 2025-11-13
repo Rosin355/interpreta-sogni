@@ -53,6 +53,18 @@ const Navigation = () => {
               >
                 I Miei Sogni
               </button>
+              <button
+                onClick={() => navigate("/collections")}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Collezioni
+              </button>
+              <button
+                onClick={() => navigate("/timeline")}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Timeline
+              </button>
             </div>
             
             <Button 
