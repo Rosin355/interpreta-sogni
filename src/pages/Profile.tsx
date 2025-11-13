@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -22,9 +22,8 @@ export default function Profile() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [username, setUsername] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [isPWAInstalled, setIsPWAInstalled] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [dreamStats, setDreamStats] = useState({
     total: 0,
     thisWeek: 0,
@@ -68,7 +67,7 @@ export default function Profile() {
 
       setProfile(data);
       setUsername(data?.username || "");
-      setAvatarUrl(data?.avatar_url || null);
+      setAvatarUrl(data?.avatar_url || "");
     } catch (error: any) {
       console.error('Error loading profile:', error);
     } finally {
@@ -95,7 +94,6 @@ export default function Profile() {
       const thisWeek = dreams?.filter(d => new Date(d.created_at) >= oneWeekAgo).length || 0;
       const thisMonth = dreams?.filter(d => new Date(d.created_at) >= oneMonthAgo).length || 0;
 
-      // Find top category
       const categories: Record<string, number> = {};
       dreams?.forEach(dream => {
         if (dream.tags && Array.isArray(dream.tags)) {
@@ -119,54 +117,49 @@ export default function Profile() {
   };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !user) return;
-
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!validTypes.includes(file.type)) {
-      toast({
-        title: "Formato non valido",
-        description: "Usa solo immagini JPG, PNG, WEBP o GIF",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate file size (2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      toast({
-        title: "File troppo grande",
-        description: "L'immagine deve essere inferiore a 2MB",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setUploading(true);
     try {
-      // Delete old avatar if exists
+      setUploading(true);
+      
+      if (!event.target.files || event.target.files.length === 0) return;
+
+      const file = event.target.files[0];
+      
+      if (file.size > 2 * 1024 * 1024) {
+        toast({
+          title: "File troppo grande",
+          description: "L'immagine deve essere inferiore a 2MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Formato non valido",
+          description: "Carica un'immagine valida (JPEG, PNG, WEBP, GIF)",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Math.random()}.${fileExt}`;
+
       if (avatarUrl) {
         const oldPath = avatarUrl.split('/').slice(-2).join('/');
         await supabase.storage.from('avatars').remove([oldPath]);
       }
 
-      // Upload new avatar
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/avatar.${fileExt}`;
-      
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(fileName, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName);
 
-      // Update profile with new avatar URL
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: publicUrl })
@@ -175,36 +168,32 @@ export default function Profile() {
       if (updateError) throw updateError;
 
       setAvatarUrl(publicUrl);
+      
       toast({
         title: "Avatar aggiornato",
-        description: "La tua immagine profilo è stata caricata con successo",
+        description: "La tua immagine profilo è stata aggiornata",
       });
+
     } catch (error: any) {
-      console.error('Upload error:', error);
       toast({
         title: "Errore",
-        description: error.message || "Impossibile caricare l'immagine",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
       setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
     }
   };
 
   const handleRemoveAvatar = async () => {
-    if (!user || !avatarUrl) return;
-
     try {
       setUploading(true);
       
-      // Delete from storage
-      const oldPath = avatarUrl.split('/').slice(-2).join('/');
-      await supabase.storage.from('avatars').remove([oldPath]);
+      if (avatarUrl) {
+        const oldPath = avatarUrl.split('/').slice(-2).join('/');
+        await supabase.storage.from('avatars').remove([oldPath]);
+      }
 
-      // Update profile
       const { error } = await supabase
         .from('profiles')
         .update({ avatar_url: null })
@@ -212,11 +201,13 @@ export default function Profile() {
 
       if (error) throw error;
 
-      setAvatarUrl(null);
+      setAvatarUrl("");
+      
       toast({
         title: "Avatar rimosso",
-        description: "L'immagine profilo è stata eliminata",
+        description: "L'immagine profilo è stata rimossa",
       });
+
     } catch (error: any) {
       toast({
         title: "Errore",
@@ -278,12 +269,9 @@ export default function Profile() {
         <div className="max-w-4xl mx-auto space-y-6">
           <div>
             <h1 className="text-3xl font-bold mb-2">Il Mio Profilo</h1>
-            <p className="text-muted-foreground">
-              Gestisci le tue informazioni personali e le impostazioni dell'app
-            </p>
+            <p className="text-muted-foreground">Gestisci le tue informazioni personali e le impostazioni dell'app</p>
           </div>
 
-          {/* Personal Info */}
           <Card>
             <CardHeader>
               <CardTitle>Informazioni Personali</CardTitle>
@@ -293,22 +281,44 @@ export default function Profile() {
               <div className="flex items-center gap-6">
                 <div className="relative">
                   <Avatar className="h-20 w-20">
-                    <AvatarImage src={avatarUrl || undefined} />
+                    <AvatarImage src={avatarUrl} />
                     <AvatarFallback className="text-2xl">
                       {username.slice(0, 2).toUpperCase() || "US"}
                     </AvatarFallback>
                   </Avatar>
-                  {avatarUrl && (
+                  {uploading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-full">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                  )}
+                  {avatarUrl && !uploading && (
                     <button
                       onClick={handleRemoveAvatar}
-                      disabled={uploading}
                       className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90 transition-colors"
+                      title="Rimuovi avatar"
                     >
                       <X className="h-3 w-3" />
                     </button>
                   )}
                 </div>
-                <div className="flex-1 space-y-3">
+                <div className="flex-1 space-y-4">
+                  <div>
+                    <Label htmlFor="avatar" className="cursor-pointer">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                        <Upload className="h-4 w-4" />
+                        {avatarUrl ? "Cambia immagine profilo" : "Carica immagine profilo"}
+                      </div>
+                    </Label>
+                    <Input
+                      id="avatar"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                      disabled={uploading}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">JPEG, PNG, WEBP o GIF (max 2MB)</p>
+                  </div>
                   <div>
                     <Label htmlFor="username">Username</Label>
                     <Input
@@ -317,35 +327,6 @@ export default function Profile() {
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="Il tuo username"
                     />
-                  </div>
-                  <div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/gif"
-                      onChange={handleAvatarUpload}
-                      className="hidden"
-                      id="avatar-upload"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                    >
-                      {uploading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Caricamento...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="mr-2 h-4 w-4" />
-                          Carica Avatar
-                        </>
-                      )}
-                    </Button>
                   </div>
                 </div>
               </div>
@@ -372,7 +353,6 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          {/* PWA Status */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -387,9 +367,7 @@ export default function Profile() {
                   <CheckCircle2 className="h-6 w-6 text-primary" />
                   <div className="flex-1">
                     <p className="font-medium">App Installata</p>
-                    <p className="text-sm text-muted-foreground">
-                      Stai usando la versione nativa dell'app
-                    </p>
+                    <p className="text-sm text-muted-foreground">Stai usando la versione nativa dell'app</p>
                   </div>
                   <Badge variant="secondary">Attiva</Badge>
                 </div>
@@ -407,7 +385,6 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          {/* Statistics */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
