@@ -11,7 +11,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { BookOpen, User as UserIcon, Settings, LogOut } from "lucide-react";
+import { BookOpen, User as UserIcon, Settings, LogOut, LayoutDashboard } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const UserMenu = () => {
@@ -84,6 +84,10 @@ const UserMenu = () => {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigate("/dashboard")} className="cursor-pointer">
+          <LayoutDashboard className="mr-2 h-4 w-4" />
+          <span>Dashboard</span>
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => navigate("/my-dreams")} className="cursor-pointer">
           <BookOpen className="mr-2 h-4 w-4" />
           <span>I Miei Sogni</span>
