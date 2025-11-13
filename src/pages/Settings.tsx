@@ -122,7 +122,7 @@ export default function Settings() {
           <div>
             <h1 className="text-3xl font-bold mb-2">Impostazioni</h1>
             <p className="text-muted-foreground">
-              Configura la tua esperienza con Dream Catcher
+              Configura la tua esperienza con Interpreta i tuoi sogni
             </p>
           </div>
 

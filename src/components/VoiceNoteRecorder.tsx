@@ -38,7 +38,7 @@ export const VoiceNoteRecorder = ({ dreamId }: VoiceNoteRecorderProps) => {
 
   const fetchVoiceNotes = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('voice_notes')
         .select('*')
         .eq('dream_id', dreamId)
@@ -152,7 +152,7 @@ export const VoiceNoteRecorder = ({ dreamId }: VoiceNoteRecorderProps) => {
         }
 
         // Save to database
-        const { error: dbError } = await supabase
+        const { error: dbError } = await (supabase as any)
           .from('voice_notes')
           .insert({
             dream_id: dreamId,
@@ -227,7 +227,7 @@ export const VoiceNoteRecorder = ({ dreamId }: VoiceNoteRecorderProps) => {
       if (storageError) throw storageError;
 
       // Delete from database
-      const { error: dbError } = await supabase
+      const { error: dbError } = await (supabase as any)
         .from('voice_notes')
         .delete()
         .eq('id', noteId);
