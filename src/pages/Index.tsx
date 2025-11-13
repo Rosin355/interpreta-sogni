@@ -7,27 +7,22 @@ import ExperienceSection from "@/components/ExperienceSection";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
 import { initScrollAnimations } from "@/utils/gsap-animations";
-
 const Index = () => {
   useEffect(() => {
     // Initialize GSAP scroll animations
     initScrollAnimations();
   }, []);
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Content */}
       <div className="relative z-10">
         <Navigation />
         <HeroSection />
-        <FeaturesSection />
+        <FeaturesSection className="py-0 px-0" />
         <ResearchSection />
         <ExperienceSection />
         <CTASection />
         <Footer />
       </div>
-    </div>
-  );
-}
-
+    </div>;
+};
 export default Index;
