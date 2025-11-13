@@ -22,6 +22,8 @@ import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { getCategoryFromTag } from "@/utils/dream-categories";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
+import { useDreamDraft } from "@/hooks/useDreamDraft";
+import { Cloud, CloudOff } from "lucide-react";
 
 interface SuggestedTag {
   tag: string;
@@ -49,6 +51,9 @@ const NewDream = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(true);
   const debounceTimerRef = useRef<number | null>(null);
+  
+  // Auto-save draft functionality
+  const { isSaving, lastSavedText, saveDraft, deleteDraft } = useDreamDraft(formData, true);
 
   const moodOptions = [
     { value: "felicita", label: "😊 Felicità" },
@@ -220,6 +225,9 @@ const NewDream = () => {
         variant: "destructive",
       });
     } else {
+      // Delete draft after successful save
+      await deleteDraft();
+      
       toast({
         title: "Successo",
         description: "Sogno salvato con successo!",
@@ -281,10 +289,27 @@ const NewDream = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl">Nuovo Sogno</CardTitle>
-              <CardDescription>
-                Registra il tuo sogno e salvalo nel tuo diario personale
-              </CardDescription>
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle className="text-2xl">Nuovo Sogno</CardTitle>
+                  <CardDescription>
+                    Registra il tuo sogno e salvalo nel tuo diario personale
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  {isSaving ? (
+                    <>
+                      <Cloud className="h-4 w-4 animate-pulse" />
+                      <span>Salvataggio...</span>
+                    </>
+                  ) : lastSavedText ? (
+                    <>
+                      <CloudOff className="h-4 w-4" />
+                      <span>{lastSavedText}</span>
+                    </>
+                  ) : null}
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
