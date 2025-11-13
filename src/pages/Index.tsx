@@ -14,7 +14,7 @@ const Index = () => {
   }, []);
   return <div className="min-h-screen bg-background">
       {/* Content */}
-      <div className="relative z-10">
+      <div className="relative z-10" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <Navigation />
         <HeroSection />
         <FeaturesSection />

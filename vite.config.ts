@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => ({
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
         name: 'Interpreta I Sogni',
-        short_name: 'Dream Catcher',
+        short_name: 'Interpreta Sogni',
         description: 'Registra, analizza e scopri i pattern nei tuoi sogni',
         theme_color: '#5633CD',
         background_color: '#0a0118',
@@ -40,6 +40,60 @@ export default defineConfig(({ mode }) => ({
             type: 'image/png',
             purpose: 'any maskable',
           },
+        ],
+        shortcuts: [
+          {
+            name: 'Nuovo Sogno',
+            short_name: 'Nuovo',
+            description: 'Registra un nuovo sogno',
+            url: '/dreams/new',
+            icons: [
+              {
+                src: 'pwa-192x192.png',
+                sizes: '192x192',
+                type: 'image/png',
+              }
+            ]
+          },
+          {
+            name: 'Dashboard',
+            short_name: 'Dashboard',
+            description: 'Visualizza la tua dashboard',
+            url: '/dashboard',
+            icons: [
+              {
+                src: 'pwa-192x192.png',
+                sizes: '192x192',
+                type: 'image/png',
+              }
+            ]
+          },
+          {
+            name: 'Esplora Sogni',
+            short_name: 'Esplora',
+            description: 'Esplora i sogni della community',
+            url: '/explore',
+            icons: [
+              {
+                src: 'pwa-192x192.png',
+                sizes: '192x192',
+                type: 'image/png',
+              }
+            ]
+          },
+          {
+            name: 'I Miei Sogni',
+            short_name: 'I Miei',
+            description: 'Visualizza i tuoi sogni',
+            url: '/my-dreams',
+            icons: [
+              {
+                src: 'pwa-192x192.png',
+                sizes: '192x192',
+                type: 'image/png',
+              }
+            ]
+          }
         ],
       },
       workbox: {

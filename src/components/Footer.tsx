@@ -1,6 +1,6 @@
 import { Moon, Brain, Heart } from "lucide-react";
 const Footer = () => {
-  return <footer className="bg-secondary/5 border-t border-border">
+  return <footer className="bg-secondary/5 border-t border-border" style={{ paddingBottom: 'calc(3rem + env(safe-area-inset-bottom))' }}>
       <div className="container mx-auto px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* Brand */}
