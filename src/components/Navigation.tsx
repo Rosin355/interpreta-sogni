@@ -41,12 +41,12 @@ const Navigation = () => {
           // Menu per utenti loggati
           <div className="flex items-center space-x-6">
             <div className="hidden md:flex items-center space-x-6">
-              <a 
-                href="#explore" 
-                className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              <button
+                onClick={() => navigate("/explore")}
+                className="text-muted-foreground hover:text-foreground transition-colors"
               >
                 Esplora
-              </a>
+              </button>
               <button
                 onClick={() => navigate("/my-dreams")}
                 className="text-muted-foreground hover:text-foreground transition-colors"
@@ -82,9 +82,12 @@ const Navigation = () => {
           // Menu per utenti non loggati
           <div className="flex items-center space-x-4">
             <div className="hidden md:flex items-center space-x-8 mr-4">
-              <a href="#explore" className="text-muted-foreground hover:text-foreground transition-colors">
+              <button
+                onClick={() => navigate("/explore")}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
                 Esplora
-              </a>
+              </button>
             </div>
             <Button 
               variant="outline-white" 

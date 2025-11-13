@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Download, CheckCircle2, Smartphone, TrendingUp, Upload, X } from "lucide-react";
 import Navigation from "@/components/Navigation";
+import StreakCard from "@/components/StreakCard";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
@@ -385,6 +386,10 @@ export default function Profile() {
             </CardContent>
           </Card>
 
+          {/* Streak Card */}
+          <StreakCard />
+
+          {/* Statistics */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
