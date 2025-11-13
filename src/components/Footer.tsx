@@ -53,7 +53,8 @@ const Footer = () => {
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>Fatto con</span>
             <Heart className="h-4 w-4 text-primary fill-primary" />
-            <span>per il mio amore</span>
+            <span>
+          </span>
             <Brain className="h-4 w-4 text-primary" />
           </div>
         </div>
