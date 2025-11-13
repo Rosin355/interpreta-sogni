@@ -53,7 +53,7 @@ export const useDreamDraft = (formData: DraftData, enabled: boolean = true) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('dream_drafts')
         .select('*')
         .eq('user_id', user.id)
@@ -96,7 +96,7 @@ export const useDreamDraft = (formData: DraftData, enabled: boolean = true) => {
 
       if (draftId) {
         // Update existing draft
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('dream_drafts')
           .update(draftData)
           .eq('id', draftId);
@@ -104,7 +104,7 @@ export const useDreamDraft = (formData: DraftData, enabled: boolean = true) => {
         if (error) throw error;
       } else {
         // Create new draft
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from('dream_drafts')
           .insert(draftData)
           .select()
@@ -131,7 +131,7 @@ export const useDreamDraft = (formData: DraftData, enabled: boolean = true) => {
     if (!draftId) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('dream_drafts')
         .delete()
         .eq('id', draftId);

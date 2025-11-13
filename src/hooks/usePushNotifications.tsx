@@ -73,7 +73,7 @@ export const usePushNotifications = () => {
 
       const subscriptionData = JSON.parse(JSON.stringify(subscription));
       
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('push_subscriptions')
         .upsert({
           user_id: user.id,
@@ -110,7 +110,7 @@ export const usePushNotifications = () => {
       // Remove from database
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase
+        await (supabase as any)
           .from('push_subscriptions')
           .delete()
           .eq('user_id', user.id);
