@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.suggest-tags]
 verify_jwt = false
+
+[functions.transcribe-audio]
+verify_jwt = false
