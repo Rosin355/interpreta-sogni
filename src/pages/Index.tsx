@@ -18,7 +18,7 @@ const Index = () => {
         <Navigation />
         <HeroSection />
         <FeaturesSection className="py-0 px-0" />
-        <ResearchSection />
+        <ResearchSection className="py-px" />
         <ExperienceSection />
         <CTASection />
         <Footer />
