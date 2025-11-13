@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+import { getTagColor } from "@/utils/tag-colors";
 
 const MyDreams = () => {
   const navigate = useNavigate();
@@ -181,7 +182,7 @@ const MyDreams = () => {
                         {dream.tags.map((tag: string, idx: number) => (
                           <span
                             key={idx}
-                            className="text-xs bg-primary/20 text-primary px-3 py-1.5 rounded-full font-medium shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)] border border-primary/30 hover:shadow-[0_0_25px_rgba(var(--primary-rgb),0.5)] transition-all duration-300"
+                            className={`text-xs px-3 py-1.5 rounded-full font-medium border transition-all duration-300 hover:scale-105 hover:animate-pulse ${getTagColor(tag)}`}
                           >
                             {tag}
                           </span>
