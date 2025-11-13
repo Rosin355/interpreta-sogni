@@ -5,16 +5,19 @@ import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Filter } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { getTagColor } from "@/utils/tag-colors";
+import { dreamCategories, getDreamCategories } from "@/utils/dream-categories";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const MyDreams = () => {
   const navigate = useNavigate();
   const [dreams, setDreams] = useState<any[]>([]);
   const [filteredDreams, setFilteredDreams] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,8 +26,22 @@ const MyDreams = () => {
   }, []);
 
   useEffect(() => {
+    let filtered = dreams;
+
+    // Filtro per categoria
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter(dream => {
+        if (!dream.tags || dream.tags.length === 0) {
+          return selectedCategory === "other";
+        }
+        const categories = getDreamCategories(dream.tags);
+        return categories.some(cat => cat.id === selectedCategory);
+      });
+    }
+
+    // Filtro per ricerca
     if (searchQuery) {
-      const filtered = dreams.filter(
+      filtered = filtered.filter(
         (dream) =>
           dream.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           dream.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -32,11 +49,10 @@ const MyDreams = () => {
             tag.toLowerCase().includes(searchQuery.toLowerCase())
           )
       );
-      setFilteredDreams(filtered);
-    } else {
-      setFilteredDreams(dreams);
     }
-  }, [searchQuery, dreams]);
+
+    setFilteredDreams(filtered);
+  }, [searchQuery, selectedCategory, dreams]);
 
   const checkAuth = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -82,9 +98,9 @@ const MyDreams = () => {
             </Button>
           </div>
 
-          {/* Barra di ricerca */}
-          <div className="mb-6">
-            <div className="relative">
+          {/* Barra di ricerca e filtri */}
+          <div className="mb-6 flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
@@ -93,6 +109,28 @@ const MyDreams = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
               />
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Tutte le categorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tutte le categorie</SelectItem>
+                  {dreamCategories.map(category => (
+                    <SelectItem key={category.id} value={category.id}>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: category.color }}
+                        />
+                        {category.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
