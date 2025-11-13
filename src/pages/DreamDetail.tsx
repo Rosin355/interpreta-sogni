@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { getTagColor } from "@/utils/tag-colors";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Edit, Trash2, Sparkles, Image as ImageIcon } from "lucide-react";
@@ -351,7 +352,7 @@ const DreamDetail = () => {
                     {dream.tags.map((tag: string, idx: number) => (
                       <span
                         key={idx}
-                        className="bg-primary/20 text-primary px-4 py-2 rounded-full text-sm font-medium shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)] border border-primary/30 hover:shadow-[0_0_25px_rgba(var(--primary-rgb),0.5)] transition-all duration-300"
+                        className={`px-4 py-2 rounded-full text-sm font-medium border transition-all duration-300 hover:scale-105 hover:animate-pulse ${getTagColor(tag)}`}
                       >
                         {tag}
                       </span>
