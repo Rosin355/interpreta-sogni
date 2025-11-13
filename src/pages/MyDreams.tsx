@@ -181,7 +181,7 @@ const MyDreams = () => {
                         {dream.tags.map((tag: string, idx: number) => (
                           <span
                             key={idx}
-                            className="text-xs bg-primary/10 text-primary px-2 py-1 rounded"
+                            className="text-xs bg-primary/20 text-primary px-3 py-1.5 rounded-full font-medium shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)] border border-primary/30 hover:shadow-[0_0_25px_rgba(var(--primary-rgb),0.5)] transition-all duration-300"
                           >
                             {tag}
                           </span>

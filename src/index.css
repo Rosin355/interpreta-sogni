@@ -27,6 +27,7 @@ All colors MUST be HSL.
 
     /* Primary purple/blue */
     --primary: 245 58% 51%;
+    --primary-rgb: 86, 54, 205;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 235 45% 15%;
@@ -98,6 +99,7 @@ All colors MUST be HSL.
     --popover-foreground: 0 0% 95%;
 
     --primary: 245 58% 51%;
+    --primary-rgb: 86, 54, 205;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 235 45% 15%;
