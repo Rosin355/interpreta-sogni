@@ -40,16 +40,16 @@ const NotificationManager = () => {
     if (!user) return;
 
     const { data, error } = await supabase
-      .from("notification_preferences")
+      .from("notification_preferences" as any)
       .select("*")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     if (data) {
       setPreferences({
-        enabled: data.enabled,
-        preferred_time: data.preferred_time,
-        last_notification_sent: data.last_notification_sent,
+        enabled: (data as any).enabled,
+        preferred_time: (data as any).preferred_time,
+        last_notification_sent: (data as any).last_notification_sent,
       });
     } else if (error && error.code !== "PGRST116") {
       console.error("Error loading preferences:", error);
@@ -93,12 +93,12 @@ const NotificationManager = () => {
     const updatedPrefs = { ...preferences, ...newPreferences };
 
     const { error } = await supabase
-      .from("notification_preferences")
+      .from("notification_preferences" as any)
       .upsert({
         user_id: user.id,
         enabled: updatedPrefs.enabled,
         preferred_time: updatedPrefs.preferred_time,
-      });
+      } as any);
 
     if (error) {
       console.error("Error saving preferences:", error);
@@ -163,8 +163,8 @@ const NotificationManager = () => {
     if (!user) return;
 
     await supabase
-      .from("notification_preferences")
-      .update({ last_notification_sent: new Date().toISOString() })
+      .from("notification_preferences" as any)
+      .update({ last_notification_sent: new Date().toISOString() } as any)
       .eq("user_id", user.id);
   };
 

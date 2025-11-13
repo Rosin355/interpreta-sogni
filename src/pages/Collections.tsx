@@ -41,7 +41,7 @@ const Collections = () => {
       if (!user) return;
 
       const { data: collectionsData, error: collectionsError } = await supabase
-        .from("dream_collections")
+        .from("dream_collections" as any)
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
@@ -50,9 +50,9 @@ const Collections = () => {
 
       // Fetch dream counts for each collection
       const collectionsWithCounts = await Promise.all(
-        (collectionsData || []).map(async (collection) => {
+        (collectionsData || []).map(async (collection: any) => {
           const { count } = await supabase
-            .from("dream_collection_items")
+            .from("dream_collection_items" as any)
             .select("*", { count: "exact", head: true })
             .eq("collection_id", collection.id);
 
@@ -60,7 +60,7 @@ const Collections = () => {
         })
       );
 
-      setCollections(collectionsWithCounts);
+      setCollections(collectionsWithCounts as any);
     } catch (error: any) {
       toast.error("Errore nel caricamento delle collezioni");
       console.error(error);
@@ -75,7 +75,7 @@ const Collections = () => {
 
     try {
       const { error } = await supabase
-        .from("dream_collections")
+        .from("dream_collections" as any)
         .delete()
         .eq("id", id);
 

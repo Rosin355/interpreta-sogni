@@ -53,7 +53,7 @@ const CreateCollectionDialog = ({
       if (initialData?.id) {
         // Update existing collection
         const { error } = await supabase
-          .from("dream_collections")
+          .from("dream_collections" as any)
           .update({
             name: name.trim(),
             description: description.trim() || null,
@@ -66,7 +66,7 @@ const CreateCollectionDialog = ({
       } else {
         // Create new collection
         const { error } = await supabase
-          .from("dream_collections")
+          .from("dream_collections" as any)
           .insert({
             user_id: user.id,
             name: name.trim(),

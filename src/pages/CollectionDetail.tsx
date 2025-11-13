@@ -60,23 +60,23 @@ const CollectionDetail = () => {
     try {
       // Fetch collection details
       const { data: collectionData, error: collectionError } = await supabase
-        .from("dream_collections")
+        .from("dream_collections" as any)
         .select("*")
         .eq("id", id)
         .single();
 
       if (collectionError) throw collectionError;
-      setCollection(collectionData);
+      setCollection(collectionData as any);
 
       // Fetch dreams in this collection
       const { data: itemsData, error: itemsError } = await supabase
-        .from("dream_collection_items")
+        .from("dream_collection_items" as any)
         .select("dream_id")
         .eq("collection_id", id);
 
       if (itemsError) throw itemsError;
 
-      const dreamIds = itemsData.map((item) => item.dream_id);
+      const dreamIds = (itemsData || []).map((item: any) => item.dream_id);
 
       if (dreamIds.length > 0) {
         const { data: dreamsData, error: dreamsError } = await supabase
@@ -117,7 +117,7 @@ const CollectionDetail = () => {
   const handleRemoveDream = async (dreamId: string) => {
     try {
       const { error } = await supabase
-        .from("dream_collection_items")
+        .from("dream_collection_items" as any)
         .delete()
         .eq("collection_id", id)
         .eq("dream_id", dreamId);
@@ -140,7 +140,7 @@ const CollectionDetail = () => {
       }));
 
       const { error } = await supabase
-        .from("dream_collection_items")
+        .from("dream_collection_items" as any)
         .insert(items);
 
       if (error) throw error;
