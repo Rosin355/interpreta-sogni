@@ -11,21 +11,33 @@ import Navigation from "@/components/Navigation";
 import NotificationManager from "@/components/NotificationManager";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useTheme } from "next-themes";
-
 export default function Settings() {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { theme, setTheme } = useTheme();
-  const { isSupported, isSubscribed, loading: pushLoading, subscribe, unsubscribe } = usePushNotifications();
+  const {
+    toast
+  } = useToast();
+  const {
+    theme,
+    setTheme
+  } = useTheme();
+  const {
+    isSupported,
+    isSubscribed,
+    loading: pushLoading,
+    subscribe,
+    unsubscribe
+  } = usePushNotifications();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
-
   useEffect(() => {
     checkAuth();
   }, []);
-
   const checkAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: {
+        user
+      }
+    } = await supabase.auth.getUser();
     if (!user) {
       navigate("/auth");
       return;
@@ -33,68 +45,58 @@ export default function Settings() {
     setUser(user);
     setLoading(false);
   };
-
   const handleClearCache = () => {
     if ('caches' in window) {
-      caches.keys().then((names) => {
-        names.forEach((name) => {
+      caches.keys().then(names => {
+        names.forEach(name => {
           caches.delete(name);
         });
       });
       toast({
         title: "Cache cancellata",
-        description: "La cache dell'app è stata svuotata con successo",
+        description: "La cache dell'app è stata svuotata con successo"
       });
     }
   };
-
   const handleExportData = async () => {
     try {
-      const { data: dreams, error } = await supabase
-        .from('dreams')
-        .select('*')
-        .eq('user_id', user.id);
-
+      const {
+        data: dreams,
+        error
+      } = await supabase.from('dreams').select('*').eq('user_id', user.id);
       if (error) throw error;
-
       const dataStr = JSON.stringify(dreams, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const dataBlob = new Blob([dataStr], {
+        type: 'application/json'
+      });
       const url = URL.createObjectURL(dataBlob);
       const link = document.createElement('a');
       link.href = url;
       link.download = `dreams-export-${new Date().toISOString()}.json`;
       link.click();
-
       toast({
         title: "Dati esportati",
-        description: "I tuoi dati sono stati scaricati con successo",
+        description: "I tuoi dati sono stati scaricati con successo"
       });
     } catch (error: any) {
       toast({
         title: "Errore",
         description: error.message,
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   const handleDeleteAccount = async () => {
-    const confirmed = window.confirm(
-      "Sei sicuro di voler eliminare il tuo account? Questa azione è irreversibile e tutti i tuoi dati verranno eliminati."
-    );
-
+    const confirmed = window.confirm("Sei sicuro di voler eliminare il tuo account? Questa azione è irreversibile e tutti i tuoi dati verranno eliminati.");
     if (!confirmed) return;
-
     try {
       // Delete all user data first
       await supabase.from('dreams').delete().eq('user_id', user.id);
       await supabase.from('profiles').delete().eq('id', user.id);
-      
       toast({
         title: "Account eliminato",
-        description: "Il tuo account è stato eliminato. Verrai reindirizzato alla home.",
+        description: "Il tuo account è stato eliminato. Verrai reindirizzato alla home."
       });
-
       setTimeout(() => {
         supabase.auth.signOut();
         navigate("/");
@@ -103,21 +105,16 @@ export default function Settings() {
       toast({
         title: "Errore",
         description: error.message,
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+    return <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       <Navigation />
       
       <main className="container mx-auto px-4 py-8 mt-20">
@@ -141,8 +138,7 @@ export default function Settings() {
             <CardContent className="space-y-6">
               <NotificationManager />
               
-              {isSupported && (
-                <>
+              {isSupported && <>
                   <div className="border-t pt-4">
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
@@ -151,83 +147,33 @@ export default function Settings() {
                           Ricevi notifiche push direttamente sul tuo dispositivo
                         </p>
                       </div>
-                      <Switch
-                        checked={isSubscribed}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            subscribe();
-                          } else {
-                            unsubscribe();
-                          }
-                        }}
-                        disabled={pushLoading}
-                      />
+                      <Switch checked={isSubscribed} onCheckedChange={checked => {
+                    if (checked) {
+                      subscribe();
+                    } else {
+                      unsubscribe();
+                    }
+                  }} disabled={pushLoading} />
                     </div>
                   </div>
                   
-                  {isSubscribed && (
-                    <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                  {isSubscribed && <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
                       <p className="text-sm">
                         ✅ Notifiche push attive! Riceverai promemoria per registrare i tuoi sogni.
                       </p>
-                    </div>
-                  )}
-                </>
-              )}
+                    </div>}
+                </>}
               
-              {!isSupported && (
-                <div className="p-3 bg-muted rounded-lg">
+              {!isSupported && <div className="p-3 bg-muted rounded-lg">
                   <p className="text-sm text-muted-foreground">
                     Le notifiche push non sono supportate su questo dispositivo.
                   </p>
-                </div>
-              )}
+                </div>}
             </CardContent>
           </Card>
 
           {/* Appearance */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="h-5 w-5" />
-                Aspetto
-              </CardTitle>
-              <CardDescription>Personalizza l'aspetto dell'applicazione</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Tema</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Scegli il tema dell'interfaccia
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant={theme === "light" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setTheme("light")}
-                  >
-                    Chiaro
-                  </Button>
-                  <Button
-                    variant={theme === "dark" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setTheme("dark")}
-                  >
-                    Scuro
-                  </Button>
-                  <Button
-                    variant={theme === "system" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setTheme("system")}
-                  >
-                    Auto
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          
 
           {/* PWA Settings */}
           <Card>
@@ -308,6 +254,5 @@ export default function Settings() {
           </Card>
         </div>
       </main>
-    </div>
-  );
+    </div>;
 }
