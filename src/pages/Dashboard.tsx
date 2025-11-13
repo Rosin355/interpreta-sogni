@@ -8,7 +8,7 @@ import { Plus, BookOpen, TrendingUp, Calendar, Download, Lightbulb } from "lucid
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-import { dreamCategories, categorizeDreams } from "@/utils/dream-categories";
+import { dreamCategories, categorizeDreams, getCategoryFromTag } from "@/utils/dream-categories";
 import { calculateInsights, getTemporalData } from "@/utils/dream-insights";
 import { exportDashboardToPDF } from "@/utils/pdf-export";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -361,7 +361,6 @@ const Dashboard = () => {
                       {dream.tags && dream.tags.length > 0 && (
                         <div className="flex gap-2 mt-2">
                           {dream.tags.slice(0, 3).map((tag: string, idx: number) => {
-                            const { getCategoryFromTag } = require("@/utils/dream-categories");
                             const category = getCategoryFromTag(tag);
                             return (
                               <span
