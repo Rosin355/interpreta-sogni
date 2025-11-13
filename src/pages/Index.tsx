@@ -17,8 +17,8 @@ const Index = () => {
       <div className="relative z-10">
         <Navigation />
         <HeroSection />
-        <FeaturesSection className="py-0 px-0" />
-        <ResearchSection className="py-px" />
+        <FeaturesSection />
+        <ResearchSection />
         <ExperienceSection />
         <CTASection />
         <Footer />
