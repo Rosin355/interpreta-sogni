@@ -4,18 +4,26 @@ import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, BookOpen, TrendingUp, Calendar } from "lucide-react";
+import { Plus, BookOpen, TrendingUp, Calendar, Download, Lightbulb } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { dreamCategories, categorizeDreams } from "@/utils/dream-categories";
+import { calculateInsights, getTemporalData } from "@/utils/dream-insights";
+import { exportDashboardToPDF } from "@/utils/pdf-export";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [dreams, setDreams] = useState<any[]>([]);
   const [allDreams, setAllDreams] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, thisWeek: 0, thisMonth: 0 });
   const [loading, setLoading] = useState(true);
+  const [temporalPeriod, setTemporalPeriod] = useState<'30d' | '3m' | '6m' | '1y'>('30d');
+  const [insights, setInsights] = useState<any[]>([]);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -63,8 +71,32 @@ const Dashboard = () => {
         thisWeek: allData?.filter(d => new Date(d.created_at) > weekAgo).length || 0,
         thisMonth: allData?.filter(d => new Date(d.created_at) > monthAgo).length || 0,
       });
+      
+      // Calcola insights
+      setInsights(calculateInsights(allData || []));
     }
     setLoading(false);
+  };
+
+  const handleExportPDF = async () => {
+    setExporting(true);
+    try {
+      const categoryData = categorizeDreams(allDreams);
+      await exportDashboardToPDF('Utente', stats, categoryData, insights);
+      toast({
+        title: "Report esportato!",
+        description: "Il tuo report PDF è stato scaricato con successo.",
+      });
+    } catch (error) {
+      console.error('Errore export PDF:', error);
+      toast({
+        title: "Errore",
+        description: "Si è verificato un errore durante l'esportazione del report.",
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -72,9 +104,19 @@ const Dashboard = () => {
       <Navigation />
       <div className="min-h-screen bg-gradient-to-br from-background via-dream-space to-background pt-24 pb-12">
         <div className="container mx-auto px-6">
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-foreground mb-2">Dashboard</h1>
-            <p className="text-muted-foreground">Benvenuto nel tuo diario dei sogni</p>
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold text-foreground mb-2">Dashboard</h1>
+              <p className="text-muted-foreground">Benvenuto nel tuo diario dei sogni</p>
+            </div>
+            <Button 
+              onClick={handleExportPDF} 
+              disabled={exporting || allDreams.length === 0}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              {exporting ? "Esportazione..." : "Esporta Report PDF"}
+            </Button>
           </div>
 
           {/* Statistiche */}
@@ -108,9 +150,46 @@ const Dashboard = () => {
             </Card>
           </div>
 
+          {/* Insights */}
+          {!loading && insights.length > 0 && (
+            <Card className="mb-8">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Lightbulb className="h-5 w-5 text-primary" />
+                  <CardTitle>Insights</CardTitle>
+                </div>
+                <CardDescription>Scopri pattern interessanti nei tuoi sogni</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {insights.map((insight, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-4 rounded-lg border ${
+                        insight.type === 'positive'
+                          ? 'bg-emerald-500/10 border-emerald-500/30'
+                          : insight.type === 'warning'
+                          ? 'bg-red-500/10 border-red-500/30'
+                          : 'bg-primary/10 border-primary/30'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl">{insight.icon}</span>
+                        <div>
+                          <h4 className="font-semibold mb-1">{insight.title}</h4>
+                          <p className="text-sm text-muted-foreground">{insight.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Analisi Categorie Sogni */}
           {!loading && allDreams.length > 0 && (
-            <Card className="mb-8">
+            <Card className="mb-8" id="category-chart">
               <CardHeader>
                 <CardTitle>Distribuzione Tipi di Sogni</CardTitle>
                 <CardDescription>Analisi delle categorie dei tuoi sogni</CardDescription>
@@ -175,6 +254,64 @@ const Dashboard = () => {
                     })}
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Evoluzione Temporale */}
+          {!loading && allDreams.length > 0 && (
+            <Card className="mb-8" id="temporal-chart">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Evoluzione Temporale</CardTitle>
+                    <CardDescription>Come sono cambiati i tuoi sogni nel tempo</CardDescription>
+                  </div>
+                  <Select value={temporalPeriod} onValueChange={(value: any) => setTemporalPeriod(value)}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="30d">Ultimi 30 giorni</SelectItem>
+                      <SelectItem value="3m">Ultimi 3 mesi</SelectItem>
+                      <SelectItem value="6m">Ultimi 6 mesi</SelectItem>
+                      <SelectItem value="1y">Ultimo anno</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart data={getTemporalData(allDreams, temporalPeriod)}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis 
+                      dataKey="date" 
+                      stroke="hsl(var(--muted-foreground))"
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <YAxis 
+                      stroke="hsl(var(--muted-foreground))"
+                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '0.5rem'
+                      }}
+                    />
+                    <Legend />
+                    {dreamCategories.map(category => (
+                      <Bar 
+                        key={category.id} 
+                        dataKey={category.id} 
+                        stackId="a"
+                        fill={category.color}
+                        name={category.name}
+                      />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
           )}
