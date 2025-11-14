@@ -46,6 +46,10 @@ export const usePushNotifications = () => {
     try {
       setLoading(true);
 
+      // Check if VAPID keys are configured
+      toast.error('Le notifiche push non sono ancora configurate. Usa le notifiche browser standard.');
+      return false;
+
       // Request notification permission
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {

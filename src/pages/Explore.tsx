@@ -93,7 +93,7 @@ export default function Explore() {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        <div className="container mx-auto px-4 py-8 mt-20 flex items-center justify-center">
+        <div className="container mx-auto px-4 py-8 flex items-center justify-center" style={{ marginTop: 'calc(5rem + var(--safe-area-inset-top, 0px))' }}>
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </div>
@@ -104,7 +104,7 @@ export default function Explore() {
     <div className="min-h-screen bg-background">
       <Navigation />
       
-      <main className="container mx-auto px-4 py-8 mt-20">
+      <main className="container mx-auto px-4 py-8" style={{ marginTop: 'calc(5rem + var(--safe-area-inset-top, 0px))' }}>
         <div className="max-w-6xl mx-auto space-y-6">
           <div>
             <h1 className="text-4xl font-bold mb-2">Esplora</h1>

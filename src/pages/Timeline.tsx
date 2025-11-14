@@ -131,7 +131,7 @@ const Timeline = () => {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background to-background/95">
         <Navigation />
-        <div className="container mx-auto px-4 py-8 mt-20">
+        <div className="container mx-auto px-4 py-8" style={{ marginTop: 'calc(5rem + var(--safe-area-inset-top, 0px))' }}>
           <div className="animate-pulse">Caricamento...</div>
         </div>
       </div>
@@ -143,7 +143,7 @@ const Timeline = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/95">
       <Navigation />
-      <div className="container mx-auto px-4 py-8 mt-20">
+      <div className="container mx-auto px-4 py-8" style={{ marginTop: 'calc(5rem + var(--safe-area-inset-top, 0px))' }}>
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-bold text-foreground mb-2">Timeline dei Sogni</h1>

@@ -83,7 +83,7 @@ const MyDreams = () => {
   return (
     <>
       <Navigation />
-      <div className="min-h-screen bg-gradient-to-br from-background via-dream-space to-background pt-24 pb-12">
+      <div className="min-h-screen bg-gradient-to-br from-background via-dream-space to-background pb-12" style={{ paddingTop: 'calc(6rem + var(--safe-area-inset-top, 0px))' }}>
         <div className="container mx-auto px-6">
           <div className="mb-8 flex items-center justify-between">
             <div>
