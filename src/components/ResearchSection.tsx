@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { RainbowButton } from "@/components/ui/rainbow-button";
+import { useNavigate } from "react-router-dom";
+
 const dreamPatterns = ["Volare", "Cadere", "Inseguimento", "Perso", "Acqua", "Famiglia", "Infanzia", "Esame", "In Ritardo", "Denti"];
 const ResearchSection = () => {
+  const navigate = useNavigate();
   return <section id="research" className="research-section bg-gradient-to-b from-secondary/10 to-background px-0 py-[61px]">
       <div className="container mx-auto px-6">
         <div className="text-center mb-16 research-content">
@@ -14,7 +17,7 @@ const ResearchSection = () => {
             e creare un atlante completo del panorama onirico umano. Partecipando, contribuisci a una ricerca rivoluzionaria 
             su come sogniamo.
           </p>
-          <RainbowButton>
+          <RainbowButton onClick={() => navigate('/explore')}>
             Esplora le Scoperte della Ricerca
           </RainbowButton>
         </div>

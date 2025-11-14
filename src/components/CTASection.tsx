@@ -3,12 +3,14 @@ import { RainbowButton } from "@/components/ui/rainbow-button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import ctaDreamsImage from "@/assets/cta-dreams-universe.jpg";
 
 const CTASection = () => {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,10 +75,10 @@ const CTASection = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <RainbowButton className="px-8 py-6 text-lg">
+            <RainbowButton className="px-8 py-6 text-lg" onClick={() => navigate('/my-dreams')}>
               Inizia il Tuo Viaggio Onirico
             </RainbowButton>
-            <Button variant="outline" size="lg" className="border-primary/30 text-foreground hover:bg-primary/10 hover:border-primary/50 px-8 py-6 text-lg transition-all duration-300">
+            <Button variant="outline" size="lg" className="border-primary/30 text-foreground hover:bg-primary/10 hover:border-primary/50 px-8 py-6 text-lg transition-all duration-300" onClick={() => navigate('/explore')}>
               Scopri di Più
             </Button>
           </div>
