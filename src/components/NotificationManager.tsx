@@ -88,16 +88,25 @@ const NotificationManager = () => {
   const savePreferences = async (newPreferences: Partial<NotificationPreferences>) => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     const updatedPrefs = { ...preferences, ...newPreferences };
+    
+    // Ensure time format is HH:MM:SS
+    let timeToSave = updatedPrefs.preferred_time;
+    if (timeToSave && timeToSave.split(':').length === 2) {
+      timeToSave = `${timeToSave}:00`;
+    }
 
     const { error } = await supabase
       .from("notification_preferences" as any)
       .upsert({
         user_id: user.id,
         enabled: updatedPrefs.enabled,
-        preferred_time: updatedPrefs.preferred_time,
+        preferred_time: timeToSave,
       } as any);
 
     if (error) {
