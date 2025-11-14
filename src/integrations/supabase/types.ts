@@ -14,6 +14,111 @@ export type Database = {
   }
   public: {
     Tables: {
+      dream_collection_items: {
+        Row: {
+          added_at: string
+          collection_id: string
+          dream_id: string
+          id: string
+        }
+        Insert: {
+          added_at?: string
+          collection_id: string
+          dream_id: string
+          id?: string
+        }
+        Update: {
+          added_at?: string
+          collection_id?: string
+          dream_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dream_collection_items_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "dream_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dream_collection_items_dream_id_fkey"
+            columns: ["dream_id"]
+            isOneToOne: false
+            referencedRelation: "dreams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dream_collections: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      dream_drafts: {
+        Row: {
+          content: string | null
+          created_at: string
+          dream_date: string | null
+          dream_time: string | null
+          id: string
+          mood: string | null
+          tags: string[] | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          dream_date?: string | null
+          dream_time?: string | null
+          id?: string
+          mood?: string | null
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          dream_date?: string | null
+          dream_time?: string | null
+          id?: string
+          mood?: string | null
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       dream_knowledge_base: {
         Row: {
           category: string
@@ -101,6 +206,36 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          last_notification_sent: string | null
+          preferred_time: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_notification_sent?: string | null
+          preferred_time?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_notification_sent?: string | null
+          preferred_time?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -128,12 +263,113 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string | null
+          endpoint: string
+          id: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      streaks: {
+        Row: {
+          created_at: string | null
+          current_streak: number
+          id: string
+          last_dream_date: string | null
+          longest_streak: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_streak?: number
+          id?: string
+          last_dream_date?: string | null
+          longest_streak?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_streak?: number
+          id?: string
+          last_dream_date?: string | null
+          longest_streak?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      voice_notes: {
+        Row: {
+          audio_url: string
+          created_at: string
+          dream_id: string
+          duration: number | null
+          id: string
+          transcription: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          audio_url: string
+          created_at?: string
+          dream_id: string
+          duration?: number | null
+          id?: string
+          transcription?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          audio_url?: string
+          created_at?: string
+          dream_id?: string
+          duration?: number | null
+          id?: string
+          transcription?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_notes_dream_id_fkey"
+            columns: ["dream_id"]
+            isOneToOne: false
+            referencedRelation: "dreams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_user_streak: {
+        Args: { p_dream_date: string; p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
