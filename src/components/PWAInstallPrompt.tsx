@@ -78,7 +78,7 @@ export const PWAInstallPrompt = () => {
       <Card className="w-full max-w-md p-6 pointer-events-auto animate-in slide-in-from-bottom-5 duration-500 shadow-elegant border-primary/20">
         <button
           onClick={handleDismiss}
-          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
+          className="absolute top-6 right-6 text-muted-foreground hover:text-foreground transition-colors"
         >
           <X className="h-5 w-5" />
         </button>
