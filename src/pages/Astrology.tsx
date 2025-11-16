@@ -39,7 +39,27 @@ const Astrology = () => {
       if (error) throw error;
 
       setProfile(profileData);
-      setNatalChartData(profileData?.natal_chart_data);
+      
+      // Convert natal chart data structure if needed
+      const rawData = profileData?.natal_chart_data as any;
+      if (rawData && typeof rawData === 'object') {
+        // Ensure planets is in array format for rendering
+        const planetsArray = rawData.planets && typeof rawData.planets === 'object' 
+          ? Object.entries(rawData.planets).map(([name, data]: [string, any]) => ({
+              name,
+              label: data.label || name.charAt(0).toUpperCase() + name.slice(1),
+              sign: data.sign,
+              house: data.house,
+              position: data.degree || data.position || 0,
+              isRetrograde: data.retrograde || false
+            })) 
+          : [];
+        
+        setNatalChartData({
+          ...rawData,
+          planetsArray // Add array version for mapping
+        });
+      }
     } catch (error) {
       console.error("Error loading user data:", error);
     } finally {
@@ -228,7 +248,7 @@ const Astrology = () => {
             {/* Planets Tab */}
             <TabsContent value="planets" className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
-                {natalChartData.planets?.map((planet: any) => {
+                {natalChartData.planetsArray?.map((planet: any) => {
                   const info = getPlanetInfo(planet.name);
                   return (
                     <Card key={planet.name}>
@@ -251,7 +271,7 @@ const Astrology = () => {
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-muted-foreground">Grado:</span>
-                          <span className="text-sm font-medium">{planet.position.toFixed(2)}°</span>
+                          <span className="text-sm font-medium">{planet.position?.toFixed(2) || 0}°</span>
                         </div>
                         <p className="text-sm text-muted-foreground pt-2 border-t">
                           {info.influence}
@@ -266,8 +286,8 @@ const Astrology = () => {
             {/* Houses Tab */}
             <TabsContent value="houses" className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
-                {natalChartData.houses?.map((house: any, index: number) => {
-                  const houseNum = index + 1;
+                {natalChartData.houses && Array.isArray(natalChartData.houses) && natalChartData.houses.map((house: any, index: number) => {
+                  const houseNum = house.number || index + 1;
                   const info = getHouseInfo(houseNum);
                   return (
                     <Card key={houseNum}>
@@ -285,7 +305,7 @@ const Astrology = () => {
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-muted-foreground">Grado:</span>
-                          <span className="text-sm font-medium">{house.position.toFixed(2)}°</span>
+                          <span className="text-sm font-medium">{(house.position || house.degree)?.toFixed(2) || 0}°</span>
                         </div>
                         <p className="text-sm text-muted-foreground pt-2 border-t">
                           {info.description}
@@ -307,28 +327,34 @@ const Astrology = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {natalChartData.aspects?.map((aspect: any, index: number) => (
-                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <Badge variant={
-                            aspect.type === 'conjunction' ? 'default' :
-                            aspect.type === 'trine' ? 'secondary' :
-                            aspect.type === 'sextile' ? 'outline' :
-                            'destructive'
-                          }>
-                            {aspect.type}
-                          </Badge>
-                          <span className="text-sm">
-                            {aspect.planet1} - {aspect.planet2}
+                  {natalChartData.aspects && Array.isArray(natalChartData.aspects) && natalChartData.aspects.length > 0 ? (
+                    <div className="space-y-3">
+                      {natalChartData.aspects.map((aspect: any, index: number) => (
+                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Badge variant={
+                              aspect.type === 'conjunction' ? 'default' :
+                              aspect.type === 'trine' ? 'secondary' :
+                              aspect.type === 'sextile' ? 'outline' :
+                              'destructive'
+                            }>
+                              {aspect.type}
+                            </Badge>
+                            <span className="text-sm">
+                              {aspect.planet1} - {aspect.planet2}
+                            </span>
+                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            {aspect.angle}°
                           </span>
                         </div>
-                        <span className="text-sm text-muted-foreground">
-                          {aspect.angle}°
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Nessun aspetto calcolato disponibile
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
