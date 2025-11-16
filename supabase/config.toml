@@ -17,3 +17,6 @@ verify_jwt = true
 
 [functions.interpret-dream-with-astrology]
 verify_jwt = true
+
+[functions.check-astrological-transits]
+verify_jwt = false

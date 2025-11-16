@@ -469,7 +469,33 @@ export default function Profile() {
 
                   {/* Visualizzazione Grafica */}
                   <div className="mt-6 p-4 bg-muted/30 rounded-lg">
-                    <h4 className="text-sm font-semibold mb-4 text-center">Cerchio Zodiacale</h4>
+                    <div className="flex justify-between items-center mb-4">
+                      <h4 className="text-sm font-semibold text-center">Cerchio Zodiacale</h4>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={async () => {
+                          try {
+                            const { exportNatalChartToPDF } = await import("@/utils/natal-chart-pdf");
+                            await exportNatalChartToPDF(profile, natalChartData);
+                            toast({
+                              title: "PDF Generato",
+                              description: "Il tuo tema natale è stato esportato con successo!",
+                            });
+                          } catch (error) {
+                            console.error("Error exporting PDF:", error);
+                            toast({
+                              title: "Errore",
+                              description: "Si è verificato un errore durante l'esportazione del PDF.",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Esporta PDF
+                      </Button>
+                    </div>
                     <NatalChartWheel data={natalChartData} size={320} />
                   </div>
                 </div>
