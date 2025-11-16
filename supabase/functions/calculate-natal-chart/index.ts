@@ -1,15 +1,28 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.75.1";
+import { Origin, Horoscope } from "https://esm.sh/circular-natal-horoscope-js@1.1.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Importa la libreria per il calcolo del tema natale
-// Nota: circular-natal-horoscope-js non è disponibile direttamente su Deno
-// Useremo un'alternativa o implementeremo i calcoli base
-// Per ora, creiamo la struttura base che salva i dati
+// Zodiac signs mapping
+const ZODIAC_SIGNS = [
+  'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+];
+
+// Helper function to get zodiac sign from longitude
+function getZodiacSign(longitude: number): string {
+  const signIndex = Math.floor(longitude / 30);
+  return ZODIAC_SIGNS[signIndex % 12];
+}
+
+// Helper function to get degree within sign
+function getDegreeInSign(longitude: number): number {
+  return longitude % 30;
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -55,10 +68,144 @@ serve(async (req) => {
       throw new Error('Missing required birth data');
     }
 
-    // TODO: Implementare calcolo tema natale
-    // Per ora creiamo una struttura dati di esempio
-    // In una versione successiva, integreremo una libreria di calcolo astrologico
+    // Parse birth date and time
+    const [year, month, day] = birthDate.split('-').map(Number);
+    const [hours, minutes] = birthTime.split(':').map(Number);
+
+    console.log('Parsed date/time:', { year, month, day, hours, minutes });
+
+    // Create Origin object for natal chart calculation
+    const origin = new Origin({
+      year,
+      month,
+      date: day,
+      hour: hours,
+      minute: minutes,
+      latitude,
+      longitude
+    });
+
+    console.log('Origin created, calculating horoscope...');
+
+    // Calculate horoscope
+    const horoscope = new Horoscope({
+      origin,
+      houseSystem: "placidus",
+      zodiac: "tropical",
+      aspectPoints: ['bodies', 'points', 'angles'],
+      aspectWithPoints: ['bodies', 'points', 'angles'],
+      aspectTypes: ["major", "minor"],
+      customOrbs: {},
+      language: 'en'
+    });
+
+    console.log('Horoscope calculated successfully');
+
+    // Extract celestial bodies data
+    const celestialBodies = horoscope.CelestialBodies;
+    const celestialPoints = horoscope.CelestialPoints;
+    const houses = horoscope.Houses;
+    const aspects = horoscope.Aspects;
+
+    // Helper function to get house number for a planet
+    const getHouseForPlanet = (longitude: number): number => {
+      for (let i = 0; i < houses.length; i++) {
+        const currentHouse = houses[i];
+        const nextHouse = houses[(i + 1) % houses.length];
+        const currentLong = currentHouse.ChartPosition.Ecliptic.DecimalDegrees;
+        const nextLong = nextHouse.ChartPosition.Ecliptic.DecimalDegrees;
+        
+        if (nextLong > currentLong) {
+          if (longitude >= currentLong && longitude < nextLong) {
+            return currentHouse.House;
+          }
+        } else {
+          // Handle house spanning 0° Aries
+          if (longitude >= currentLong || longitude < nextLong) {
+            return currentHouse.House;
+          }
+        }
+      }
+      return 1; // Default to first house if not found
+    };
+
+    // Build planets object
+    const planets: any = {};
     
+    // Map celestial bodies
+    const bodyMapping: { [key: string]: string } = {
+      'sun': 'sun',
+      'moon': 'moon',
+      'mercury': 'mercury',
+      'venus': 'venus',
+      'mars': 'mars',
+      'jupiter': 'jupiter',
+      'saturn': 'saturn',
+      'uranus': 'uranus',
+      'neptune': 'neptune',
+      'pluto': 'pluto',
+      'chiron': 'chiron'
+    };
+
+    Object.keys(bodyMapping).forEach(key => {
+      const body = celestialBodies[key];
+      if (body) {
+        const longitude = body.ChartPosition.Ecliptic.DecimalDegrees;
+        planets[key] = {
+          sign: body.Sign.label,
+          house: getHouseForPlanet(longitude),
+          degree: getDegreeInSign(longitude),
+          retrograde: body.isRetrograde || false
+        };
+      }
+    });
+
+    // Add North Node and South Node
+    if (celestialPoints.northnode) {
+      const nnLongitude = celestialPoints.northnode.ChartPosition.Ecliptic.DecimalDegrees;
+      planets.northNode = {
+        sign: celestialPoints.northnode.Sign.label,
+        house: getHouseForPlanet(nnLongitude),
+        degree: getDegreeInSign(nnLongitude),
+        retrograde: true // North Node is always retrograde
+      };
+      
+      // South Node is always opposite to North Node
+      const snLongitude = (nnLongitude + 180) % 360;
+      planets.southNode = {
+        sign: getZodiacSign(snLongitude),
+        house: getHouseForPlanet(snLongitude),
+        degree: getDegreeInSign(snLongitude),
+        retrograde: true
+      };
+    }
+
+    // Build houses array
+    const housesArray = houses.map((house: any) => ({
+      number: house.House,
+      sign: house.Sign.label,
+      degree: house.ChartPosition.Ecliptic.DecimalDegrees
+    }));
+
+    // Get Ascendant and Midheaven
+    const ascendant = celestialPoints.ascendant ? {
+      sign: celestialPoints.ascendant.Sign.label,
+      degree: getDegreeInSign(celestialPoints.ascendant.ChartPosition.Ecliptic.DecimalDegrees)
+    } : housesArray[0] ? { sign: housesArray[0].sign, degree: 0 } : { sign: 'Aries', degree: 0 };
+
+    const midheaven = celestialPoints.midheaven ? {
+      sign: celestialPoints.midheaven.Sign.label,
+      degree: getDegreeInSign(celestialPoints.midheaven.ChartPosition.Ecliptic.DecimalDegrees)
+    } : housesArray[9] ? { sign: housesArray[9].sign, degree: 0 } : { sign: 'Capricorn', degree: 0 };
+
+    // Build aspects array
+    const aspectsArray = aspects.all.map((aspect: any) => ({
+      planet1: aspect.point1.label.toLowerCase(),
+      planet2: aspect.point2.label.toLowerCase(),
+      type: aspect.aspectLevel,
+      angle: aspect.orb
+    }));
+
     const natalChartData = {
       calculatedAt: new Date().toISOString(),
       birthInfo: {
@@ -69,44 +216,11 @@ serve(async (req) => {
         longitude,
         timezone
       },
-      // Placeholder: questi dati dovranno essere calcolati con una libreria astrologica
-      planets: {
-        sun: { sign: 'Leo', house: 5, degree: 15.3, retrograde: false },
-        moon: { sign: 'Cancer', house: 4, degree: 22.1, retrograde: false },
-        mercury: { sign: 'Virgo', house: 6, degree: 8.5, retrograde: false },
-        venus: { sign: 'Libra', house: 7, degree: 12.8, retrograde: false },
-        mars: { sign: 'Aries', house: 1, degree: 5.2, retrograde: false },
-        jupiter: { sign: 'Sagittarius', house: 9, degree: 18.7, retrograde: false },
-        saturn: { sign: 'Capricorn', house: 10, degree: 23.4, retrograde: false },
-        uranus: { sign: 'Aquarius', house: 11, degree: 10.2, retrograde: false },
-        neptune: { sign: 'Pisces', house: 12, degree: 15.8, retrograde: false },
-        pluto: { sign: 'Scorpio', house: 8, degree: 20.3, retrograde: false },
-        chiron: { sign: 'Leo', house: 5, degree: 18.2, retrograde: false },
-        northNode: { sign: 'Gemini', house: 3, degree: 12.5, retrograde: true },
-        southNode: { sign: 'Sagittarius', house: 9, degree: 12.5, retrograde: true }
-      },
-      houses: [
-        { number: 1, sign: 'Aries', degree: 0 },
-        { number: 2, sign: 'Taurus', degree: 30 },
-        { number: 3, sign: 'Gemini', degree: 60 },
-        { number: 4, sign: 'Cancer', degree: 90 },
-        { number: 5, sign: 'Leo', degree: 120 },
-        { number: 6, sign: 'Virgo', degree: 150 },
-        { number: 7, sign: 'Libra', degree: 180 },
-        { number: 8, sign: 'Scorpio', degree: 210 },
-        { number: 9, sign: 'Sagittarius', degree: 240 },
-        { number: 10, sign: 'Capricorn', degree: 270 },
-        { number: 11, sign: 'Aquarius', degree: 300 },
-        { number: 12, sign: 'Pisces', degree: 330 }
-      ],
-      ascendant: { sign: 'Aries', degree: 5.2 },
-      midheaven: { sign: 'Capricorn', degree: 10.5 },
-      aspects: [
-        { planet1: 'sun', planet2: 'moon', type: 'trine', angle: 120 },
-        { planet1: 'mercury', planet2: 'venus', type: 'conjunction', angle: 0 },
-        { planet1: 'mars', planet2: 'jupiter', type: 'square', angle: 90 }
-      ],
-      note: 'Calcolo placeholder - da implementare con libreria astrologica reale'
+      planets,
+      houses: housesArray,
+      ascendant,
+      midheaven,
+      aspects: aspectsArray
     };
 
     // Salva i dati nel profilo dell'utente
@@ -134,7 +248,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         natalChartData,
-        message: 'Tema natale calcolato e salvato con successo' 
+        message: 'Tema natale calcolato e salvato con successo con dati astronomici reali' 
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
