@@ -87,7 +87,12 @@ export default function Profile() {
   };
   
   const handleNatalChartSuccess = () => {
+    setShowNatalChartForm(false);
     loadProfile(); // Ricarica il profilo per mostrare i nuovi dati
+  };
+
+  const handleNatalChartEdit = () => {
+    setShowNatalChartForm(true);
   };
 
   const loadDreamStats = async () => {
@@ -399,12 +404,22 @@ export default function Profile() {
                 </div>
               )}
 
-              {natalChartData && (
+              {natalChartData && !showNatalChartForm && (
                 <div className="space-y-4">
                   <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Sparkles className="h-5 w-5 text-primary" />
-                      <p className="font-semibold">Tema Natale Calcolato</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-primary" />
+                        <p className="font-semibold">Tema Natale Calcolato</p>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleNatalChartEdit}
+                        className="text-xs"
+                      >
+                        Modifica
+                      </Button>
                     </div>
                     <p className="text-sm text-muted-foreground mb-4">
                       Il tuo tema natale è stato calcolato e verrà utilizzato per arricchire 
@@ -456,15 +471,6 @@ export default function Profile() {
                         )}
                       </div>
                     </div>
-                    
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setShowNatalChartForm(true)}
-                      className="mt-4 w-full"
-                    >
-                      Ricalcola Tema Natale
-                    </Button>
                   </div>
 
                   {/* Visualizzazione Grafica */}
@@ -498,6 +504,36 @@ export default function Profile() {
                     </div>
                     <NatalChartWheel data={natalChartData} size={320} />
                   </div>
+                </div>
+              )}
+
+              {natalChartData && showNatalChartForm && (
+                <div className="space-y-4">
+                  <div className="p-4 bg-muted/50 rounded-lg border border-border/50">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Modifica i tuoi dati di nascita per ricalcolare il tema natale. 
+                      I campi sono già precompilati con i tuoi dati attuali.
+                    </p>
+                  </div>
+                  
+                  <BirthDataForm 
+                    onSuccess={handleNatalChartSuccess}
+                    initialData={{
+                      birthDate: natalChartData.birthInfo?.date,
+                      birthTime: natalChartData.birthInfo?.time,
+                      birthPlace: natalChartData.birthInfo?.place,
+                      latitude: natalChartData.birthInfo?.latitude,
+                      longitude: natalChartData.birthInfo?.longitude,
+                    }}
+                  />
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowNatalChartForm(false)}
+                    className="w-full"
+                  >
+                    Annulla
+                  </Button>
                 </div>
               )}
             </CardContent>
