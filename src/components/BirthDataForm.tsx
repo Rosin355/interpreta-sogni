@@ -117,10 +117,12 @@ export function BirthDataForm({ onSuccess, initialData }: BirthDataFormProps) {
           body: {
             birthDate: format(data.birthDate, "yyyy-MM-dd"),
             birthTime: data.birthTime,
-            birthPlaceName: selectedPlace.displayName,
-            latitude: selectedPlace.latitude,
-            longitude: selectedPlace.longitude,
-            timezone,
+            birthPlace: {
+              latitude: selectedPlace.latitude,
+              longitude: selectedPlace.longitude,
+              placeName: selectedPlace.displayName,
+              timezone,
+            },
           },
         }
       );
