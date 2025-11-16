@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.1';
+import { Origin } from 'https://esm.sh/circular-natal-horoscope-js@3.4.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -51,131 +52,104 @@ serve(async (req) => {
 
     console.log('Calculating natal chart for:', { birthDate, birthTime, birthPlace });
 
-    // Get Free Astrology API key
-    const freeAstrologyApiKey = Deno.env.get('FREE_ASTROLOGY_API_KEY');
-    if (!freeAstrologyApiKey) {
-      throw new Error('FREE_ASTROLOGY_API_KEY not configured');
-    }
-
     const { latitude, longitude, placeName, timezone } = birthPlace;
 
     // Parse date and time
     const [year, month, day] = birthDate.split('-').map(Number);
     const [hours, minutes] = birthTime.split(':').map(Number);
 
-    // Prepare API request data
-    const apiRequestData = {
+    console.log('Parsed data:', { year, month, day, hours, minutes, latitude, longitude });
+
+    // Create Origin object for circular-natal-horoscope-js
+    const origin = new Origin({
       year,
       month,
       date: day,
-      hours,
-      minutes,
-      seconds: 0,
+      hour: hours,
+      minute: minutes,
       latitude,
-      longitude,
-      timezone,
-      settings: {
-        observation_point: 'topocentric',
-        ayanamsha: 'lahiri'
-      }
-    };
-
-    console.log('Calling Free Astrology API with:', apiRequestData);
-
-    // Call Free Astrology API for planets
-    const planetsResponse = await fetch('https://api.freeastrologyapi.com/horoscope/planets', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': freeAstrologyApiKey
-      },
-      body: JSON.stringify(apiRequestData)
+      longitude
     });
 
-    if (!planetsResponse.ok) {
-      const errorText = await planetsResponse.text();
-      console.error('Planets API error:', errorText);
-      throw new Error(`Failed to fetch planets data: ${planetsResponse.status}`);
-    }
+    console.log('Origin created, calculating horoscope...');
 
-    const planetsData = await planetsResponse.json();
-    console.log('Planets data received:', planetsData);
+    // Get celestial bodies positions
+    const celestialBodies = origin.CelestialBodies.all;
+    const ascendant = origin.Ascendant;
+    const houses = origin.Houses;
 
-    // Call Free Astrology API for house cusps (Placidus system)
-    const housesResponse = await fetch('https://api.freeastrologyapi.com/horoscope/house-cusps', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': freeAstrologyApiKey
-      },
-      body: JSON.stringify({
-        ...apiRequestData,
-        house_system: 'placidus'
-      })
-    });
+    console.log('Horoscope calculated successfully');
 
-    if (!housesResponse.ok) {
-      const errorText = await housesResponse.text();
-      console.error('Houses API error:', errorText);
-      throw new Error(`Failed to fetch houses data: ${housesResponse.status}`);
-    }
-
-    const housesData = await housesResponse.json();
-    console.log('Houses data received:', housesData);
-
-    // Map planet names from API to our format
+    // Map planet data
     const planetMapping: { [key: string]: string } = {
-      'Sun': 'sun',
-      'Moon': 'moon',
-      'Mercury': 'mercury',
-      'Venus': 'venus',
-      'Mars': 'mars',
-      'Jupiter': 'jupiter',
-      'Saturn': 'saturn',
-      'Uranus': 'uranus',
-      'Neptune': 'neptune',
-      'Pluto': 'pluto'
+      'sun': 'sun',
+      'moon': 'moon',
+      'mercury': 'mercury',
+      'venus': 'venus',
+      'mars': 'mars',
+      'jupiter': 'jupiter',
+      'saturn': 'saturn',
+      'uranus': 'uranus',
+      'neptune': 'neptune',
+      'pluto': 'pluto'
     };
 
-    // Process planets data
     const planetsObject: any = {};
     const planetPositions: { [key: string]: number } = {};
 
-    if (planetsData.output) {
-      for (const [planetName, planetInfo] of Object.entries(planetsData.output)) {
-        const mappedName = planetMapping[planetName];
-        if (mappedName && typeof planetInfo === 'object' && planetInfo !== null) {
-          const info = planetInfo as any;
-          const longitude = info.longitude || 0;
-          const sign = getZodiacSign(longitude);
-          const degree = getDegreeInSign(longitude);
-          
-          planetsObject[mappedName] = {
-            longitude,
-            sign,
-            degree: parseFloat(degree.toFixed(2)),
-            house: info.house || 1,
-            retrograde: info.is_retrograde || false
-          };
-          
-          planetPositions[mappedName] = longitude;
-        }
+    // Process celestial bodies
+    for (const [key, body] of Object.entries(celestialBodies)) {
+      const planetKey = key.toLowerCase();
+      const mappedName = planetMapping[planetKey];
+      
+      if (mappedName && body && typeof body === 'object') {
+        const bodyData = body as any;
+        const longitude = bodyData.ChartPosition?.Ecliptic?.DecimalDegrees || 0;
+        const sign = getZodiacSign(longitude);
+        const degree = getDegreeInSign(longitude);
+        const houseNumber = bodyData.House?.id || 1;
+        const isRetrograde = bodyData.isRetrograde || false;
+
+        planetsObject[mappedName] = {
+          longitude,
+          sign,
+          degree: parseFloat(degree.toFixed(2)),
+          house: houseNumber,
+          retrograde: isRetrograde
+        };
+
+        planetPositions[mappedName] = longitude;
       }
     }
 
     console.log('Processed planets:', planetsObject);
 
-    // Process houses data
+    // Process houses (Placidus system)
     const housesArray: any[] = [];
-    if (housesData.output) {
+    if (houses && typeof houses === 'object') {
+      const housesData = houses as any;
       for (let i = 1; i <= 12; i++) {
-        const houseKey = `house_${i}`;
-        const houseInfo = housesData.output[houseKey];
-        if (houseInfo && typeof houseInfo === 'object') {
-          const longitude = houseInfo.longitude || (i - 1) * 30;
+        const houseKey = `House${i}`;
+        const house = housesData[houseKey];
+        
+        if (house && house.ChartPosition) {
+          const longitude = house.ChartPosition.Ecliptic?.DecimalDegrees || ((i - 1) * 30);
           const sign = getZodiacSign(longitude);
           const degree = getDegreeInSign(longitude);
-          
+
+          housesArray.push({
+            number: i,
+            longitude,
+            sign,
+            degree: parseFloat(degree.toFixed(2))
+          });
+        } else {
+          // Fallback to equal houses
+          const ascLongitude = ascendant?.ChartPosition?.Ecliptic?.DecimalDegrees || 0;
+          const longitude = (ascLongitude + (i - 1) * 30) % 360;
+          const sign = getZodiacSign(longitude);
+          const degree = getDegreeInSign(longitude);
+
           housesArray.push({
             number: i,
             longitude,
@@ -186,50 +160,29 @@ serve(async (req) => {
       }
     }
 
-    // If no houses data, create default equal houses based on Ascendant
-    if (housesArray.length === 0) {
-      const ascendantLongitude = housesData.output?.house_1?.longitude || 0;
-      for (let i = 1; i <= 12; i++) {
-        const longitude = (ascendantLongitude + (i - 1) * 30) % 360;
-        const sign = getZodiacSign(longitude);
-        const degree = getDegreeInSign(longitude);
-        
-        housesArray.push({
-          number: i,
-          longitude,
-          sign,
-          degree: parseFloat(degree.toFixed(2))
-        });
-      }
-    }
-
     console.log('Processed houses:', housesArray);
 
-    // Get Ascendant (1st house cusp) and Midheaven (10th house cusp)
-    const ascendantHouse = housesArray.find(h => h.number === 1);
-    const midheavenHouse = housesArray.find(h => h.number === 10);
-
-    const ascendant = ascendantHouse ? {
-      longitude: ascendantHouse.longitude,
-      sign: ascendantHouse.sign,
-      degree: ascendantHouse.degree
-    } : {
-      longitude: 0,
-      sign: 'Aries',
-      degree: 0
+    // Get Ascendant and Midheaven
+    const ascendantLongitude = ascendant?.ChartPosition?.Ecliptic?.DecimalDegrees || 0;
+    const ascendantData = {
+      longitude: ascendantLongitude,
+      sign: getZodiacSign(ascendantLongitude),
+      degree: parseFloat(getDegreeInSign(ascendantLongitude).toFixed(2))
     };
 
-    const midheaven = midheavenHouse ? {
+    // Midheaven is the 10th house cusp
+    const midheavenHouse = housesArray.find(h => h.number === 10);
+    const midheavenData = midheavenHouse ? {
       longitude: midheavenHouse.longitude,
       sign: midheavenHouse.sign,
       degree: midheavenHouse.degree
     } : {
-      longitude: 270,
-      sign: 'Capricorn',
-      degree: 0
+      longitude: (ascendantLongitude + 270) % 360,
+      sign: getZodiacSign((ascendantLongitude + 270) % 360),
+      degree: parseFloat(getDegreeInSign((ascendantLongitude + 270) % 360).toFixed(2))
     };
 
-    console.log('Ascendant:', ascendant, 'Midheaven:', midheaven);
+    console.log('Ascendant:', ascendantData, 'Midheaven:', midheavenData);
 
     // Calculate aspects between planets
     const aspectsArray: any[] = [];
@@ -296,8 +249,8 @@ serve(async (req) => {
     const natalChartData = {
       planets: planetsObject,
       houses: housesArray,
-      ascendant,
-      midheaven,
+      ascendant: ascendantData,
+      midheaven: midheavenData,
       aspects: aspectsArray,
       calculationDetails: {
         date: birthDate,
