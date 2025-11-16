@@ -138,25 +138,26 @@ export function BirthDataForm({ onSuccess }: BirthDataFormProps) {
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Data di Nascita</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "dd/MM/yyyy")
-                      ) : (
-                        <span>Seleziona la data</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
+              <div className="flex gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "flex-1 pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "dd/MM/yyyy")
+                        ) : (
+                          <span>Seleziona la data</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
@@ -167,11 +168,26 @@ export function BirthDataForm({ onSuccess }: BirthDataFormProps) {
                     }
                     initialFocus
                     className="pointer-events-auto"
+                    captionLayout="dropdown-buttons"
+                    fromYear={1900}
+                    toYear={new Date().getFullYear()}
                   />
                 </PopoverContent>
-              </Popover>
+                </Popover>
+                <Input
+                  type="date"
+                  value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
+                  onChange={(e) => {
+                    const date = e.target.value ? new Date(e.target.value) : undefined;
+                    field.onChange(date);
+                  }}
+                  min="1900-01-01"
+                  max={format(new Date(), "yyyy-MM-dd")}
+                  className="w-36"
+                />
+              </div>
               <FormDescription>
-                La tua data di nascita esatta
+                Seleziona dal calendario o inserisci manualmente
               </FormDescription>
               <FormMessage />
             </FormItem>
