@@ -47,20 +47,38 @@ type BirthDataFormValues = z.infer<typeof birthDataSchema>;
 
 interface BirthDataFormProps {
   onSuccess?: () => void;
+  initialData?: {
+    birthDate?: string;
+    birthTime?: string;
+    birthPlace?: string;
+    latitude?: number;
+    longitude?: number;
+  };
 }
 
-export function BirthDataForm({ onSuccess }: BirthDataFormProps) {
+export function BirthDataForm({ onSuccess, initialData }: BirthDataFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [placeSearch, setPlaceSearch] = useState("");
+  const [placeSearch, setPlaceSearch] = useState(initialData?.birthPlace || "");
   const [places, setPlaces] = useState<GeocodingResult[]>([]);
-  const [selectedPlace, setSelectedPlace] = useState<GeocodingResult | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<GeocodingResult | null>(
+    initialData?.latitude && initialData?.longitude
+      ? {
+          name: initialData.birthPlace?.split(',')[0] || "",
+          displayName: initialData.birthPlace || "",
+          latitude: initialData.latitude,
+          longitude: initialData.longitude
+        }
+      : null
+  );
   const [searchingPlaces, setSearchingPlaces] = useState(false);
   const [openPlaceCombobox, setOpenPlaceCombobox] = useState(false);
 
   const form = useForm<BirthDataFormValues>({
     resolver: zodResolver(birthDataSchema),
     defaultValues: {
-      birthTime: "12:00",
+      birthDate: initialData?.birthDate ? new Date(initialData.birthDate) : undefined,
+      birthTime: initialData?.birthTime || "12:00",
+      birthPlace: initialData?.birthPlace || "",
     },
   });
 
