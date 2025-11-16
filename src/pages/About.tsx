@@ -3,9 +3,11 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Sparkles, Heart, Moon, Star, BookOpen, HelpCircle, Send } from "lucide-react";
+import { Sparkles, Heart, Moon, Star, BookOpen, HelpCircle, Send, ChevronRight } from "lucide-react";
 import { initScrollAnimations } from "@/utils/gsap-animations";
 import jessicaImage from "@/assets/jessica-marin.jpg";
+import dreamsHero from "@/assets/dreams-hero.jpg";
+import ctaDreams from "@/assets/cta-dreams-universe.jpg";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
 
 const contactFormSchema = z.object({
   name: z.string().trim().min(1, { message: "Il nome è obbligatorio" }).max(100, { message: "Il nome deve essere massimo 100 caratteri" }),
@@ -65,96 +68,119 @@ const About = () => {
       
       <div className="relative z-10 pt-24" style={{ paddingTop: 'calc(6rem + var(--safe-area-inset-top, 0px))' }}>
         {/* Hero Section */}
-        <section className="py-20 bg-gradient-to-b from-primary/10 via-secondary/5 to-background">
-          <div className="container mx-auto px-6">
-            <div className="text-center max-w-4xl mx-auto">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary to-primary/70 rounded-full mb-6">
-                <Moon className="h-10 w-10 text-primary-foreground" />
+        <section className="py-16 md:py-28 bg-background">
+          <div className="mx-auto max-w-6xl space-y-2 px-6">
+            <img
+              className="rounded-xl object-cover w-full h-[240px] md:h-[460px]"
+              src={dreamsHero}
+              alt="Dream's Alchemist - Il tuo viaggio nei sogni"
+            />
+
+            <div className="grid gap-6 md:grid-cols-2 md:gap-12">
+              <h1 className="text-3xl md:text-4xl font-semibold leading-snug">
+                L'<span className="text-primary">ecosistema</span> Dream's Alchemist{" "}
+                <span className="text-muted-foreground">
+                  unisce tecnologia, saggezza esoterica e crescita personale.
+                </span>
+              </h1>
+              <div className="space-y-6 text-muted-foreground">
+                <p>
+                  Dream's Alchemist è più di una semplice app per i sogni. È un ecosistema completo 
+                  che supporta il tuo viaggio di auto-conoscenza attraverso strumenti innovativi, 
+                  interpretazioni esoteriche e una community globale di sognatori.
+                </p>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="gap-1 pr-1.5"
+                  onClick={() => document.getElementById('mission')?.scrollIntoView({ behavior: 'smooth' })}
+                >
+                  <span>Scopri di più</span>
+                  <ChevronRight className="size-4" />
+                </Button>
               </div>
-              <h1 className="text-5xl lg:text-6xl font-bold mb-6 text-foreground">
+            </div>
+          </div>
+        </section>
+
+        {/* About Section */}
+        <section className="py-20 md:py-28" id="mission">
+          <div className="mx-auto max-w-6xl space-y-16 px-6">
+            {/* Header */}
+            <div className="grid gap-6 text-center md:grid-cols-2 md:gap-12 md:text-left">
+              <h1 className="text-4xl md:text-5xl font-semibold">
                 Chi Siamo
               </h1>
-              <p className="text-xl text-muted-foreground leading-relaxed">
-                Benvenuto nel mondo di Dream's Alchemist, dove i sogni diventano strumenti di crescita personale e consapevolezza.
+              <p className="text-muted-foreground">
+                Dream's Alchemist è un team appassionato dedicato alla creazione di soluzioni innovative 
+                che uniscono tecnologia, spiritualità e crescita personale attraverso l'interpretazione dei sogni.
               </p>
             </div>
-          </div>
-        </section>
 
-        {/* Mission Section */}
-        <section className="py-16 bg-background">
-          <div className="container mx-auto px-6">
-            <div className="max-w-4xl mx-auto">
-              <Card className="border-primary/20 bg-gradient-to-br from-card to-card/50">
-                <CardContent className="p-8 lg:p-12">
-                  <div className="flex items-center gap-3 mb-6">
-                    <Sparkles className="h-8 w-8 text-primary" />
-                    <h2 className="text-3xl font-bold text-foreground">La Nostra Missione</h2>
+            {/* Three Cards Layout */}
+            <div className="flex flex-col md:flex-row gap-6 mt-16">
+              {/* Left Big Image - Jessica */}
+              <div className="md:flex-1">
+                <img
+                  src={jessicaImage}
+                  alt="Jessica Marin - Tarologa Esoterista Professionista"
+                  className="rounded-xl object-cover w-full h-[300px] sm:h-[360px] md:h-full"
+                />
+              </div>
+
+              {/* Right Two Cards */}
+              <div className="flex flex-col gap-6 md:flex-1">
+                {/* First Card - Mission */}
+                <motion.div
+                  whileHover={{ scale: 1.03 }}
+                  transition={{ type: "spring", stiffness: 250, damping: 20 }}
+                  className="relative overflow-hidden rounded-xl bg-black text-white shadow-lg"
+                >
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ duration: 0.4 }}
+                    className="relative h-60 sm:h-64 md:h-48 w-full overflow-hidden"
+                  >
+                    <img
+                      src={ctaDreams}
+                      alt="La Nostra Missione"
+                      className="h-full w-full object-cover"
+                    />
+                    <div className="absolute bottom-0 h-32 w-full bg-gradient-to-t from-black via-black/70 to-transparent" />
+                  </motion.div>
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold">La Nostra Missione</h3>
+                    <p className="mt-2 text-sm text-gray-300">
+                      Trasformare i sogni in preziose opportunità di auto-conoscenza e crescita spirituale 
+                      attraverso tecnologia innovativa e saggezza esoterica.
+                    </p>
                   </div>
-                  <div className="space-y-4 text-muted-foreground leading-relaxed">
-                    <p className="text-lg">
-                      Dream's Alchemist nasce dalla visione di trasformare i sogni in preziose opportunità di auto-conoscenza e crescita spirituale. Crediamo che ogni sogno sia un messaggio dell'inconscio, una porta verso la comprensione profonda di noi stessi.
-                    </p>
-                    <p className="text-lg">
-                      La nostra piattaforma unisce tecnologia moderna e saggezza antica, offrendo strumenti intuitivi per registrare, analizzare e comprendere il linguaggio simbolico dei sogni. Attraverso l'intelligenza artificiale e l'interpretazione esoterica, aiutiamo le persone a decifrare i messaggi nascosti nei loro viaggi notturni.
-                    </p>
-                    <p className="text-lg">
-                      Oltre al percorso personale, Dream's Alchemist contribuisce a una ricerca globale sui pattern onirici collettivi, creando un atlante dei sogni dell'umanità che può rivelare connessioni profonde tra le esperienze oniriche di persone in tutto il mondo.
+                </motion.div>
+
+                {/* Second Card - Jessica Bio */}
+                <motion.div
+                  whileHover={{ scale: 1.03 }}
+                  transition={{ type: "spring", stiffness: 250, damping: 20 }}
+                  className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 shadow-lg"
+                >
+                  <div className="p-6">
+                    <div className="flex items-center gap-3 mb-3">
+                      <BookOpen className="h-6 w-6 text-primary" />
+                      <h3 className="text-xl font-bold">Jessica Marin</h3>
+                    </div>
+                    <p className="text-primary font-semibold mb-3">Tarologa Esoterista Professionista</p>
+                    <p className="text-sm text-muted-foreground">
+                      Con oltre 15 anni di esperienza nel campo delle arti divinatorie e dell'interpretazione 
+                      simbolica, Jessica unisce la tradizione esoterica con la tecnologia moderna per rendere 
+                      accessibili a tutti gli strumenti di auto-conoscenza.
                     </p>
                   </div>
-                </CardContent>
-              </Card>
+                </motion.div>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Jessica Marin Bio Section */}
-        <section className="py-16 bg-gradient-to-b from-secondary/5 to-background">
-          <div className="container mx-auto px-6">
-            <div className="max-w-4xl mx-auto">
-              <Card className="border-primary/20 bg-gradient-to-br from-card to-card/50 overflow-hidden">
-                <CardContent className="p-0">
-                  <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
-                    {/* Jessica's Photo */}
-                    <div className="flex items-center justify-center p-6 md:p-8 lg:p-12">
-                      <div className="w-full max-w-md">
-                        <img 
-                          src={jessicaImage} 
-                          alt="Jessica Marin - Tarologa Esoterista Professionista" 
-                          className="w-full h-auto rounded-lg shadow-2xl object-cover"
-                        />
-                      </div>
-                    </div>
-                    
-                    {/* Bio Content */}
-                    <div className="p-6 md:p-8 lg:p-12 flex flex-col justify-center">
-                      <div className="flex items-center gap-3 mb-4">
-                        <BookOpen className="h-6 w-6 text-primary" />
-                        <h2 className="text-3xl font-bold text-foreground">Jessica Marin</h2>
-                      </div>
-                      <p className="text-primary font-semibold mb-6">Tarologa Esoterista Professionista</p>
-                      
-                      <div className="space-y-4 text-muted-foreground leading-relaxed">
-                        <p>
-                          Jessica Marin è una tarologa esoterista professionista con oltre 15 anni di esperienza nel campo delle arti divinatorie e dell'interpretazione simbolica. La sua passione per il mondo onirico nasce dall'incontro tra la tradizione esoterica e il desiderio di rendere accessibili a tutti gli strumenti di auto-conoscenza.
-                        </p>
-                        <p>
-                          Specializzata nell'interpretazione dei tarocchi e dei sogni, Jessica ha dedicato la sua vita allo studio dei simboli archetipici e del loro significato profondo. La sua approccio unico combina la saggezza antica delle tradizioni esoteriche con una sensibilità moderna e inclusiva.
-                        </p>
-                        <p>
-                          Con Dream's Alchemist, Jessica realizza il suo sogno di creare uno spazio dove chiunque possa esplorare il proprio universo interiore attraverso i sogni, guidato da tecnologia innovativa e dalla profonda comprensione del linguaggio simbolico che caratterizza il suo lavoro.
-                        </p>
-                        <p className="italic text-sm pt-4 border-t border-border">
-                          "Ogni sogno è un'alchimia dell'anima, una trasformazione che ci guida verso la nostra verità più autentica." - Jessica Marin
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </section>
 
         {/* Values Section */}
         <section className="py-16 bg-background">
