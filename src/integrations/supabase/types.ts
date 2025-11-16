@@ -240,24 +240,45 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          birth_date: string | null
+          birth_latitude: number | null
+          birth_longitude: number | null
+          birth_place_name: string | null
+          birth_time: string | null
+          birth_timezone: string | null
           created_at: string | null
           id: string
+          natal_chart_data: Json | null
           updated_at: string | null
           username: string | null
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          birth_date?: string | null
+          birth_latitude?: number | null
+          birth_longitude?: number | null
+          birth_place_name?: string | null
+          birth_time?: string | null
+          birth_timezone?: string | null
           created_at?: string | null
           id: string
+          natal_chart_data?: Json | null
           updated_at?: string | null
           username?: string | null
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          birth_date?: string | null
+          birth_latitude?: number | null
+          birth_longitude?: number | null
+          birth_place_name?: string | null
+          birth_time?: string | null
+          birth_timezone?: string | null
           created_at?: string | null
           id?: string
+          natal_chart_data?: Json | null
           updated_at?: string | null
           username?: string | null
         }
