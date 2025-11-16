@@ -5,11 +5,19 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import UserMenu from "./UserMenu";
-import { Plus } from "lucide-react";
+import { Plus, Menu, X } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const Navigation = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     // Controlla se l'utente è loggato
@@ -39,7 +47,7 @@ const Navigation = () => {
         
         {user ? (
           // Menu per utenti loggati
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-4">
             <div className="hidden md:flex items-center space-x-6">
               <button
                 onClick={() => navigate("/explore")}
@@ -65,18 +73,102 @@ const Navigation = () => {
               >
                 Timeline
               </button>
+              <button
+                onClick={() => navigate("/about")}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Chi Siamo
+              </button>
             </div>
             
             <Button 
               size="sm"
               onClick={() => navigate("/dreams/new")}
-              className="gap-2"
+              className="gap-2 hidden sm:flex"
             >
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Nuovo Sogno</span>
             </Button>
             
-            <UserMenu />
+            <div className="hidden md:block">
+              <UserMenu />
+            </div>
+
+            {/* Mobile Menu */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="sm" className="md:hidden">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px]">
+                <SheetHeader>
+                  <SheetTitle>Menu</SheetTitle>
+                </SheetHeader>
+                <div className="flex flex-col space-y-4 mt-8">
+                  <button
+                    onClick={() => {
+                      navigate("/explore");
+                      setMobileMenuOpen(false);
+                    }}
+                    className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+                  >
+                    Esplora
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate("/my-dreams");
+                      setMobileMenuOpen(false);
+                    }}
+                    className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+                  >
+                    I Miei Sogni
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate("/collections");
+                      setMobileMenuOpen(false);
+                    }}
+                    className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+                  >
+                    Collezioni
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate("/timeline");
+                      setMobileMenuOpen(false);
+                    }}
+                    className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+                  >
+                    Timeline
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate("/about");
+                      setMobileMenuOpen(false);
+                    }}
+                    className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+                  >
+                    Chi Siamo
+                  </button>
+                  <div className="pt-4 border-t border-border">
+                    <Button 
+                      onClick={() => {
+                        navigate("/dreams/new");
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Nuovo Sogno
+                    </Button>
+                  </div>
+                  <div className="pt-4">
+                    <UserMenu />
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         ) : (
           // Menu per utenti non loggati
@@ -88,21 +180,82 @@ const Navigation = () => {
               >
                 Esplora
               </button>
+              <button
+                onClick={() => navigate("/about")}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Chi Siamo
+              </button>
             </div>
             <Button 
               variant="outline-white" 
               size="sm"
-              className="h-9 px-3 sm:px-4"
+              className="h-9 px-3 sm:px-4 hidden sm:flex"
               onClick={() => navigate("/auth?mode=login")}
             >
               Accedi
             </Button>
             <RainbowButton 
-              className="h-9 px-3 sm:px-4 text-sm"
+              className="h-9 px-3 sm:px-4 text-sm hidden sm:flex"
               onClick={() => navigate("/auth?mode=signup")}
             >
               Inizia Ora
             </RainbowButton>
+
+            {/* Mobile Menu for non-logged users */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="sm" className="sm:hidden">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px]">
+                <SheetHeader>
+                  <SheetTitle>Menu</SheetTitle>
+                </SheetHeader>
+                <div className="flex flex-col space-y-4 mt-8">
+                  <button
+                    onClick={() => {
+                      navigate("/explore");
+                      setMobileMenuOpen(false);
+                    }}
+                    className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+                  >
+                    Esplora
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate("/about");
+                      setMobileMenuOpen(false);
+                    }}
+                    className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+                  >
+                    Chi Siamo
+                  </button>
+                  <div className="pt-4 border-t border-border space-y-3">
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => {
+                        navigate("/auth?mode=login");
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      Accedi
+                    </Button>
+                    <RainbowButton 
+                      className="w-full"
+                      onClick={() => {
+                        navigate("/auth?mode=signup");
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      Inizia Ora
+                    </RainbowButton>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         )}
       </div>
