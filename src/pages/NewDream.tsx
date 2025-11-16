@@ -233,6 +233,38 @@ const NewDream = () => {
         description: "Sogno salvato con successo!",
       });
 
+      // Genera interpretazione astrologica se disponibile tema natale
+      try {
+        const { data: interpretData, error: interpretError } = await supabase.functions.invoke(
+          'interpret-dream-with-astrology',
+          {
+            body: {
+              dreamContent: formData.content,
+              dreamTags: tagsArray,
+              dreamMood: formData.mood
+            }
+          }
+        );
+
+        if (!interpretError && interpretData?.interpretation) {
+          // Salva l'interpretazione nel sogno
+          await supabase
+            .from("dreams")
+            .update({ interpretation: interpretData.interpretation })
+            .eq("id", data.id);
+          
+          if (interpretData.hasAstrologicalContext) {
+            toast({
+              title: "✨ Interpretazione Astrologica",
+              description: "Il tuo sogno è stato interpretato con il tema natale!",
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error generating interpretation:', error);
+        // Non bloccare il flusso se l'interpretazione fallisce
+      }
+
       // Genera immagine se richiesto
       if (generateImage) {
         setImageGenerating(true);

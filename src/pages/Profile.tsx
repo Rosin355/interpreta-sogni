@@ -12,6 +12,7 @@ import { Loader2, Download, CheckCircle2, Smartphone, TrendingUp, Upload, X, Spa
 import Navigation from "@/components/Navigation";
 import StreakCard from "@/components/StreakCard";
 import { BirthDataForm } from "@/components/BirthDataForm";
+import { NatalChartWheel } from "@/components/NatalChartWheel";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
@@ -465,6 +466,12 @@ export default function Profile() {
                       Ricalcola Tema Natale
                     </Button>
                   </div>
+
+                  {/* Visualizzazione Grafica */}
+                  <div className="mt-6 p-4 bg-muted/30 rounded-lg">
+                    <h4 className="text-sm font-semibold mb-4 text-center">Cerchio Zodiacale</h4>
+                    <NatalChartWheel data={natalChartData} size={320} />
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -502,7 +509,7 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          {/* Streak Card */}
+          {/* Natal Chart Section */}
           <StreakCard />
 
           {/* Statistics */}

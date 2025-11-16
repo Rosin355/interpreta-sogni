@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { getTagColor } from "@/utils/tag-colors";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ArrowLeft, Edit, Trash2, Sparkles, Image as ImageIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { format } from "date-fns";
@@ -43,11 +44,33 @@ const DreamDetail = () => {
   const [imageGenerating, setImageGenerating] = useState(false);
   const [regenerateStyle, setRegenerateStyle] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [hasAstrologicalContext, setHasAstrologicalContext] = useState(false);
+  const [natalChartData, setNatalChartData] = useState<any>(null);
 
   useEffect(() => {
     checkAuth();
     fetchDream();
+    loadNatalChartData();
   }, [id]);
+
+  const loadNatalChartData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('natal_chart_data')
+        .eq('id', user.id)
+        .single();
+
+      if (profile?.natal_chart_data) {
+        setNatalChartData(profile.natal_chart_data);
+      }
+    } catch (error) {
+      console.error('Error loading natal chart:', error);
+    }
+  };
 
   const checkAuth = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -103,8 +126,13 @@ const DreamDetail = () => {
     setInterpretationLoading(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('interpret-dream', {
-        body: { dreamId: id }
+      // Usa la nuova funzione con supporto astrologico
+      const { data, error } = await supabase.functions.invoke('interpret-dream-with-astrology', {
+        body: { 
+          dreamContent: dream.content,
+          dreamTags: dream.tags || [],
+          dreamMood: dream.mood
+        }
       });
 
       if (error) {
@@ -115,10 +143,20 @@ const DreamDetail = () => {
           variant: "destructive",
         });
       } else if (data?.interpretation) {
+        // Salva l'interpretazione nel database
+        await supabase
+          .from("dreams")
+          .update({ interpretation: data.interpretation })
+          .eq("id", id);
+          
         setDream({ ...dream, interpretation: data.interpretation });
+        setHasAstrologicalContext(data.hasAstrologicalContext || false);
+        
         toast({
           title: "Successo",
-          description: "Interpretazione generata con successo!",
+          description: data.hasAstrologicalContext 
+            ? "✨ Interpretazione astrologica generata!" 
+            : "Interpretazione generata con successo!",
         });
       }
     } catch (error) {
@@ -411,10 +449,40 @@ const DreamDetail = () => {
           {/* Interpretazione AI */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5" />
-                Interpretazione AI
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5" />
+                  <CardTitle>Interpretazione AI</CardTitle>
+                  {hasAstrologicalContext && natalChartData && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="secondary" className="gap-1">
+                            <Sparkles className="h-3 w-3" />
+                            Astrologica
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-xs">
+                          <div className="space-y-2 text-xs">
+                            <p className="font-semibold">Interpretazione con Tema Natale</p>
+                            <div className="space-y-1">
+                              {natalChartData.planets?.chiron && (
+                                <p>• Chirone in {natalChartData.planets.chiron.sign}</p>
+                              )}
+                              {natalChartData.planets?.mercury && (
+                                <p>• Mercurio in {natalChartData.planets.mercury.sign}</p>
+                              )}
+                              {natalChartData.planets?.venus && (
+                                <p>• Venere in {natalChartData.planets.venus.sign}</p>
+                              )}
+                            </div>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {dream.interpretation ? (
