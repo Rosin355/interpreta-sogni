@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { NatalChartWheel } from "@/components/NatalChartWheel";
+import { AstroChartWheel } from "@/components/AstroChartWheel";
 import { BirthDataForm } from "@/components/BirthDataForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -295,7 +295,7 @@ const Astrology = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <NatalChartWheel data={natalChartData} size={600} />
+              <AstroChartWheel natalChartData={natalChartData} size={600} />
             </CardContent>
           </Card>
 
