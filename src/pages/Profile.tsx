@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Download, CheckCircle2, Smartphone, TrendingUp, Upload, X } from "lucide-react";
+import { Loader2, Download, CheckCircle2, Smartphone, TrendingUp, Upload, X, Sparkles } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import StreakCard from "@/components/StreakCard";
+import { BirthDataForm } from "@/components/BirthDataForm";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
@@ -31,6 +32,8 @@ export default function Profile() {
     thisMonth: 0,
     topCategory: "-"
   });
+  const [natalChartData, setNatalChartData] = useState<any>(null);
+  const [showNatalChartForm, setShowNatalChartForm] = useState(true);
 
   useEffect(() => {
     checkAuth();
@@ -69,11 +72,21 @@ export default function Profile() {
       setProfile(data);
       setUsername(data?.username || "");
       setAvatarUrl(data?.avatar_url || "");
+      
+      // Carica dati tema natale se presenti
+      if (data?.natal_chart_data) {
+        setNatalChartData(data.natal_chart_data);
+        setShowNatalChartForm(false);
+      }
     } catch (error: any) {
       console.error('Error loading profile:', error);
     } finally {
       setLoading(false);
     }
+  };
+  
+  const handleNatalChartSuccess = () => {
+    loadProfile(); // Ricarica il profilo per mostrare i nuovi dati
   };
 
   const loadDreamStats = async () => {
@@ -351,6 +364,109 @@ export default function Profile() {
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Salva Modifiche
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* Natal Chart Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5" />
+                Il Tuo Tema Natale
+              </CardTitle>
+              <CardDescription>
+                Scopri il tuo tema natale per interpretazioni più profonde dei tuoi sogni
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!natalChartData && showNatalChartForm && (
+                <div className="space-y-4">
+                  <div className="p-4 bg-muted/50 rounded-lg border border-border/50">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Il tema natale ti permette di comprendere meglio i tuoi sogni attraverso 
+                      l'astrologia. Le posizioni dei pianeti nel momento della tua nascita possono 
+                      rivelare aspetti profondi della tua psiche e dei tuoi sogni ricorrenti.
+                    </p>
+                    <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                      <li><strong>Chirone</strong> indica la tua ferita emotiva principale</li>
+                      <li><strong>Mercurio</strong> rivela il tuo stile comunicativo</li>
+                      <li><strong>Venere</strong> mostra il tuo modo di amare</li>
+                    </ul>
+                  </div>
+                  
+                  <BirthDataForm onSuccess={handleNatalChartSuccess} />
+                </div>
+              )}
+
+              {natalChartData && (
+                <div className="space-y-4">
+                  <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      <p className="font-semibold">Tema Natale Calcolato</p>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Il tuo tema natale è stato calcolato e verrà utilizzato per arricchire 
+                      le interpretazioni dei tuoi sogni.
+                    </p>
+                    
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="p-3 bg-background rounded-lg border">
+                        <p className="text-xs text-muted-foreground mb-1">Data di Nascita</p>
+                        <p className="font-medium">
+                          {natalChartData.birthInfo?.date 
+                            ? format(new Date(natalChartData.birthInfo.date), "dd MMMM yyyy", { locale: it })
+                            : "-"}
+                        </p>
+                      </div>
+                      <div className="p-3 bg-background rounded-lg border">
+                        <p className="text-xs text-muted-foreground mb-1">Ora di Nascita</p>
+                        <p className="font-medium">{natalChartData.birthInfo?.time || "-"}</p>
+                      </div>
+                      <div className="p-3 bg-background rounded-lg border sm:col-span-2">
+                        <p className="text-xs text-muted-foreground mb-1">Luogo di Nascita</p>
+                        <p className="font-medium text-sm">{natalChartData.birthInfo?.place || "-"}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t">
+                      <p className="text-xs text-muted-foreground mb-3">Posizioni Chiave</p>
+                      <div className="grid gap-2 sm:grid-cols-3">
+                        {natalChartData.planets?.chiron && (
+                          <div className="p-2 bg-muted/50 rounded">
+                            <p className="text-xs font-medium mb-1">Chirone</p>
+                            <p className="text-sm">{natalChartData.planets.chiron.sign}</p>
+                            <p className="text-xs text-muted-foreground">Casa {natalChartData.planets.chiron.house}</p>
+                          </div>
+                        )}
+                        {natalChartData.planets?.mercury && (
+                          <div className="p-2 bg-muted/50 rounded">
+                            <p className="text-xs font-medium mb-1">Mercurio</p>
+                            <p className="text-sm">{natalChartData.planets.mercury.sign}</p>
+                            <p className="text-xs text-muted-foreground">Casa {natalChartData.planets.mercury.house}</p>
+                          </div>
+                        )}
+                        {natalChartData.planets?.venus && (
+                          <div className="p-2 bg-muted/50 rounded">
+                            <p className="text-xs font-medium mb-1">Venere</p>
+                            <p className="text-sm">{natalChartData.planets.venus.sign}</p>
+                            <p className="text-xs text-muted-foreground">Casa {natalChartData.planets.venus.house}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setShowNatalChartForm(true)}
+                      className="mt-4 w-full"
+                    >
+                      Ricalcola Tema Natale
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
