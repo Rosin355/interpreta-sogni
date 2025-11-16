@@ -11,8 +11,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Download, CheckCircle2, Smartphone, TrendingUp, Upload, X, Sparkles } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import StreakCard from "@/components/StreakCard";
-import { BirthDataForm } from "@/components/BirthDataForm";
-import { NatalChartWheel } from "@/components/NatalChartWheel";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
@@ -34,7 +32,6 @@ export default function Profile() {
     topCategory: "-"
   });
   const [natalChartData, setNatalChartData] = useState<any>(null);
-  const [showNatalChartForm, setShowNatalChartForm] = useState(true);
 
   useEffect(() => {
     checkAuth();
@@ -77,7 +74,6 @@ export default function Profile() {
       // Carica dati tema natale se presenti
       if (data?.natal_chart_data) {
         setNatalChartData(data.natal_chart_data);
-        setShowNatalChartForm(false);
       }
     } catch (error: any) {
       console.error('Error loading profile:', error);
@@ -86,15 +82,6 @@ export default function Profile() {
     }
   };
   
-  const handleNatalChartSuccess = () => {
-    setShowNatalChartForm(false);
-    loadProfile(); // Ricarica il profilo per mostrare i nuovi dati
-  };
-
-  const handleNatalChartEdit = () => {
-    setShowNatalChartForm(true);
-  };
-
   const loadDreamStats = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -373,7 +360,7 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          {/* Natal Chart Section */}
+          {/* Natal Chart Section - Solo Link */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -385,7 +372,7 @@ export default function Profile() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {!natalChartData && showNatalChartForm && (
+              {!natalChartData ? (
                 <div className="space-y-4">
                   <div className="p-4 bg-muted/50 rounded-lg border border-border/50">
                     <p className="text-sm text-muted-foreground mb-3">
@@ -400,26 +387,21 @@ export default function Profile() {
                     </ul>
                   </div>
                   
-                  <BirthDataForm onSuccess={handleNatalChartSuccess} />
+                  <Button 
+                    onClick={() => navigate('/astrology')}
+                    className="w-full"
+                    size="lg"
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Calcola il Tuo Tema Natale
+                  </Button>
                 </div>
-              )}
-
-              {natalChartData && !showNatalChartForm && (
+              ) : (
                 <div className="space-y-4">
                   <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-primary" />
-                        <p className="font-semibold">Tema Natale Calcolato</p>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={handleNatalChartEdit}
-                        className="text-xs"
-                      >
-                        Modifica
-                      </Button>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      <p className="font-semibold">Tema Natale Calcolato</p>
                     </div>
                     <p className="text-sm text-muted-foreground mb-4">
                       Il tuo tema natale è stato calcolato e verrà utilizzato per arricchire 
@@ -444,95 +426,14 @@ export default function Profile() {
                         <p className="font-medium text-sm">{natalChartData.birthInfo?.place || "-"}</p>
                       </div>
                     </div>
-
-                    <div className="mt-4 pt-4 border-t">
-                      <p className="text-xs text-muted-foreground mb-3">Posizioni Chiave</p>
-                      <div className="grid gap-2 sm:grid-cols-3">
-                        {natalChartData.planets?.chiron && (
-                          <div className="p-2 bg-muted/50 rounded">
-                            <p className="text-xs font-medium mb-1">Chirone</p>
-                            <p className="text-sm">{natalChartData.planets.chiron.sign}</p>
-                            <p className="text-xs text-muted-foreground">Casa {natalChartData.planets.chiron.house}</p>
-                          </div>
-                        )}
-                        {natalChartData.planets?.mercury && (
-                          <div className="p-2 bg-muted/50 rounded">
-                            <p className="text-xs font-medium mb-1">Mercurio</p>
-                            <p className="text-sm">{natalChartData.planets.mercury.sign}</p>
-                            <p className="text-xs text-muted-foreground">Casa {natalChartData.planets.mercury.house}</p>
-                          </div>
-                        )}
-                        {natalChartData.planets?.venus && (
-                          <div className="p-2 bg-muted/50 rounded">
-                            <p className="text-xs font-medium mb-1">Venere</p>
-                            <p className="text-sm">{natalChartData.planets.venus.sign}</p>
-                            <p className="text-xs text-muted-foreground">Casa {natalChartData.planets.venus.house}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
                   </div>
 
-                  {/* Visualizzazione Grafica */}
-                  <div className="mt-6 p-4 bg-muted/30 rounded-lg">
-                    <div className="flex justify-between items-center mb-4">
-                      <h4 className="text-sm font-semibold text-center">Cerchio Zodiacale</h4>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={async () => {
-                          try {
-                            const { exportNatalChartToPDF } = await import("@/utils/natal-chart-pdf");
-                            await exportNatalChartToPDF(profile, natalChartData);
-                            toast({
-                              title: "PDF Generato",
-                              description: "Il tuo tema natale è stato esportato con successo!",
-                            });
-                          } catch (error) {
-                            console.error("Error exporting PDF:", error);
-                            toast({
-                              title: "Errore",
-                              description: "Si è verificato un errore durante l'esportazione del PDF.",
-                              variant: "destructive",
-                            });
-                          }
-                        }}
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Esporta PDF
-                      </Button>
-                    </div>
-                    <NatalChartWheel data={natalChartData} size={320} />
-                  </div>
-                </div>
-              )}
-
-              {natalChartData && showNatalChartForm && (
-                <div className="space-y-4">
-                  <div className="p-4 bg-muted/50 rounded-lg border border-border/50">
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Modifica i tuoi dati di nascita per ricalcolare il tema natale. 
-                      I campi sono già precompilati con i tuoi dati attuali.
-                    </p>
-                  </div>
-                  
-                  <BirthDataForm 
-                    onSuccess={handleNatalChartSuccess}
-                    initialData={{
-                      birthDate: natalChartData.birthInfo?.date,
-                      birthTime: natalChartData.birthInfo?.time,
-                      birthPlace: natalChartData.birthInfo?.place,
-                      latitude: natalChartData.birthInfo?.latitude,
-                      longitude: natalChartData.birthInfo?.longitude,
-                    }}
-                  />
-                  
                   <Button 
-                    variant="outline" 
-                    onClick={() => setShowNatalChartForm(false)}
+                    onClick={() => navigate('/astrology')}
+                    variant="outline"
                     className="w-full"
                   >
-                    Annulla
+                    Visualizza Tema Natale Completo
                   </Button>
                 </div>
               )}

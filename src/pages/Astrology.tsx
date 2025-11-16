@@ -5,9 +5,10 @@ import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { NatalChartWheel } from "@/components/NatalChartWheel";
+import { BirthDataForm } from "@/components/BirthDataForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Download, Sparkles, Calendar, Star } from "lucide-react";
+import { Download, Sparkles, Calendar, Star, Edit2 } from "lucide-react";
 import { exportNatalChartToPDF } from "@/utils/natal-chart-pdf";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,6 +18,7 @@ const Astrology = () => {
   const [loading, setLoading] = useState(true);
   const [natalChartData, setNatalChartData] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [showEditForm, setShowEditForm] = useState(false);
 
   useEffect(() => {
     loadUserData();
@@ -84,6 +86,11 @@ const Astrology = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleNatalChartSuccess = () => {
+    setShowEditForm(false);
+    loadUserData();
   };
 
   const getPlanetInfo = (planet: string) => {
@@ -183,18 +190,32 @@ const Astrology = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        <div className="pt-24 pb-16 px-6 container mx-auto">
+        <div className="pt-24 pb-16 px-6 container mx-auto max-w-4xl">
           <Card>
             <CardHeader>
-              <CardTitle>Tema Natale Non Disponibile</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-6 w-6 text-primary" />
+                Calcola il Tuo Tema Natale
+              </CardTitle>
               <CardDescription>
-                Per visualizzare il tuo tema natale completo, devi prima completare i tuoi dati di nascita nel profilo.
+                Per visualizzare il tuo tema natale completo, inserisci i tuoi dati di nascita.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={() => navigate("/profile")}>
-                Vai al Profilo
-              </Button>
+              <div className="p-4 bg-muted/50 rounded-lg border border-border/50 mb-6">
+                <p className="text-sm text-muted-foreground mb-3">
+                  Il tema natale ti permette di comprendere meglio i tuoi sogni attraverso 
+                  l'astrologia. Le posizioni dei pianeti nel momento della tua nascita possono 
+                  rivelare aspetti profondi della tua psiche e dei tuoi sogni ricorrenti.
+                </p>
+                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                  <li><strong>Chirone</strong> indica la tua ferita emotiva principale</li>
+                  <li><strong>Mercurio</strong> rivela il tuo stile comunicativo</li>
+                  <li><strong>Venere</strong> mostra il tuo modo di amare</li>
+                </ul>
+              </div>
+              
+              <BirthDataForm onSuccess={handleNatalChartSuccess} />
             </CardContent>
           </Card>
         </div>
@@ -218,11 +239,52 @@ const Astrology = () => {
                 Esplora il tuo universo astrologico e scopri come i pianeti influenzano i tuoi sogni
               </p>
             </div>
-            <Button onClick={handleExportPDF} className="gap-2">
-              <Download className="h-4 w-4" />
-              Esporta PDF
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => setShowEditForm(!showEditForm)} 
+                variant="outline"
+                className="gap-2"
+              >
+                <Edit2 className="h-4 w-4" />
+                Modifica Dati
+              </Button>
+              <Button onClick={handleExportPDF} className="gap-2">
+                <Download className="h-4 w-4" />
+                Esporta PDF
+              </Button>
+            </div>
           </div>
+
+          {/* Edit Form */}
+          {showEditForm && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Modifica Dati di Nascita</CardTitle>
+                <CardDescription>
+                  Aggiorna i tuoi dati per ricalcolare il tema natale
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <BirthDataForm 
+                  onSuccess={handleNatalChartSuccess}
+                  initialData={{
+                    birthDate: natalChartData.birthInfo?.date,
+                    birthTime: natalChartData.birthInfo?.time,
+                    birthPlace: natalChartData.birthInfo?.place,
+                    latitude: natalChartData.birthInfo?.latitude,
+                    longitude: natalChartData.birthInfo?.longitude,
+                  }}
+                />
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowEditForm(false)}
+                  className="w-full mt-4"
+                >
+                  Annulla
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Natal Chart Wheel */}
           <Card>
