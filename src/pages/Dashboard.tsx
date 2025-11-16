@@ -114,9 +114,11 @@ const Dashboard = () => {
               onClick={handleExportPDF} 
               disabled={exporting || allDreams.length === 0}
               className="gap-2"
+              size="default"
             >
               <Download className="h-4 w-4" />
-              {exporting ? "Esportazione..." : "Esporta Report PDF"}
+              <span className="hidden sm:inline">{exporting ? "Esportazione..." : "Esporta Report PDF"}</span>
+              <span className="sm:hidden">PDF</span>
             </Button>
           </div>
 

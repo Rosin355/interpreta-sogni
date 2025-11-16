@@ -7,7 +7,7 @@ const Footer = () => {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Moon className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold text-foreground">Interpreta i tuoi Sogni</span>
+              <span className="text-xl font-bold text-foreground">Dream's Alchemist</span>
             </div>
             <p className="text-sm text-muted-foreground">
               Esplora l'universo dei tuoi sogni e contribuisci alla ricerca globale.
@@ -49,7 +49,7 @@ const Footer = () => {
 
         {/* Bottom bar */}
         <div className="pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">© 2025 Interpreta i tuoi Sogni di Jessica Marin. Tutti i diritti riservati.</p>
+          <p className="text-sm text-muted-foreground">© 2025 Dream's Alchemist di Jessica Marin. Tutti i diritti riservati.</p>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>Fatto con</span>
             <Heart className="h-4 w-4 text-primary fill-primary" />

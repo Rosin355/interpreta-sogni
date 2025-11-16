@@ -172,7 +172,7 @@ const Auth = () => {
             </div>
           </div>
           <CardTitle className="text-2xl text-center text-foreground">
-            Interpreta i tuoi Sogni
+            Dream's Alchemist
           </CardTitle>
           <CardDescription className="text-center text-muted-foreground">
             Accedi o registrati per iniziare
