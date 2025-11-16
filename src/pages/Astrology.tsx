@@ -5,6 +5,7 @@ import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AstroChartWheel } from "@/components/AstroChartWheel";
+import { AspectGrid } from "@/components/AspectGrid";
 import { BirthDataForm } from "@/components/BirthDataForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -298,6 +299,11 @@ const Astrology = () => {
               <AstroChartWheel natalChartData={natalChartData} size={600} />
             </CardContent>
           </Card>
+
+          {/* Aspect Grid */}
+          {natalChartData.aspects && natalChartData.aspects.length > 0 && (
+            <AspectGrid aspects={natalChartData.aspects} />
+          )}
 
           {/* Detailed Information */}
           <Tabs defaultValue="planets" className="w-full">
