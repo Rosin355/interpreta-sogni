@@ -34,9 +34,18 @@ const ASPECT_SYMBOLS: { [key: string]: { symbol: string; color: string; shortNam
 export function AspectGrid({ aspects }: AspectGridProps) {
   const planets = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
 
+  // Filter and validate aspects to ensure they have required properties
+  const validAspects = aspects.filter(aspect => 
+    aspect && 
+    aspect.planet1 && 
+    aspect.planet2 && 
+    aspect.type &&
+    typeof aspect.angle === 'number'
+  );
+
   // Create aspect lookup map
   const aspectMap = new Map<string, typeof aspects[0]>();
-  aspects.forEach(aspect => {
+  validAspects.forEach(aspect => {
     const key1 = `${aspect.planet1}-${aspect.planet2}`;
     const key2 = `${aspect.planet2}-${aspect.planet1}`;
     aspectMap.set(key1, aspect);
