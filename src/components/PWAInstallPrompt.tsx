@@ -90,7 +90,7 @@ export const PWAInstallPrompt = () => {
             </div>
             <div className="flex-1">
               <h3 className="font-semibold text-lg mb-1">
-                Installa Interpreta i tuoi sogni
+                Installa Dream's Alchemist
               </h3>
               <p className="text-sm text-muted-foreground">
                 Accedi più velocemente e usa l'app offline come un'app nativa
