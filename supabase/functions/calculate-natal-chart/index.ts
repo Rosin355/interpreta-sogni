@@ -253,17 +253,17 @@ serve(async (req) => {
         let angle = Math.abs(pos1 - pos2);
         if (angle > 180) angle = 360 - angle;
         
-        // Check for major aspects (with 8° orb)
+        // Check for major aspects (with proper orb)
         if (Math.abs(angle - 0) < 8) {
-          aspectsArray.push({ planet1, planet2, type: 'conjunction', angle: 0 });
+          aspectsArray.push({ planet1, planet2, type: 'conjunction', angle, orb: Math.abs(angle - 0) });
         } else if (Math.abs(angle - 60) < 6) {
-          aspectsArray.push({ planet1, planet2, type: 'sextile', angle: 60 });
+          aspectsArray.push({ planet1, planet2, type: 'sextile', angle, orb: Math.abs(angle - 60) });
         } else if (Math.abs(angle - 90) < 8) {
-          aspectsArray.push({ planet1, planet2, type: 'square', angle: 90 });
+          aspectsArray.push({ planet1, planet2, type: 'square', angle, orb: Math.abs(angle - 90) });
         } else if (Math.abs(angle - 120) < 8) {
-          aspectsArray.push({ planet1, planet2, type: 'trine', angle: 120 });
+          aspectsArray.push({ planet1, planet2, type: 'trine', angle, orb: Math.abs(angle - 120) });
         } else if (Math.abs(angle - 180) < 8) {
-          aspectsArray.push({ planet1, planet2, type: 'opposition', angle: 180 });
+          aspectsArray.push({ planet1, planet2, type: 'opposition', angle, orb: Math.abs(angle - 180) });
         }
       }
     }
