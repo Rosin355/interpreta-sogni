@@ -111,7 +111,7 @@ export function AspectGrid({ aspects }: AspectGridProps) {
                       <td 
                         key={planet2} 
                         className="p-2 border border-gray-200 text-center hover:bg-gray-50 transition-colors cursor-help group relative"
-                        title={`${aspect.type.toUpperCase()}: ${aspect.angle.toFixed(1)}° (orb: ${aspect.orb.toFixed(1)}°)`}
+                        title={`${aspect.type.toUpperCase()}: ${aspect.angle?.toFixed(1) ?? 'N/A'}° (orb: ${aspect.orb?.toFixed(1) ?? 'N/A'}°)`}
                       >
                         <div className="flex flex-col items-center gap-1">
                           <span 
@@ -128,8 +128,8 @@ export function AspectGrid({ aspects }: AspectGridProps) {
                         {/* Tooltip on hover */}
                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 w-48 p-2 bg-gray-900 text-white text-xs rounded shadow-lg">
                           <div className="font-semibold mb-1">{aspect.type.toUpperCase()}</div>
-                          <div>Angolo: {aspect.angle.toFixed(1)}°</div>
-                          <div>Orb: ±{aspect.orb.toFixed(1)}°</div>
+                          <div>Angolo: {aspect.angle?.toFixed(1) ?? 'N/A'}°</div>
+                          <div>Orb: ±{aspect.orb?.toFixed(1) ?? 'N/A'}°</div>
                           <div className="text-gray-300 mt-1">
                             {PLANET_SYMBOLS[aspect.planet1]} ↔ {PLANET_SYMBOLS[aspect.planet2]}
                           </div>
