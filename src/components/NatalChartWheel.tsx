@@ -38,11 +38,6 @@ interface NatalChartWheelProps {
   showAspects?: boolean;
 }
 
-const zodiacSigns = [
-  "Ariete", "Toro", "Gemelli", "Cancro", "Leone", "Vergine",
-  "Bilancia", "Scorpione", "Sagittario", "Capricorno", "Acquario", "Pesci"
-];
-
 const zodiacSymbols: Record<string, string> = {
   "Aries": "♈", "Taurus": "♉", "Gemini": "♊", "Cancer": "♋",
   "Leo": "♌", "Virgo": "♍", "Libra": "♎", "Scorpio": "♏",
@@ -64,95 +59,140 @@ const planetSymbols: Record<string, string> = {
   northNode: "☊"
 };
 
+const planetColors: Record<string, string> = {
+  sun: "#FDB813",
+  moon: "#C0C0C0",
+  mercury: "#FFD700",
+  venus: "#FF69B4",
+  mars: "#EF4444",
+  jupiter: "#F97316",
+  saturn: "#A855F7",
+  uranus: "#06B6D4",
+  neptune: "#8B5CF6",
+  pluto: "#DC2626",
+  chiron: "#10B981",
+  northNode: "#22C55E"
+};
+
 const zodiacColors: Record<string, string> = {
-  "Aries": "#ef4444",
-  "Taurus": "#22c55e",
-  "Gemini": "#eab308",
-  "Cancer": "#3b82f6",
-  "Leo": "#f59e0b",
-  "Virgo": "#64748b",
-  "Libra": "#a855f7",
-  "Scorpio": "#dc2626",
-  "Sagittarius": "#f97316",
+  "Aries": "#EF4444",
+  "Taurus": "#10B981",
+  "Gemini": "#FDB813",
+  "Cancer": "#3B82F6",
+  "Leo": "#F97316",
+  "Virgo": "#64748B",
+  "Libra": "#A855F7",
+  "Scorpio": "#DC2626",
+  "Sagittarius": "#F59E0B",
   "Capricorn": "#475569",
-  "Aquarius": "#06b6d4",
-  "Pisces": "#8b5cf6"
+  "Aquarius": "#06B6D4",
+  "Pisces": "#8B5CF6"
 };
 
 const aspectColors: Record<string, string> = {
-  "conjunction": "#fbbf24",
-  "opposition": "#ef4444",
-  "trine": "#22c55e",
-  "square": "#f97316",
-  "sextile": "#3b82f6"
+  "conjunction": "#FDB813",
+  "opposition": "#EF4444",
+  "trine": "#10B981",
+  "square": "#F97316",
+  "sextile": "#3B82F6",
+  "major": "#10B981"
 };
 
-export function NatalChartWheel({ data, size = 400, showAspects = true }: NatalChartWheelProps) {
+export function NatalChartWheel({ data, size = 600, showAspects = true }: NatalChartWheelProps) {
   const center = size / 2;
-  const outerRadius = size / 2 - 10;
-  const innerRadius = outerRadius * 0.7;
-  const houseRadius = outerRadius * 0.5;
-  const planetRadius = outerRadius * 0.85;
+  const outerRadius = size / 2 - 20;
+  const zodiacInnerRadius = outerRadius * 0.82;
+  const houseInnerRadius = outerRadius * 0.60;
+  const aspectRadius = outerRadius * 0.50;
+  const planetRadius = outerRadius * 0.71;
   
   const [hoveredPlanet, setHoveredPlanet] = useState<string | null>(null);
   const [selectedPlanet, setSelectedPlanet] = useState<string | null>(null);
 
-  const getSignAngle = (signIndex: number) => {
-    return (signIndex * 30 - 90) * (Math.PI / 180);
+  // Convert sign name to index (0-11)
+  const getSignIndex = (signName: string): number => {
+    const signs = Object.keys(zodiacSymbols);
+    return signs.indexOf(signName);
   };
 
+  // Get angle from degree (0° = East/right, rotating counter-clockwise)
+  const degreeToAngle = (degree: number): number => {
+    return ((degree - 90) * Math.PI) / 180;
+  };
+
+  // Calculate planet position from its ecliptic longitude
   const getPlanetPosition = (planet: Planet) => {
-    const signIndex = Object.keys(zodiacSymbols).indexOf(planet.sign);
-    if (signIndex === -1) return { x: 0, y: 0 };
+    const signIndex = getSignIndex(planet.sign);
+    if (signIndex === -1) return { x: center, y: center };
     
-    const baseAngle = signIndex * 30;
-    const angle = (baseAngle + planet.degree - 90) * (Math.PI / 180);
+    // Calculate total ecliptic longitude
+    const totalDegree = signIndex * 30 + planet.degree;
+    const angle = degreeToAngle(totalDegree);
     
     return {
       x: center + planetRadius * Math.cos(angle),
-      y: center + planetRadius * Math.sin(angle)
+      y: center + planetRadius * Math.sin(angle),
+      angle: totalDegree
     };
   };
 
+  // Draw zodiac wheel segments
   const zodiacSegments = useMemo(() => {
-    return zodiacSigns.map((sign, index) => {
-      const startAngle = getSignAngle(index);
-      const endAngle = getSignAngle(index + 1);
+    const signs = Object.keys(zodiacSymbols);
+    return signs.map((sign, index) => {
+      const startAngle = degreeToAngle(index * 30);
+      const endAngle = degreeToAngle((index + 1) * 30);
       
+      // Outer arc
       const x1 = center + outerRadius * Math.cos(startAngle);
       const y1 = center + outerRadius * Math.sin(startAngle);
-      const x2 = center + innerRadius * Math.cos(startAngle);
-      const y2 = center + innerRadius * Math.sin(startAngle);
-      const x3 = center + innerRadius * Math.cos(endAngle);
-      const y3 = center + innerRadius * Math.sin(endAngle);
-      const x4 = center + outerRadius * Math.cos(endAngle);
-      const y4 = center + outerRadius * Math.sin(endAngle);
-
-      const path = `M ${x1} ${y1} L ${x2} ${y2} A ${innerRadius} ${innerRadius} 0 0 1 ${x3} ${y3} L ${x4} ${y4} A ${outerRadius} ${outerRadius} 0 0 0 ${x1} ${y1}`;
+      const x2 = center + outerRadius * Math.cos(endAngle);
+      const y2 = center + outerRadius * Math.sin(endAngle);
       
-      const midAngle = (startAngle + endAngle) / 2;
-      const textRadius = (outerRadius + innerRadius) / 2;
-      const textX = center + textRadius * Math.cos(midAngle);
-      const textY = center + textRadius * Math.sin(midAngle);
-
-      return { sign, path, textX, textY, index };
+      // Inner arc
+      const x3 = center + zodiacInnerRadius * Math.cos(endAngle);
+      const y3 = center + zodiacInnerRadius * Math.sin(endAngle);
+      const x4 = center + zodiacInnerRadius * Math.cos(startAngle);
+      const y4 = center + zodiacInnerRadius * Math.sin(startAngle);
+      
+      const path = `M ${x1},${y1} A ${outerRadius},${outerRadius} 0 0,1 ${x2},${y2} L ${x3},${y3} A ${zodiacInnerRadius},${zodiacInnerRadius} 0 0,0 ${x4},${y4} Z`;
+      
+      // Symbol position
+      const midAngle = degreeToAngle(index * 30 + 15);
+      const symbolRadius = (outerRadius + zodiacInnerRadius) / 2;
+      const symbolX = center + symbolRadius * Math.cos(midAngle);
+      const symbolY = center + symbolRadius * Math.sin(midAngle);
+      
+      return { sign, path, symbolX, symbolY, color: zodiacColors[sign] };
     });
   }, [size]);
 
+  // Draw house lines
   const houseLines = useMemo(() => {
     if (!data.houses) return [];
     
     return data.houses.map((house) => {
-      const angle = (house.degree - 90) * (Math.PI / 180);
-      const x1 = center + houseRadius * Math.cos(angle);
-      const y1 = center + houseRadius * Math.sin(angle);
-      const x2 = center + outerRadius * Math.cos(angle);
-      const y2 = center + outerRadius * Math.sin(angle);
+      const angle = degreeToAngle(house.degree);
+      const x1 = center + houseInnerRadius * Math.cos(angle);
+      const y1 = center + houseInnerRadius * Math.sin(angle);
+      const x2 = center + zodiacInnerRadius * Math.cos(angle);
+      const y2 = center + zodiacInnerRadius * Math.sin(angle);
       
-      return { x1, y1, x2, y2, number: house.number };
+      // Position for house number
+      const numberRadius = (houseInnerRadius + zodiacInnerRadius) / 2;
+      const nextHouseDegree = data.houses[(house.number % 12)];
+      const midDegree = house.number < 12 && nextHouseDegree
+        ? (house.degree + nextHouseDegree.degree) / 2
+        : house.degree + 15;
+      const midAngle = degreeToAngle(midDegree);
+      const numX = center + numberRadius * Math.cos(midAngle);
+      const numY = center + numberRadius * Math.sin(midAngle);
+      
+      return { x1, y1, x2, y2, number: house.number, numX, numY };
     });
   }, [data.houses, size]);
 
+  // Calculate planet positions
   const planetPositions = useMemo(() => {
     if (!data.planets) return [];
     
@@ -163,6 +203,7 @@ export function NatalChartWheel({ data, size = 400, showAspects = true }: NatalC
         return {
           name,
           symbol: planetSymbols[name] || name[0].toUpperCase(),
+          color: planetColors[name] || "#94A3B8",
           x: pos.x,
           y: pos.y,
           planet: planet as Planet,
@@ -171,6 +212,7 @@ export function NatalChartWheel({ data, size = 400, showAspects = true }: NatalC
       });
   }, [data.planets, size]);
 
+  // Calculate aspects
   const aspects = useMemo(() => {
     if (!data.planets || !showAspects || !data.aspects) return [];
     
@@ -179,7 +221,7 @@ export function NatalChartWheel({ data, size = 400, showAspects = true }: NatalC
       from: typeof positions[0];
       to: typeof positions[0];
       type: string;
-      angle: number;
+      color: string;
     }> = [];
 
     data.aspects.forEach((aspect) => {
@@ -187,11 +229,23 @@ export function NatalChartWheel({ data, size = 400, showAspects = true }: NatalC
       const toPlanet = positions.find(p => p.name === aspect.planet2);
       
       if (fromPlanet && toPlanet) {
+        // Draw aspect lines from center area
+        const fromAngle = Math.atan2(fromPlanet.y - center, fromPlanet.x - center);
+        const toAngle = Math.atan2(toPlanet.y - center, toPlanet.x - center);
+        
         calculatedAspects.push({
-          from: fromPlanet,
-          to: toPlanet,
+          from: {
+            ...fromPlanet,
+            x: center + aspectRadius * Math.cos(fromAngle),
+            y: center + aspectRadius * Math.sin(fromAngle)
+          },
+          to: {
+            ...toPlanet,
+            x: center + aspectRadius * Math.cos(toAngle),
+            y: center + aspectRadius * Math.sin(toAngle)
+          },
           type: aspect.type,
-          angle: aspect.angle
+          color: aspectColors[aspect.type] || "#64748B"
         });
       }
     });
@@ -200,7 +254,7 @@ export function NatalChartWheel({ data, size = 400, showAspects = true }: NatalC
   }, [data.planets, data.aspects, planetPositions, showAspects]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-natal-chart-wheel>
       <TransformWrapper
         initialScale={1}
         minScale={0.5}
@@ -240,86 +294,74 @@ export function NatalChartWheel({ data, size = 400, showAspects = true }: NatalC
               
               {selectedPlanet && (
                 <Badge variant="secondary" className="gap-1">
-                  {planetSymbols[selectedPlanet]} {selectedPlanet}
+                  <span style={{ color: planetColors[selectedPlanet] }}>
+                    {planetSymbols[selectedPlanet]}
+                  </span>
+                  {selectedPlanet}
                 </Badge>
               )}
             </div>
 
             <TransformComponent
-              wrapperClass="!w-full !h-full rounded-lg border border-border bg-muted/30"
+              wrapperClass="!w-full !h-full rounded-lg border border-border overflow-hidden"
               contentClass="flex items-center justify-center"
             >
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5 }}
+                className="p-4"
               >
                 <svg
                   width={size}
                   height={size}
                   viewBox={`0 0 ${size} ${size}`}
                   className="natal-chart-wheel"
+                  style={{ background: "hsl(var(--background))" }}
                 >
-                  <motion.circle
-                    cx={center}
-                    cy={center}
-                    r={outerRadius}
-                    fill="none"
-                    stroke="hsl(var(--border))"
-                    strokeWidth="2"
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
-                    transition={{ duration: 1, ease: "easeInOut" }}
-                  />
-
-                  {zodiacSegments.map(({ sign, path, textX, textY, index }, idx) => (
+                  {/* Zodiac wheel segments */}
+                  {zodiacSegments.map(({ sign, path, symbolX, symbolY, color }, idx) => (
                     <motion.g
                       key={sign}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ delay: idx * 0.05, duration: 0.3 }}
+                      transition={{ delay: idx * 0.03, duration: 0.3 }}
                     >
                       <path
                         d={path}
-                        fill={`${zodiacColors[Object.keys(zodiacSymbols)[index]]}15`}
-                        stroke="hsl(var(--border))"
+                        fill={`${color}25`}
+                        stroke={color}
                         strokeWidth="1"
-                        className="transition-all duration-300 hover:fill-opacity-30"
+                        className="transition-all duration-300"
                       />
                       <text
-                        x={textX}
-                        y={textY}
+                        x={symbolX}
+                        y={symbolY}
                         textAnchor="middle"
                         dominantBaseline="middle"
-                        className="text-xs font-medium"
-                        fill={zodiacColors[Object.keys(zodiacSymbols)[index]]}
+                        className="text-xl font-bold"
+                        fill={color}
+                        style={{ fontSize: '20px' }}
                       >
-                        {zodiacSymbols[Object.keys(zodiacSymbols)[index]] || sign.slice(0, 3)}
+                        {zodiacSymbols[sign]}
                       </text>
                     </motion.g>
                   ))}
 
+                  {/* Inner circle for houses */}
                   <motion.circle
                     cx={center}
                     cy={center}
-                    r={innerRadius}
+                    r={zodiacInnerRadius}
                     fill="none"
                     stroke="hsl(var(--border))"
                     strokeWidth="2"
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
-                    transition={{ duration: 1, delay: 0.3, ease: "easeInOut" }}
+                    transition={{ duration: 0.8, delay: 0.3 }}
                   />
 
-                  <circle
-                    cx={center}
-                    cy={center}
-                    r={houseRadius}
-                    fill="hsl(var(--background))"
-                    stroke="hsl(var(--border))"
-                    strokeWidth="1"
-                  />
-
+                  {/* House division lines */}
                   {houseLines.map((house, index) => (
                     <motion.g
                       key={index}
@@ -332,13 +374,47 @@ export function NatalChartWheel({ data, size = 400, showAspects = true }: NatalC
                         y1={house.y1}
                         x2={house.x2}
                         y2={house.y2}
-                        stroke="hsl(var(--border))"
+                        stroke="hsl(var(--muted-foreground))"
                         strokeWidth="1"
-                        strokeDasharray="3,3"
+                        opacity="0.6"
                       />
+                      <text
+                        x={house.numX}
+                        y={house.numY}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        className="text-base font-semibold"
+                        fill="hsl(var(--foreground))"
+                        style={{ fontSize: '18px' }}
+                      >
+                        {house.number}
+                      </text>
                     </motion.g>
                   ))}
 
+                  {/* Middle circle for aspects */}
+                  <motion.circle
+                    cx={center}
+                    cy={center}
+                    r={houseInnerRadius}
+                    fill="none"
+                    stroke="hsl(var(--border))"
+                    strokeWidth="2"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ duration: 0.8, delay: 0.6 }}
+                  />
+
+                  {/* Aspect circle background */}
+                  <circle
+                    cx={center}
+                    cy={center}
+                    r={aspectRadius}
+                    fill="hsl(var(--muted))"
+                    opacity="0.2"
+                  />
+
+                  {/* Aspect lines */}
                   {aspects.map((aspect, index) => (
                     <motion.line
                       key={`aspect-${index}`}
@@ -346,49 +422,53 @@ export function NatalChartWheel({ data, size = 400, showAspects = true }: NatalC
                       y1={aspect.from.y}
                       x2={aspect.to.x}
                       y2={aspect.to.y}
-                      stroke={aspectColors[aspect.type] || "#94a3b8"}
-                      strokeWidth="1"
-                      strokeDasharray="2,2"
-                      opacity="0.4"
+                      stroke={aspect.color}
+                      strokeWidth="1.5"
+                      opacity="0.6"
                       initial={{ pathLength: 0, opacity: 0 }}
-                      animate={{ pathLength: 1, opacity: 0.4 }}
+                      animate={{ pathLength: 1, opacity: 0.6 }}
                       transition={{ delay: 1 + index * 0.05, duration: 0.5 }}
-                      className="transition-opacity duration-300 hover:opacity-80"
+                      className="transition-opacity duration-300 hover:opacity-100"
                     />
                   ))}
 
+                  {/* Ascendant line */}
                   {data.ascendant && (
                     <motion.line
                       x1={center}
                       y1={center}
-                      x2={center + outerRadius}
+                      x2={center + zodiacInnerRadius}
                       y2={center}
                       stroke="hsl(var(--primary))"
-                      strokeWidth="2"
-                      markerEnd="url(#arrowhead)"
+                      strokeWidth="3"
                       initial={{ pathLength: 0 }}
                       animate={{ pathLength: 1 }}
                       transition={{ delay: 0.8, duration: 0.5 }}
                     />
                   )}
 
-                  <defs>
-                    <marker
-                      id="arrowhead"
-                      markerWidth="10"
-                      markerHeight="10"
-                      refX="9"
-                      refY="3"
-                      orient="auto"
+                  {/* Ascendant marker */}
+                  {data.ascendant && (
+                    <motion.g
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 1, type: "spring" }}
                     >
-                      <polygon
-                        points="0 0, 10 3, 0 6"
+                      <text
+                        x={center + zodiacInnerRadius - 30}
+                        y={center}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        className="text-sm font-bold"
                         fill="hsl(var(--primary))"
-                      />
-                    </marker>
-                  </defs>
+                      >
+                        Asc
+                      </text>
+                    </motion.g>
+                  )}
 
-                  {planetPositions.map(({ name, symbol, x, y, retrograde, planet }, index) => (
+                  {/* Planets */}
+                  {planetPositions.map(({ name, symbol, color, x, y, retrograde }, index) => (
                     <motion.g
                       key={name}
                       initial={{ scale: 0, opacity: 0 }}
@@ -402,13 +482,13 @@ export function NatalChartWheel({ data, size = 400, showAspects = true }: NatalC
                       <motion.circle
                         cx={x}
                         cy={y}
-                        r={hoveredPlanet === name || selectedPlanet === name ? 16 : 12}
+                        r={hoveredPlanet === name || selectedPlanet === name ? 18 : 14}
                         fill="hsl(var(--background))"
-                        stroke="hsl(var(--primary))"
-                        strokeWidth={selectedPlanet === name ? 2.5 : 1.5}
+                        stroke={color}
+                        strokeWidth={selectedPlanet === name ? 3 : 2}
                         className="transition-all duration-200"
                         animate={{
-                          scale: hoveredPlanet === name ? 1.1 : 1,
+                          scale: hoveredPlanet === name ? 1.15 : 1,
                         }}
                       />
                       <text
@@ -416,121 +496,60 @@ export function NatalChartWheel({ data, size = 400, showAspects = true }: NatalC
                         y={y}
                         textAnchor="middle"
                         dominantBaseline="middle"
-                        className="text-sm font-bold fill-primary pointer-events-none"
+                        className="text-base font-bold pointer-events-none"
+                        fill={color}
+                        style={{ fontSize: hoveredPlanet === name ? '18px' : '16px' }}
                       >
                         {symbol}
                       </text>
                       {retrograde && (
                         <text
-                          x={x + 10}
-                          y={y - 10}
+                          x={x + 12}
+                          y={y - 12}
                           textAnchor="middle"
                           dominantBaseline="middle"
-                          className="text-xs fill-destructive pointer-events-none"
+                          className="text-xs pointer-events-none"
+                          fill="#EF4444"
                         >
                           ℞
                         </text>
                       )}
-                      {hoveredPlanet === name && (
+                      {(hoveredPlanet === name || selectedPlanet === name) && (
                         <motion.g
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.2 }}
                         >
                           <rect
-                            x={x - 40}
-                            y={y + 20}
-                            width="80"
-                            height="24"
-                            rx="4"
+                            x={x - 35}
+                            y={y + 22}
+                            width="70"
+                            height="20"
                             fill="hsl(var(--popover))"
                             stroke="hsl(var(--border))"
                             strokeWidth="1"
+                            rx="4"
                           />
                           <text
                             x={x}
-                            y={y + 32}
+                            y={y + 34}
                             textAnchor="middle"
                             dominantBaseline="middle"
-                            className="text-xs fill-popover-foreground font-medium pointer-events-none"
+                            className="text-xs font-medium"
+                            fill="hsl(var(--popover-foreground))"
                           >
-                            {planet.sign} {planet.degree.toFixed(1)}°
+                            {name.charAt(0).toUpperCase() + name.slice(1)}
                           </text>
                         </motion.g>
                       )}
                     </motion.g>
                   ))}
-
-                  {data.ascendant && (
-                    <motion.text
-                      x={center + outerRadius + 15}
-                      y={center}
-                      textAnchor="start"
-                      dominantBaseline="middle"
-                      className="text-xs font-semibold fill-primary"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 1 }}
-                    >
-                      ASC
-                    </motion.text>
-                  )}
                 </svg>
               </motion.div>
             </TransformComponent>
           </>
         )}
       </TransformWrapper>
-
-      {showAspects && aspects.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.5 }}
-          className="flex flex-wrap gap-2 justify-center text-xs"
-        >
-          <Badge variant="outline" className="gap-1">
-            <div className="w-3 h-0.5" style={{ backgroundColor: aspectColors.conjunction }} />
-            Congiunzione
-          </Badge>
-          <Badge variant="outline" className="gap-1">
-            <div className="w-3 h-0.5" style={{ backgroundColor: aspectColors.trine }} />
-            Trigono
-          </Badge>
-          <Badge variant="outline" className="gap-1">
-            <div className="w-3 h-0.5" style={{ backgroundColor: aspectColors.square }} />
-            Quadrato
-          </Badge>
-          <Badge variant="outline" className="gap-1">
-            <div className="w-3 h-0.5" style={{ backgroundColor: aspectColors.opposition }} />
-            Opposizione
-          </Badge>
-          <Badge variant="outline" className="gap-1">
-            <div className="w-3 h-0.5" style={{ backgroundColor: aspectColors.sextile }} />
-            Sestile
-          </Badge>
-        </motion.div>
-      )}
-
-      {selectedPlanet && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 bg-muted/50 rounded-lg border border-border"
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-2xl">{planetSymbols[selectedPlanet]}</span>
-            <div>
-              <h4 className="font-semibold capitalize">{selectedPlanet}</h4>
-              <p className="text-sm text-muted-foreground">
-                {planetPositions.find(p => p.name === selectedPlanet)?.planet.sign} • 
-                Casa {planetPositions.find(p => p.name === selectedPlanet)?.planet.house} • 
-                {planetPositions.find(p => p.name === selectedPlanet)?.planet.degree.toFixed(2)}°
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      )}
     </div>
   );
 }

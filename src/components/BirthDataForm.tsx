@@ -113,14 +113,19 @@ export function BirthDataForm({ onSuccess }: BirthDataFormProps) {
         throw new Error(functionData?.error || "Errore nel calcolo del tema natale");
       }
 
+      console.log('Natal chart calculated successfully:', functionData);
       toast.success("Tema natale calcolato con successo! ✨");
-      form.reset();
-      setSelectedPlace(null);
-      setPlaceSearch("");
       
-      if (onSuccess) {
-        onSuccess();
-      }
+      // Wait a moment before calling onSuccess to ensure data is saved
+      setTimeout(() => {
+        form.reset();
+        setSelectedPlace(null);
+        setPlaceSearch("");
+        
+        if (onSuccess) {
+          onSuccess();
+        }
+      }, 500);
     } catch (error: any) {
       console.error("Error calculating natal chart:", error);
       toast.error(error.message || "Errore nel calcolo del tema natale");
