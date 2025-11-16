@@ -1,16 +1,63 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Sparkles, Heart, Moon, Star, BookOpen, HelpCircle } from "lucide-react";
+import { Sparkles, Heart, Moon, Star, BookOpen, HelpCircle, Send } from "lucide-react";
 import { initScrollAnimations } from "@/utils/gsap-animations";
 import jessicaImage from "@/assets/jessica-marin.jpg";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { toast } from "sonner";
+
+const contactFormSchema = z.object({
+  name: z.string().trim().min(1, { message: "Il nome è obbligatorio" }).max(100, { message: "Il nome deve essere massimo 100 caratteri" }),
+  email: z.string().trim().email({ message: "Inserisci un'email valida" }).max(255, { message: "L'email deve essere massimo 255 caratteri" }),
+  subject: z.string().trim().min(1, { message: "L'oggetto è obbligatorio" }).max(200, { message: "L'oggetto deve essere massimo 200 caratteri" }),
+  message: z.string().trim().min(10, { message: "Il messaggio deve contenere almeno 10 caratteri" }).max(2000, { message: "Il messaggio deve essere massimo 2000 caratteri" }),
+});
+
+type ContactFormValues = z.infer<typeof contactFormSchema>;
 
 const About = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const form = useForm<ContactFormValues>({
+    resolver: zodResolver(contactFormSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      subject: "",
+      message: "",
+    },
+  });
+
   useEffect(() => {
     initScrollAnimations();
   }, []);
+
+  const onSubmit = async (values: ContactFormValues) => {
+    setIsSubmitting(true);
+    try {
+      // Encode values for WhatsApp
+      const message = `*Nuovo messaggio da Dream's Alchemist*%0A%0A*Nome:* ${encodeURIComponent(values.name)}%0A*Email:* ${encodeURIComponent(values.email)}%0A*Oggetto:* ${encodeURIComponent(values.subject)}%0A%0A*Messaggio:*%0A${encodeURIComponent(values.message)}`;
+      
+      // Open WhatsApp with pre-filled message (replace with Jessica's number)
+      window.open(`https://wa.me/393425855361?text=${message}`, '_blank');
+      
+      toast.success("Messaggio preparato! Verrai reindirizzato a WhatsApp.");
+      form.reset();
+    } catch (error) {
+      toast.error("Si è verificato un errore. Riprova più tardi.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -67,18 +114,20 @@ const About = () => {
             <div className="max-w-4xl mx-auto">
               <Card className="border-primary/20 bg-gradient-to-br from-card to-card/50 overflow-hidden">
                 <CardContent className="p-0">
-                  <div className="grid md:grid-cols-3 gap-8">
+                  <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
                     {/* Jessica's Photo */}
-                    <div className="md:col-span-1 flex items-center justify-center p-8">
-                      <img 
-                        src={jessicaImage} 
-                        alt="Jessica Marin - Tarologa Esoterista Professionista" 
-                        className="w-full h-auto rounded-lg shadow-lg object-cover"
-                      />
+                    <div className="flex items-center justify-center p-6 md:p-8 lg:p-12">
+                      <div className="w-full max-w-md">
+                        <img 
+                          src={jessicaImage} 
+                          alt="Jessica Marin - Tarologa Esoterista Professionista" 
+                          className="w-full h-auto rounded-lg shadow-2xl object-cover"
+                        />
+                      </div>
                     </div>
                     
                     {/* Bio Content */}
-                    <div className="md:col-span-2 p-8 lg:p-12">
+                    <div className="p-6 md:p-8 lg:p-12 flex flex-col justify-center">
                       <div className="flex items-center gap-3 mb-4">
                         <BookOpen className="h-6 w-6 text-primary" />
                         <h2 className="text-3xl font-bold text-foreground">Jessica Marin</h2>
@@ -231,6 +280,98 @@ const About = () => {
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* Contact Form Section */}
+        <section className="py-16 bg-background">
+          <div className="container mx-auto px-6">
+            <div className="max-w-2xl mx-auto">
+              <div className="text-center mb-12">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
+                  <Send className="h-8 w-8 text-primary" />
+                </div>
+                <h2 className="text-3xl font-bold text-foreground mb-4">Contatta Jessica Marin</h2>
+                <p className="text-muted-foreground">Hai domande sui tuoi sogni o vuoi approfondire l'interpretazione esoterica? Invia un messaggio a Jessica.</p>
+              </div>
+
+              <Card className="border-primary/20 bg-gradient-to-br from-card to-card/50">
+                <CardContent className="p-6 lg:p-8">
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nome *</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Il tuo nome" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email *</FormLabel>
+                            <FormControl>
+                              <Input type="email" placeholder="tua@email.com" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="subject"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Oggetto *</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Di cosa vuoi parlare?" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="message"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Messaggio *</FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                placeholder="Scrivi qui il tuo messaggio per Jessica..."
+                                className="min-h-[150px]"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <Button 
+                        type="submit" 
+                        className="w-full"
+                        disabled={isSubmitting}
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        {isSubmitting ? "Invio in corso..." : "Invia Messaggio"}
+                      </Button>
+                    </form>
+                  </Form>
                 </CardContent>
               </Card>
             </div>
