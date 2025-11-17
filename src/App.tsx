@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import MyDreams from "./pages/MyDreams";
 import NewDream from "./pages/NewDream";
+import EditDream from "./pages/EditDream";
 import DreamDetail from "./pages/DreamDetail";
 import Collections from "./pages/Collections";
 import CollectionDetail from "./pages/CollectionDetail";
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/my-dreams" element={<MyDreams />} />
           <Route path="/dreams/new" element={<NewDream />} />
+          <Route path="/dreams/:id/edit" element={<EditDream />} />
           <Route path="/dreams/:id" element={<DreamDetail />} />
           <Route path="/collections" element={<Collections />} />
           <Route path="/collections/:id" element={<CollectionDetail />} />
