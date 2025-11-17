@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { translatePlanet, translateAspect, getPlanetSymbol } from '@/utils/astrology-translations';
 
 interface AspectGridProps {
   aspects: Array<{
@@ -28,7 +29,8 @@ const ASPECT_SYMBOLS: { [key: string]: { symbol: string; color: string; shortNam
   opposition: { symbol: '☍', color: '#ff6b47', shortName: 'Opp' },
   trine: { symbol: '△', color: '#66b266', shortName: 'Trig' },
   square: { symbol: '□', color: '#ff6b47', shortName: 'Quad' },
-  sextile: { symbol: '⚹', color: '#66b266', shortName: 'Sest' }
+  sextile: { symbol: '⚹', color: '#66b266', shortName: 'Sest' },
+  quincunx: { symbol: '⚻', color: '#87ceeb', shortName: 'Quin' }
 };
 
 export function AspectGrid({ aspects }: AspectGridProps) {
@@ -73,10 +75,10 @@ export function AspectGrid({ aspects }: AspectGridProps) {
                 {planets.map(planet => (
                   <th 
                     key={planet} 
-                    className="p-2 border border-gray-200 bg-gray-50 text-lg font-normal"
-                    title={planet.charAt(0).toUpperCase() + planet.slice(1)}
+                    className="p-2 border text-lg font-normal"
+                    title={translatePlanet(planet)}
                   >
-                    {PLANET_SYMBOLS[planet]}
+                    {getPlanetSymbol(planet)}
                   </th>
                 ))}
               </tr>
@@ -85,10 +87,10 @@ export function AspectGrid({ aspects }: AspectGridProps) {
               {planets.map((planet1, i) => (
                 <tr key={planet1}>
                   <th 
-                    className="p-2 border border-gray-200 bg-gray-50 text-lg font-normal"
-                    title={planet1.charAt(0).toUpperCase() + planet1.slice(1)}
+                    className="p-2 border text-lg font-normal"
+                    title={translatePlanet(planet1)}
                   >
-                    {PLANET_SYMBOLS[planet1]}
+                    {getPlanetSymbol(planet1)}
                   </th>
                   {planets.map((planet2, j) => {
                     // Only show upper triangle (excluding diagonal)
@@ -96,7 +98,7 @@ export function AspectGrid({ aspects }: AspectGridProps) {
                       return (
                         <td 
                           key={planet2} 
-                          className="p-2 border border-gray-200 bg-gray-100"
+                          className="p-2 border bg-muted/50"
                         ></td>
                       );
                     }
@@ -107,7 +109,7 @@ export function AspectGrid({ aspects }: AspectGridProps) {
                       return (
                         <td 
                           key={planet2} 
-                          className="p-2 border border-gray-200 text-center text-gray-300"
+                          className="p-2 border text-center text-muted-foreground/30"
                         >
                           —
                         </td>
@@ -153,29 +155,20 @@ export function AspectGrid({ aspects }: AspectGridProps) {
         </div>
 
         {/* Legend */}
-        <div className="mt-6 pt-4 border-t border-gray-200">
-          <h4 className="font-semibold text-sm text-gray-900 mb-3">Legenda Simboli</h4>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="mt-4 pt-4 border-t">
+          <h4 className="text-sm font-semibold mb-2">Legenda Simboli:</h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {Object.entries(ASPECT_SYMBOLS).map(([type, info]) => (
               <div key={type} className="flex items-center gap-2">
-                <span 
-                  className="text-2xl font-bold"
-                  style={{ color: info.color }}
-                >
+                <span className="text-lg" style={{ color: info.color }}>
                   {info.symbol}
                 </span>
-                <span className="text-sm text-gray-600 capitalize">
-                  {type === 'conjunction' ? 'Congiunzione' : 
-                   type === 'opposition' ? 'Opposizione' :
-                   type === 'trine' ? 'Trigono' :
-                   type === 'square' ? 'Quadratura' :
-                   type === 'sextile' ? 'Sestile' : type}
-                </span>
+                <span className="text-sm">{translateAspect(type)}</span>
               </div>
             ))}
           </div>
           
-          <div className="mt-4 text-xs text-gray-500">
+          <div className="mt-4 text-xs text-muted-foreground">
             <p><strong>Nota:</strong> La griglia mostra solo la metà superiore per evitare duplicazioni (gli aspetti sono simmetrici).</p>
             <p className="mt-1">Passa il mouse sopra ogni aspetto per vedere i dettagli completi.</p>
           </div>
