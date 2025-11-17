@@ -137,6 +137,72 @@ serve(async (req) => {
 
     console.log('✓ Final timezone offset:', timezoneOffset);
 
+    // ========================================
+    // STEP 1: CHECK CACHE NEL DATABASE
+    // ========================================
+    console.log('=== Checking database cache ===');
+    console.log('Cache system: ENABLED');
+
+    // Arrotonda le coordinate per evitare cache miss per differenze minime
+    const roundedLat = Math.round(latitude * 10000) / 10000;
+    const roundedLon = Math.round(longitude * 10000) / 10000;
+
+    console.log('Looking for cached data with:', {
+      birthDate,
+      birthTime,
+      latitude: roundedLat,
+      longitude: roundedLon
+    });
+
+    // Query il profilo per verificare se esiste già un tema natale con questi dati
+    const supabaseServiceUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAdmin = createClient(supabaseServiceUrl, supabaseServiceKey);
+
+    const { data: existingProfile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('natal_chart_data, birth_date, birth_time, birth_latitude, birth_longitude')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.warn('Error fetching profile for cache check:', profileError);
+      // Non bloccare, procedi con la chiamata API
+    }
+
+    // Verifica se i dati di nascita corrispondono esattamente
+    if (existingProfile?.natal_chart_data && 
+        existingProfile.birth_date === birthDate &&
+        existingProfile.birth_time === birthTime &&
+        existingProfile.birth_latitude !== null &&
+        existingProfile.birth_longitude !== null &&
+        Math.abs(parseFloat(existingProfile.birth_latitude) - roundedLat) < 0.0001 &&
+        Math.abs(parseFloat(existingProfile.birth_longitude) - roundedLon) < 0.0001) {
+      
+      console.log('✅ CACHE HIT - Returning cached natal chart data');
+      console.log('✅ Saved 1 API call');
+      console.log('=== Natal Chart Calculation Completed (from cache) ===');
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          data: existingProfile.natal_chart_data,
+          fromCache: true
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      );
+    }
+
+    console.log('⚠️ CACHE MISS - API call required');
+    if (!existingProfile?.natal_chart_data) {
+      console.log('Reason: No existing natal_chart_data');
+    } else {
+      console.log('Reason: Birth data mismatch');
+    }
+
     // Call Free Astrology API
     const apiKey = Deno.env.get('FREE_ASTROLOGY_API_KEY');
     if (!apiKey) {
@@ -197,6 +263,18 @@ serve(async (req) => {
 
         const errorText = await apiResponse.text();
         console.error(`Free Astrology API error (${retries} retries left):`, errorText);
+        
+        // ====================================
+        // GESTIONE SPECIFICA "LIMIT EXCEEDED"
+        // ====================================
+        if (errorText.includes('Limit Exceeded') || errorText.includes('limit exceeded')) {
+          console.error('🚫 API LIMIT EXCEEDED - No more retries possible');
+          throw new Error(
+            'Il servizio di calcolo del tema natale ha raggiunto il limite giornaliero di richieste. ' +
+            'Ti preghiamo di riprovare tra qualche ora. ' +
+            'I tuoi dati sono stati salvati e potrai calcolare il tema natale in seguito.'
+          );
+        }
         
         // Don't retry on 400 (validation errors)
         if (apiResponse.status === 400) {
@@ -272,6 +350,18 @@ serve(async (req) => {
       if (!plRes.ok || !hoRes.ok) {
         const t1 = !plRes.ok ? await plRes.text() : '';
         const t2 = !hoRes.ok ? await hoRes.text() : '';
+        
+        // Check per Limit Exceeded
+        if (t1.includes('Limit Exceeded') || t2.includes('Limit Exceeded') || 
+            t1.includes('limit exceeded') || t2.includes('limit exceeded')) {
+          console.error('🚫 API LIMIT EXCEEDED on planets/houses call');
+          throw new Error(
+            'Il servizio di calcolo del tema natale ha raggiunto il limite giornaliero di richieste. ' +
+            'Ti preghiamo di riprovare tra qualche ora. ' +
+            'I tuoi dati sono stati salvati e potrai calcolare il tema natale in seguito.'
+          );
+        }
+        
         console.error('=== API ERROR ===');
         console.error('Planets API status:', plRes.status, plRes.statusText);
         console.error('Houses API status:', hoRes.status, hoRes.statusText);
@@ -586,7 +676,9 @@ serve(async (req) => {
       throw updateError;
     }
 
-    console.log('Natal chart calculated and saved successfully');
+    console.log('✅ Natal chart calculated and saved successfully');
+    console.log('✅ Natal chart saved to database cache for future requests');
+    console.log('=== Natal Chart Calculation Completed ===');
 
     return new Response(
       JSON.stringify({
