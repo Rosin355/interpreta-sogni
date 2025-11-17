@@ -118,10 +118,24 @@ serve(async (req) => {
 
     console.log('Parsed data:', { year, month, day, hours, minutes, latitude, longitude });
 
-    // Convert timezone string to number (e.g., "UTC+1" -> 1)
-    const timezoneOffset = parseFloat(timezone.replace('UTC', '').replace('+', ''));
+    // Robust timezone validation with fallback
+    let timezoneOffset: number;
 
-    console.log('Timezone offset:', timezoneOffset);
+    if (!timezone || typeof timezone !== 'string') {
+      console.warn('⚠️ Invalid timezone (null/undefined), defaulting to UTC+0');
+      timezoneOffset = 0;
+    } else {
+      const parsed = parseFloat(timezone.replace('UTC', '').replace('+', ''));
+      
+      if (isNaN(parsed) || parsed < -12 || parsed > 14) {
+        console.warn(`⚠️ Invalid timezone offset: "${timezone}" (parsed as ${parsed}), defaulting to UTC+0`);
+        timezoneOffset = 0;
+      } else {
+        timezoneOffset = parsed;
+      }
+    }
+
+    console.log('✓ Final timezone offset:', timezoneOffset);
 
     // Call Free Astrology API
     const apiKey = Deno.env.get('FREE_ASTROLOGY_API_KEY');
@@ -150,7 +164,15 @@ serve(async (req) => {
         language: 'en'
       }
     };
-    console.log('API Request Body:', JSON.stringify(requestBody, null, 2));
+
+    console.log('=== FINAL API REQUEST DATA ===');
+    console.log('Date:', { year, month, day });
+    console.log('Time:', { hours, minutes });
+    console.log('Location:', { latitude, longitude });
+    console.log('Timezone offset:', timezoneOffset);
+    console.log('Is timezone valid?', !isNaN(timezoneOffset) && timezoneOffset >= -12 && timezoneOffset <= 14);
+    console.log('Full Request Body:', JSON.stringify(requestBody, null, 2));
+    console.log('==============================');
 
     // Implement retry logic with exponential backoff
     let retries = 3;
@@ -204,7 +226,19 @@ serve(async (req) => {
     }
 
     if (!apiResponse || !apiResponse.ok) {
-      throw lastError || new Error('Failed to call Free Astrology API after retries');
+      const status = apiResponse?.status || 'unknown';
+      const statusText = apiResponse?.statusText || 'unknown';
+      console.error('=== API CALL FAILED ===');
+      console.error('Status:', status);
+      console.error('Status Text:', statusText);
+      console.error('Last Error:', lastError?.message);
+      console.error('=======================');
+      
+      throw new Error(
+        `Impossibile calcolare il tema natale. ` +
+        `Codice errore: ${status}. ` +
+        `${lastError?.message || 'Riprova più tardi.'}`
+      );
     }
 
     const apiData = await apiResponse.json();
