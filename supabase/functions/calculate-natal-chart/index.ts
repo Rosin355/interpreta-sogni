@@ -61,6 +61,8 @@ serve(async (req) => {
     console.log('Parsed data:', { year, month, day, hours, minutes, latitude, longitude });
 
     // Create Origin object for circular-natal-horoscope-js
+    console.log('Creating Origin with:', { year, month, date: day, hour: hours, minute: minutes, latitude, longitude });
+    
     const OriginClass: any = (Origin as any)?.Origin || Origin;
     const origin = new OriginClass({
       year,
@@ -72,9 +74,15 @@ serve(async (req) => {
       longitude
     });
 
-    console.log('Origin created, calculating horoscope...');
+    console.log('Origin created:', origin);
+    console.log('Origin keys:', Object.keys(origin || {}));
+    console.log('CelestialBodies:', origin?.CelestialBodies);
 
     // Get celestial bodies positions
+    if (!origin || !origin.CelestialBodies || !origin.CelestialBodies.all) {
+      throw new Error('Failed to initialize astrology calculator. CelestialBodies is undefined.');
+    }
+    
     const celestialBodies = origin.CelestialBodies.all;
     const ascendant = origin.Ascendant;
     const houses = origin.Houses;
