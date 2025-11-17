@@ -238,7 +238,13 @@ serve(async (req) => {
       if (!plRes.ok || !hoRes.ok) {
         const t1 = !plRes.ok ? await plRes.text() : '';
         const t2 = !hoRes.ok ? await hoRes.text() : '';
-        console.error('Planets/Houses API error:', t1 || t2);
+        console.error('=== API ERROR ===');
+        console.error('Planets API status:', plRes.status, plRes.statusText);
+        console.error('Houses API status:', hoRes.status, hoRes.statusText);
+        console.error('Planets error response:', t1);
+        console.error('Houses error response:', t2);
+        console.error('Request payload:', JSON.stringify(payload, null, 2));
+        console.error('================');
         throw new Error('Failed to fetch planets/houses');
       }
       const [plJson, hoJson, asJson] = await Promise.all([plRes.json(), hoRes.json(), asRes.ok ? asRes.json() : Promise.resolve(null)]);
@@ -283,6 +289,9 @@ serve(async (req) => {
     const normalizeToArray = (val: any) =>
       Array.isArray(val) ? val : (val && typeof val === 'object' ? Object.values(val) : []);
 
+    // Normalize planets and houses early so they're available everywhere
+    const planetsRaw = normalizeToArray(planets);
+    
     // STEP 1: Process houses FIRST (we need house cusps to calculate planet houses)
     const housesArray: any[] = [];
     let housesRaw = normalizeToArray(houses);
@@ -356,8 +365,6 @@ serve(async (req) => {
     const houseCuspsLongitudes = housesArray.map(h => h.longitude);
 
     // STEP 2: Now process planets using the house cusps
-    const planetsRaw = normalizeToArray(planets);
-
     if (planetsRaw && planetsRaw.length > 0) {
       console.log('Processing planets...', planetsRaw.length);
       for (const planet of planetsRaw) {
