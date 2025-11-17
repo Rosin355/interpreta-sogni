@@ -52,7 +52,7 @@ const Astrology = () => {
         const planetsArray = rawData.planets && typeof rawData.planets === 'object' 
           ? Object.entries(rawData.planets).map(([name, data]: [string, any]) => ({
               name,
-              label: data.label || name.charAt(0).toUpperCase() + name.slice(1),
+              label: `${getPlanetSymbol(name)} ${translatePlanet(name)}`,
               sign: data.sign,
               house: data.house,
               position: data.degree || data.position || 0,
