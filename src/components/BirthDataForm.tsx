@@ -108,49 +108,108 @@ export function BirthDataForm({ onSuccess, initialData }: BirthDataFormProps) {
 
     setIsLoading(true);
 
-    try {
-      const timezone = getTimezone(selectedPlace.latitude, selectedPlace.longitude);
+    const MAX_RETRIES = 2;
+    let attempt = 0;
+    let lastError: any = null;
 
-      const { data: functionData, error: functionError } = await supabase.functions.invoke(
-        'calculate-natal-chart',
-        {
-          body: {
-            birthDate: format(data.birthDate, "yyyy-MM-dd"),
-            birthTime: data.birthTime,
-            birthPlace: {
-              latitude: selectedPlace.latitude,
-              longitude: selectedPlace.longitude,
-              placeName: selectedPlace.displayName,
-              timezone,
+    while (attempt <= MAX_RETRIES) {
+      try {
+        if (attempt > 0) {
+          toast.loading(`Nuovo tentativo ${attempt + 1} di ${MAX_RETRIES + 1}...`, { id: 'retry-toast' });
+        }
+
+        const timezone = getTimezone(selectedPlace.latitude, selectedPlace.longitude);
+
+        const { data: functionData, error: functionError } = await supabase.functions.invoke(
+          'calculate-natal-chart',
+          {
+            body: {
+              birthDate: format(data.birthDate, "yyyy-MM-dd"),
+              birthTime: data.birthTime,
+              birthPlace: {
+                latitude: selectedPlace.latitude,
+                longitude: selectedPlace.longitude,
+                placeName: selectedPlace.displayName,
+                timezone,
+              },
             },
-          },
+          }
+        );
+
+        if (functionError) {
+          lastError = functionError;
+          console.error(`Tentativo ${attempt + 1} fallito:`, functionError);
+          
+          if (attempt < MAX_RETRIES) {
+            attempt++;
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            continue;
+          }
+          
+          toast.dismiss('retry-toast');
+          toast.error(
+            `Errore dopo ${MAX_RETRIES + 1} tentativi.\n\nDettaglio: ${functionError.message || 'Errore del server'}`,
+            { duration: 6000 }
+          );
+          setIsLoading(false);
+          return;
         }
-      );
 
-      if (functionError) throw functionError;
+        if (!functionData?.success) {
+          lastError = functionData;
+          console.error(`Tentativo ${attempt + 1} - risposta non valida:`, functionData);
+          
+          if (attempt < MAX_RETRIES) {
+            attempt++;
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            continue;
+          }
+          
+          toast.dismiss('retry-toast');
+          toast.error(
+            `Errore dopo ${MAX_RETRIES + 1} tentativi.\n\nDettaglio: ${functionData?.error || 'Risposta non valida'}`,
+            { duration: 6000 }
+          );
+          setIsLoading(false);
+          return;
+        }
 
-      if (!functionData?.success) {
-        throw new Error(functionData?.error || "Errore nel calcolo del tema natale");
-      }
-
-      console.log('Natal chart calculated successfully:', functionData);
-      toast.success("Tema natale calcolato con successo! ✨");
-      
-      // Wait a moment before calling onSuccess to ensure data is saved
-      setTimeout(() => {
-        form.reset();
-        setSelectedPlace(null);
-        setPlaceSearch("");
+        // Successo!
+        toast.dismiss('retry-toast');
+        console.log('Natal chart calculated successfully:', functionData);
+        toast.success("Tema natale calcolato con successo! ✨");
         
-        if (onSuccess) {
-          onSuccess();
+        setTimeout(() => {
+          form.reset();
+          setSelectedPlace(null);
+          setPlaceSearch("");
+          
+          if (onSuccess) {
+            onSuccess();
+          }
+        }, 500);
+        
+        setIsLoading(false);
+        return;
+
+      } catch (error: any) {
+        lastError = error;
+        console.error(`Tentativo ${attempt + 1} - eccezione:`, error);
+        
+        if (attempt < MAX_RETRIES) {
+          attempt++;
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          continue;
         }
-      }, 500);
-    } catch (error: any) {
-      console.error("Error calculating natal chart:", error);
-      toast.error(error.message || "Errore nel calcolo del tema natale");
-    } finally {
-      setIsLoading(false);
+        
+        toast.dismiss('retry-toast');
+        toast.error(
+          `Errore dopo ${MAX_RETRIES + 1} tentativi.\n\nDettaglio: ${error.message || 'Errore di connessione'}`,
+          { duration: 6000 }
+        );
+        setIsLoading(false);
+        return;
+      }
     }
   };
 
