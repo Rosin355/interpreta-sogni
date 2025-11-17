@@ -247,6 +247,7 @@ export type Database = {
           birth_time: string | null
           birth_timezone: string | null
           created_at: string | null
+          gender: string | null
           id: string
           natal_chart_data: Json | null
           updated_at: string | null
@@ -262,6 +263,7 @@ export type Database = {
           birth_time?: string | null
           birth_timezone?: string | null
           created_at?: string | null
+          gender?: string | null
           id: string
           natal_chart_data?: Json | null
           updated_at?: string | null
@@ -277,6 +279,7 @@ export type Database = {
           birth_time?: string | null
           birth_timezone?: string | null
           created_at?: string | null
+          gender?: string | null
           id?: string
           natal_chart_data?: Json | null
           updated_at?: string | null

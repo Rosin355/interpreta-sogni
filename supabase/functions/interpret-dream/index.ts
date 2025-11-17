@@ -46,6 +46,13 @@ serve(async (req) => {
       );
     }
 
+    // Recupera il profilo utente per il genere
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('gender')
+      .eq('id', dream.user_id)
+      .single();
+
     // Cerca nella knowledge base simboli rilevanti
     const { data: knowledgeEntries } = await supabase
       .from('dream_knowledge_base')
@@ -63,6 +70,8 @@ serve(async (req) => {
 Usa la seguente knowledge base per aiutarti nell'interpretazione:
 
 ${knowledgeContext}
+
+${profile?.gender ? `Il sognatore è di genere ${profile.gender}. Considera questo aspetto nelle tue interpretazioni quando rilevante per archetipi, simbolismi o dinamiche psicologiche.` : ''}
 
 Fornisci un'interpretazione approfondita ma accessibile del sogno, considerando:
 - I simboli presenti

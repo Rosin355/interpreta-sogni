@@ -160,7 +160,7 @@ serve(async (req) => {
     // Carica il profilo con i dati del tema natale
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('natal_chart_data')
+      .select('natal_chart_data, gender')
       .eq('id', user.id)
       .single();
 
@@ -173,11 +173,14 @@ serve(async (req) => {
 
     // Costruisci il contesto astrologico
     const astroContext = hasNatalChart ? buildAstrologicalContext(natalChartData) : '';
+    
+    // Aggiungi informazioni sul genere se disponibili
+    const genderContext = profile?.gender ? `\n\nIl sognatore è di genere ${profile.gender}. Considera questo aspetto nelle tue interpretazioni quando rilevante per archetipi, simbolismi o dinamiche psicologiche.` : '';
 
     // Prepara il prompt per Lovable AI
     const systemPrompt = hasNatalChart ? `Sei un'esperta interprete di sogni che integra la conoscenza astrologica per offrire interpretazioni profonde e personali.
 
-${astroContext}
+${astroContext}${genderContext}
 
 ISTRUZIONI PER L'INTERPRETAZIONE:
 1. Interpreta il sogno usando simbolismo, archetipi junghiani e psicologia dei sogni
@@ -198,6 +201,7 @@ STILE:
 - Bilancia profondità psicologica con praticità
 - Integra astrologia in modo sottile, non didascalico
 - Enfatizza crescita personale e consapevolezza` : `Sei un'esperta interprete di sogni che usa simbolismo, archetipi junghiani e psicologia dei sogni.
+${genderContext}
 
 ISTRUZIONI:
 1. Interpreta il sogno in modo profondo e personale
