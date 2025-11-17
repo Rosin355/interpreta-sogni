@@ -188,9 +188,38 @@ serve(async (req) => {
       throw new Error('Invalid response from Free Astrology API');
     }
 
-    const { planets, houses, aspects } = apiData.output;
+    let planets = apiData?.output?.planets;
+    let houses = apiData?.output?.houses;
+    let aspects = apiData?.output?.aspects;
 
-    console.log('Processing', planets?.length || 0, 'planets,', houses?.length || 0, 'houses,', aspects?.length || 0, 'aspects');
+    if (!planets || !houses) {
+      console.log('Wheel API did not include planets/houses. Fetching dedicated endpoints...');
+      const payload = requestBody; // same body including config
+      const [plRes, hoRes, asRes] = await Promise.all([
+        fetch('https://json.freeastrologyapi.com/western/planets', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }, body: JSON.stringify(payload)
+        }),
+        fetch('https://json.freeastrologyapi.com/western/houses', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }, body: JSON.stringify(payload)
+        }),
+        fetch('https://json.freeastrologyapi.com/western/aspects', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }, body: JSON.stringify(payload)
+        })
+      ]);
+
+      if (!plRes.ok || !hoRes.ok) {
+        const t1 = !plRes.ok ? await plRes.text() : '';
+        const t2 = !hoRes.ok ? await hoRes.text() : '';
+        console.error('Planets/Houses API error:', t1 || t2);
+        throw new Error('Failed to fetch planets/houses');
+      }
+      const [plJson, hoJson, asJson] = await Promise.all([plRes.json(), hoRes.json(), asRes.ok ? asRes.json() : Promise.resolve(null)]);
+      planets = plJson?.output;
+      houses = hoJson?.output;
+      aspects = asJson?.output || [];
+    }
+
+    console.log('Processing', (Array.isArray(planets)? planets.length : (planets? Object.keys(planets).length:0)), 'planets,', (Array.isArray(houses)? houses.length : (houses? Object.keys(houses).length:0)), 'houses,', (Array.isArray(aspects)? aspects.length : (aspects? Object.keys(aspects).length:0)), 'aspects');
 
     // Map planets to our format with improved error handling
     const planetMapping: { [key: string]: string } = {
