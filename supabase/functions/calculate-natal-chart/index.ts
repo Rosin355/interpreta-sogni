@@ -117,6 +117,7 @@ serve(async (req) => {
       timezone: timezoneOffset,
       config: {
         observation_point: 'topocentric',
+        ayanamsha: 'tropical',
         house_system: 'Placidus',
         language: 'en'
       }
@@ -180,6 +181,7 @@ serve(async (req) => {
 
     const apiData = await apiResponse.json();
     console.log('Free Astrology API response status:', apiData.statusCode);
+    console.log('API output keys:', apiData?.output ? Object.keys(apiData.output) : 'no output');
 
     if (apiData.statusCode !== 200 || !apiData.output) {
       console.error('Invalid API response structure:', JSON.stringify(apiData, null, 2));
@@ -210,51 +212,58 @@ serve(async (req) => {
     const planetsObject: any = {};
     const planetPositions: { [key: string]: number } = {};
 
-    // Process planets from API response
-    if (planets && Array.isArray(planets)) {
-      console.log('Processing planets...');
-      for (const planet of planets) {
-        const planetName = planet.planet?.en || planet.name;
-        const mappedName = planetMapping[planetName];
-        
-        if (mappedName) {
-          const longitude = planet.fullDegree || 0;
-          const sign = planet.zodiac_sign?.name?.en || getZodiacSign(longitude);
-          const degree = planet.normDegree || getDegreeInSign(longitude);
-          
-          planetsObject[mappedName] = {
-            longitude,
-            sign,
-            degree: parseFloat(degree.toFixed(2)),
-            house: planet.house_number || 1,
-            retrograde: planet.isRetro === 'True' || planet.isRetro === true
-          };
+    // Process planets from API response (supports array or object)
+    const normalizeToArray = (val: any) =>
+      Array.isArray(val) ? val : (val && typeof val === 'object' ? Object.values(val) : []);
+    const planetsRaw = normalizeToArray(planets);
 
-          planetPositions[mappedName] = longitude;
-          console.log(`  ${mappedName}: ${sign} ${degree.toFixed(2)}° (House ${planet.house_number})${planet.isRetro ? ' ℞' : ''}`);
-        }
+    if (planetsRaw && planetsRaw.length > 0) {
+      console.log('Processing planets...', planetsRaw.length);
+      for (const planet of planetsRaw) {
+        const planetNameRaw = planet?.planet?.en || planet?.planet || planet?.name;
+        const mappedName = planetMapping[planetNameRaw] || (planetNameRaw ? String(planetNameRaw).toLowerCase() : undefined);
+        if (!mappedName) continue;
+
+        const longitude = typeof planet?.fullDegree === 'number' ? planet.fullDegree : (typeof planet?.degree === 'number' ? planet.degree : 0);
+        const sign = planet?.zodiac_sign?.name?.en || getZodiacSign(longitude);
+        const degreeVal = typeof planet?.normDegree === 'number' ? planet.normDegree : getDegreeInSign(longitude);
+        const retro = planet?.isRetro === 'True' || planet?.isRetro === true || planet?.retrograde === true;
+        const houseNum = planet?.house_number || planet?.house || 1;
+
+        planetsObject[mappedName] = {
+          longitude,
+          sign,
+          degree: parseFloat(Number(degreeVal).toFixed(2)),
+          house: houseNum,
+          retrograde: retro
+        };
+
+        planetPositions[mappedName] = longitude;
+        console.log(`  ${mappedName}: ${sign} ${Number(degreeVal).toFixed(2)}° (House ${houseNum})${retro ? ' ℞' : ''}`);
       }
     } else {
-      console.error('No planets data in API response');
+      console.error('No planets data in API response. Output keys:', Object.keys(apiData?.output || {}));
+      try { console.error('Sample output preview:', JSON.stringify(apiData?.output, null, 2).slice(0, 800)); } catch {}
       throw new Error('No planets data returned from API');
     }
 
     console.log('Processed planets:', Object.keys(planetsObject));
 
-    // Process houses
+    // Process houses (supports array or object)
     const housesArray: any[] = [];
-    if (houses && Array.isArray(houses)) {
-      for (let i = 0; i < houses.length && i < 12; i++) {
-        const house = houses[i];
-        const longitude = house.fullDegree || house.degree || ((i) * 30);
-        const sign = house.zodiac_sign?.name?.en || getZodiacSign(longitude);
-        const degree = house.normDegree || getDegreeInSign(longitude);
+    const housesRaw = normalizeToArray(houses);
+    if (housesRaw && housesRaw.length > 0) {
+      for (let i = 0; i < housesRaw.length && i < 12; i++) {
+        const house = housesRaw[i];
+        const longitude = typeof house?.fullDegree === 'number' ? house.fullDegree : (typeof house?.degree === 'number' ? house.degree : ((i) * 30));
+        const sign = house?.zodiac_sign?.name?.en || getZodiacSign(longitude);
+        const degree = typeof house?.normDegree === 'number' ? house.normDegree : getDegreeInSign(longitude);
 
         housesArray.push({
-          number: i + 1,
+          number: (house?.number || i + 1),
           longitude,
           sign,
-          degree: parseFloat(degree.toFixed(2))
+          degree: parseFloat(Number(degree).toFixed(2))
         });
       }
     }
