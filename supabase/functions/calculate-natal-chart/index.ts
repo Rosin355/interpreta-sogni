@@ -245,6 +245,16 @@ serve(async (req) => {
       planets = plJson?.output;
       houses = hoJson?.output;
       aspects = asJson?.output || [];
+      
+      // DEBUG: Log della struttura completa delle case
+      console.log('=== HOUSES API RESPONSE DEBUG ===');
+      console.log('Houses type:', typeof houses);
+      console.log('Houses is Array?:', Array.isArray(houses));
+      if (houses && typeof houses === 'object') {
+        console.log('Houses keys:', Object.keys(houses));
+        console.log('First house sample:', JSON.stringify(houses[Object.keys(houses)[0]], null, 2));
+      }
+      console.log('===================================');
     }
 
     console.log('Processing', (Array.isArray(planets)? planets.length : (planets? Object.keys(planets).length:0)), 'planets,', (Array.isArray(houses)? houses.length : (houses? Object.keys(houses).length:0)), 'houses,', (Array.isArray(aspects)? aspects.length : (aspects? Object.keys(aspects).length:0)), 'aspects');
@@ -275,7 +285,24 @@ serve(async (req) => {
 
     // STEP 1: Process houses FIRST (we need house cusps to calculate planet houses)
     const housesArray: any[] = [];
-    const housesRaw = normalizeToArray(houses);
+    let housesRaw = normalizeToArray(houses);
+    
+    // Se houses ha una proprietà 'houses' annidata, usala
+    if (houses && !Array.isArray(houses) && houses.houses) {
+      console.log('Found nested houses property, using it');
+      housesRaw = normalizeToArray(houses.houses);
+    }
+    
+    // Se housesRaw è ancora vuoto o ha solo 1 elemento, prova a estrarre da chiavi numeriche
+    if (housesRaw.length < 12 && houses && typeof houses === 'object') {
+      console.log('Attempting to extract houses from numeric keys...');
+      const houseKeys = Object.keys(houses).filter(k => !isNaN(parseInt(k))).sort((a, b) => parseInt(a) - parseInt(b));
+      if (houseKeys.length >= 12) {
+        housesRaw = houseKeys.map(k => houses[k]);
+        console.log(`Extracted ${housesRaw.length} houses from numeric keys`);
+      }
+    }
+    
     if (housesRaw && housesRaw.length > 0) {
       for (let i = 0; i < housesRaw.length && i < 12; i++) {
         const house = housesRaw[i];
@@ -293,6 +320,37 @@ serve(async (req) => {
     }
 
     console.log('Processed houses:', housesArray.length);
+    
+    // Fallback: Se abbiamo meno di 12 case, calcola usando Equal House system
+    if (housesArray.length < 12) {
+      console.log('WARNING: Less than 12 houses from API, using Equal House fallback');
+      housesArray.length = 0; // Clear
+      
+      // Trova l'Ascendente per usarlo come cusp della Casa 1
+      let ascLongitude = 0;
+      const ascendantPlanetTemp = planetsRaw?.find((p: any) => {
+        const name = p?.planet?.en || p?.planet || p?.name;
+        return name?.toLowerCase() === 'ascendant';
+      });
+      
+      if (ascendantPlanetTemp) {
+        ascLongitude = typeof ascendantPlanetTemp?.fullDegree === 'number' 
+          ? ascendantPlanetTemp.fullDegree 
+          : (typeof ascendantPlanetTemp?.degree === 'number' ? ascendantPlanetTemp.degree : 0);
+      }
+      
+      for (let i = 0; i < 12; i++) {
+        const longitude = (ascLongitude + (i * 30)) % 360;
+        housesArray.push({
+          number: i + 1,
+          longitude,
+          sign: getZodiacSign(longitude),
+          degree: parseFloat(getDegreeInSign(longitude).toFixed(2))
+        });
+      }
+      
+      console.log('Generated 12 houses using Equal House system');
+    }
 
     // Extract house cusps longitudes for planet house calculation
     const houseCuspsLongitudes = housesArray.map(h => h.longitude);
