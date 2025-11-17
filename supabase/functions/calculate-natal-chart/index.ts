@@ -295,11 +295,19 @@ serve(async (req) => {
     // STEP 1: Process houses FIRST (we need house cusps to calculate planet houses)
     const housesArray: any[] = [];
     let housesRaw = normalizeToArray(houses);
-    
-    // Se houses ha una proprietà 'houses' annidata, usala
-    if (houses && !Array.isArray(houses) && houses.houses) {
-      console.log('Found nested houses property, using it');
-      housesRaw = normalizeToArray(houses.houses);
+
+    // Controlla sia 'houses' che 'Houses' (case-insensitive)
+    if (houses && !Array.isArray(houses)) {
+      // Prova prima 'Houses' (maiuscola) - formato standard Free Astrology API
+      if (houses.Houses) {
+        console.log('Found nested Houses property (capital H), using it');
+        housesRaw = normalizeToArray(houses.Houses);
+      } 
+      // Poi 'houses' (minuscola) come fallback
+      else if (houses.houses) {
+        console.log('Found nested houses property (lowercase h), using it');
+        housesRaw = normalizeToArray(houses.houses);
+      }
     }
     
     // Se housesRaw è ancora vuoto o ha solo 1 elemento, prova a estrarre da chiavi numeriche
