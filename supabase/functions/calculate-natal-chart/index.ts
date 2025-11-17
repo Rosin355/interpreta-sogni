@@ -363,16 +363,34 @@ serve(async (req) => {
     let aspectsArray: any[] = [];
     
     if (aspects && Array.isArray(aspects)) {
+      console.log(`Processing ${aspects.length} aspects from API...`);
       aspectsArray = aspects
-        .filter((aspect: any) => aspect && aspect.planet1 && aspect.planet2 && aspect.type)
-        .map((aspect: any) => ({
-          planet1: planetMapping[aspect.planet1] || (typeof aspect.planet1 === 'string' ? aspect.planet1.toLowerCase() : 'unknown'),
-          planet2: planetMapping[aspect.planet2] || (typeof aspect.planet2 === 'string' ? aspect.planet2.toLowerCase() : 'unknown'),
-          type: typeof aspect.type === 'string' ? aspect.type.toLowerCase() : 'unknown',
-          angle: parseFloat((aspect.angle || 0).toFixed(2)),
-          orb: parseFloat((aspect.orb || 0).toFixed(2))
-        }))
-        .filter((aspect: any) => aspect.planet1 !== 'unknown' && aspect.planet2 !== 'unknown' && aspect.type !== 'unknown');
+        .filter((aspect: any) => {
+          // Strict validation of aspect object
+          if (!aspect || typeof aspect !== 'object') return false;
+          if (!aspect.planet1 || typeof aspect.planet1 !== 'string') return false;
+          if (!aspect.planet2 || typeof aspect.planet2 !== 'string') return false;
+          if (!aspect.type || typeof aspect.type !== 'string') return false;
+          return true;
+        })
+        .map((aspect: any) => {
+          const p1 = planetMapping[aspect.planet1] || aspect.planet1.toLowerCase();
+          const p2 = planetMapping[aspect.planet2] || aspect.planet2.toLowerCase();
+          const t = aspect.type.toLowerCase();
+          
+          return {
+            planet1: p1,
+            planet2: p2,
+            type: t,
+            angle: parseFloat((aspect.angle || 0).toFixed(2)),
+            orb: parseFloat((aspect.orb || 0).toFixed(2))
+          };
+        })
+        .filter((aspect: any) => 
+          planetMapping[aspect.planet1] !== undefined || 
+          planetMapping[aspect.planet2] !== undefined
+        );
+      console.log(`Successfully processed ${aspectsArray.length} valid aspects`);
     } else {
       // Calculate aspects manually if not provided by API
       const planetNames = Object.keys(planetPositions);
