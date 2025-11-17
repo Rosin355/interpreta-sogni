@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { AstroChartWheel } from "@/components/AstroChartWheel";
 import { AspectGrid } from "@/components/AspectGrid";
 import { BirthDataForm } from "@/components/BirthDataForm";
+import { AstrologicalPillars } from "@/components/AstrologicalPillars";
+import { BirthDataSummary } from "@/components/BirthDataSummary";
+import { translateSign, translatePlanet, getZodiacSymbol, getPlanetSymbol } from "@/utils/astrology-translations";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Calendar, Star, Edit2 } from "lucide-react";
@@ -246,11 +249,11 @@ const Astrology = () => {
                 <BirthDataForm 
                   onSuccess={handleNatalChartSuccess}
                   initialData={{
-                    birthDate: natalChartData.birthInfo?.date,
-                    birthTime: natalChartData.birthInfo?.time,
-                    birthPlace: natalChartData.birthInfo?.place,
-                    latitude: natalChartData.birthInfo?.latitude,
-                    longitude: natalChartData.birthInfo?.longitude,
+                    birthDate: profile?.birth_date,
+                    birthTime: profile?.birth_time,
+                    birthPlace: profile?.birth_place_name,
+                    latitude: profile?.birth_latitude,
+                    longitude: profile?.birth_longitude,
                   }}
                 />
                 <Button 
@@ -264,18 +267,28 @@ const Astrology = () => {
             </Card>
           )}
 
-          {/* Natal Chart Wheel */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Cerchio Zodiacale</CardTitle>
-              <CardDescription>
-                Visualizzazione grafica del tuo tema natale con pianeti, case e aspetti
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AstroChartWheel natalChartData={natalChartData} size={600} />
-            </CardContent>
-          </Card>
+          {/* Birth Data Summary */}
+          <BirthDataSummary
+            birthDate={profile?.birth_date}
+            birthTime={profile?.birth_time}
+            birthPlace={profile?.birth_place_name}
+            latitude={profile?.birth_latitude}
+            longitude={profile?.birth_longitude}
+            timezone={profile?.birth_timezone}
+            houseSystem={natalChartData?.houseSystem}
+          />
+
+          {/* Astrological Pillars */}
+          <AstrologicalPillars
+            sun={natalChartData?.planets?.sun}
+            moon={natalChartData?.planets?.moon}
+            ascendant={natalChartData?.ascendant}
+          />
+
+          {/* Chart Wheel */}
+          {natalChartData && (
+            <AstroChartWheel natalChartData={natalChartData} />
+          )}
 
           {/* Aspect Grid */}
           {natalChartData.aspects && natalChartData.aspects.length > 0 && (

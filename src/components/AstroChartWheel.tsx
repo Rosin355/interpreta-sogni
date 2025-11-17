@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { translateSign, translatePlanet, getZodiacSymbol, getPlanetSymbol } from '@/utils/astrology-translations';
 
 interface NatalChartData {
   planets: {
@@ -39,6 +40,7 @@ interface AstroChartWheelProps {
 
 export function AstroChartWheel({ natalChartData, size = 700 }: AstroChartWheelProps) {
   const chartRef = useRef<HTMLDivElement>(null);
+  const effectiveSize = typeof window !== 'undefined' && window.innerWidth < 768 ? Math.min(size, window.innerWidth - 40) : size;
 
   useEffect(() => {
     if (!chartRef.current || !natalChartData) return;
@@ -72,7 +74,7 @@ export function AstroChartWheel({ natalChartData, size = 700 }: AstroChartWheelP
 
         // Zodiac sign colors (Fire=red/orange, Earth=brown, Air=light blue, Water=green)
         const settings = {
-          SYMBOL_SCALE: 1.8,
+          SYMBOL_SCALE: 2.0,
           COLOR_BACKGROUND: '#ffffff',
           COLOR_LINES: '#000000',
           COLOR_POINTS: '#000000',
@@ -107,7 +109,7 @@ export function AstroChartWheel({ natalChartData, size = 700 }: AstroChartWheelP
         };
 
         // Create the chart
-        const chart = new Chart('astrochart-container', size, size, settings);
+        const chart = new Chart('astrochart-container', effectiveSize, effectiveSize, settings);
         chart.radix(chartData);
 
         // Add retrograde markers
@@ -194,77 +196,74 @@ export function AstroChartWheel({ natalChartData, size = 700 }: AstroChartWheelP
   ];
 
   return (
-    <div className="space-y-6">
-      <Card className="p-6 bg-white">
-        <div className="space-y-4">
-          <div id="astrochart-container" ref={chartRef} className="flex items-center justify-center" />
-          
-          {natalChartData.calculationMethod && (
-            <div className="text-center text-sm text-gray-600 space-y-1">
-              <p>
-                <strong>Metodo di calcolo:</strong> {natalChartData.calculationMethod}
-              </p>
-              {natalChartData.houseSystem && (
-                <p>
-                  <strong>Sistema case:</strong> {natalChartData.houseSystem}
-                </p>
-              )}
-            </div>
+    <Card className="bg-background">
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <span>Ruota Zodiacale</span>
+          {natalChartData.houseSystem && (
+            <Badge variant="outline">Sistema {natalChartData.houseSystem}</Badge>
           )}
-        </div>
-      </Card>
-
-      {/* Aspect Legend */}
-      <Card className="bg-white">
-        <CardHeader>
-          <CardTitle className="text-lg">Legenda Aspetti Astrologici</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {aspectsLegend.map((aspect) => (
-              <div 
-                key={aspect.type}
-                className="flex items-start gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100"
-              >
-                <div 
-                  className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-white"
-                  style={{ backgroundColor: aspect.color }}
-                >
-                  {aspect.angle}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h4 className="font-semibold text-gray-900">{aspect.type}</h4>
-                    <Badge variant="outline" className="text-xs">{aspect.orb}</Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-6">
+        <div 
+          id="astrochart-container" 
+          ref={chartRef}
+          className="w-full flex justify-center items-center min-h-[400px] md:min-h-[600px]"
+        />
+        
+        {/* Aspect Legend */}
+        <Card className="mt-6 bg-muted/50">
+          <CardHeader>
+            <CardTitle className="text-lg">Legenda Aspetti</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {aspectsLegend.map((aspect) => (
+                <div key={aspect.type} className="flex items-start gap-3 p-3 rounded-lg bg-background">
+                  <div 
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+                    style={{ backgroundColor: aspect.color }}
+                  >
+                    {aspect.type === 'Congiunzione' ? '☌' : 
+                     aspect.type === 'Opposizione' ? '☍' :
+                     aspect.type === 'Trigono' ? '△' :
+                     aspect.type === 'Quadratura' ? '□' :
+                     aspect.type === 'Sestile' ? '⚹' : ''}
                   </div>
-                  <p className="text-sm text-gray-600">{aspect.description}</p>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold">{aspect.type}</span>
+                      <Badge variant="outline" className="text-xs">
+                        {aspect.angle}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{aspect.description}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Orbe: {aspect.orb}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-          
-          <div className="mt-6 pt-4 border-t border-gray-200">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <h5 className="font-semibold text-gray-900 mb-2">Aspetti Armonici</h5>
+              ))}
+            </div>
+            
+            <div className="mt-6 pt-4 border-t">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[#66b266]"></div>
-                  <span className="text-gray-600">Trigono, Sestile</span>
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#66b266' }}></div>
+                  <span className="text-sm">
+                    <strong>Aspetti Armonici:</strong> Trigono, Sestile
+                  </span>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Facilitano l'espressione naturale delle energie</p>
-              </div>
-              <div>
-                <h5 className="font-semibold text-gray-900 mb-2">Aspetti Dinamici</h5>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[#ff6b47]"></div>
-                  <span className="text-gray-600">Quadratura, Opposizione</span>
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ff6b47' }}></div>
+                  <span className="text-sm">
+                    <strong>Aspetti Dinamici:</strong> Congiunzione, Opposizione, Quadrato
+                  </span>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Creano tensione che stimola crescita e azione</p>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          </CardContent>
+        </Card>
+      </CardContent>
+    </Card>
   );
 }

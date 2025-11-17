@@ -26,9 +26,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log('=== Natal Chart Calculation Started ===');
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('Missing Authorization header');
       throw new Error('Missing Authorization header');
     }
 
@@ -40,35 +43,66 @@ serve(async (req) => {
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
+      console.error('Authentication error:', userError);
       throw new Error('Unauthorized');
     }
 
+    console.log('User authenticated:', user.id);
+
     const { birthDate, birthTime, birthPlace } = await req.json();
 
+    // Input validation
     if (!birthDate || !birthTime || !birthPlace) {
-      throw new Error('Missing required fields');
+      console.error('Missing required fields:', { birthDate, birthTime, birthPlace });
+      throw new Error('Missing required fields: birthDate, birthTime, and birthPlace are required');
     }
 
-    console.log('Calculating natal chart for:', { birthDate, birthTime, birthPlace });
+    console.log('Input data:', { birthDate, birthTime, birthPlace });
 
     const { latitude, longitude, placeName, timezone } = birthPlace;
+
+    // Validate coordinates
+    if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+      console.error('Invalid coordinates:', { latitude, longitude });
+      throw new Error('Invalid coordinates: latitude and longitude must be numbers');
+    }
+
+    if (latitude < -90 || latitude > 90) {
+      throw new Error('Invalid latitude: must be between -90 and 90');
+    }
+
+    if (longitude < -180 || longitude > 180) {
+      throw new Error('Invalid longitude: must be between -180 and 180');
+    }
 
     // Parse date and time
     const [year, month, day] = birthDate.split('-').map(Number);
     const [hours, minutes] = birthTime.split(':').map(Number);
+
+    // Validate date components
+    if (!year || !month || !day || month < 1 || month > 12 || day < 1 || day > 31) {
+      throw new Error('Invalid date format');
+    }
+
+    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+      throw new Error('Invalid time format');
+    }
 
     console.log('Parsed data:', { year, month, day, hours, minutes, latitude, longitude });
 
     // Convert timezone string to number (e.g., "UTC+1" -> 1)
     const timezoneOffset = parseFloat(timezone.replace('UTC', '').replace('+', ''));
 
+    console.log('Timezone offset:', timezoneOffset);
+
     // Call Free Astrology API
     const apiKey = Deno.env.get('FREE_ASTROLOGY_API_KEY');
     if (!apiKey) {
+      console.error('FREE_ASTROLOGY_API_KEY not configured');
       throw new Error('FREE_ASTROLOGY_API_KEY not configured');
     }
 
-    console.log('Calling Free Astrology API...');
+    console.log('Calling Free Astrology API with Swiss Ephemeris...');
     
     const apiResponse = await fetch('https://json.freeastrologyapi.com/western/natal-wheel-chart', {
       method: 'POST',
@@ -89,7 +123,7 @@ serve(async (req) => {
         config: {
           observation_point: 'topocentric',
           ayanamsha: 'tropical',
-          house_system: 'Placidus',
+          house_system: 'P', // P = Placidus
           language: 'en',
         }
       })
@@ -97,21 +131,23 @@ serve(async (req) => {
 
     if (!apiResponse.ok) {
       const errorText = await apiResponse.text();
-      console.error('Free Astrology API error:', errorText);
+      console.error('Free Astrology API error response:', errorText);
       throw new Error(`Free Astrology API returned ${apiResponse.status}: ${errorText}`);
     }
 
     const apiData = await apiResponse.json();
-    console.log('Free Astrology API response received');
+    console.log('Free Astrology API response status:', apiData.statusCode);
 
     if (apiData.statusCode !== 200 || !apiData.output) {
-      console.error('Invalid API response:', apiData);
+      console.error('Invalid API response structure:', JSON.stringify(apiData, null, 2));
       throw new Error('Invalid response from Free Astrology API');
     }
 
     const { planets, houses, aspects } = apiData.output;
 
-    // Map planets to our format
+    console.log('Processing', planets?.length || 0, 'planets,', houses?.length || 0, 'houses,', aspects?.length || 0, 'aspects');
+
+    // Map planets to our format with improved error handling
     const planetMapping: { [key: string]: string } = {
       'Sun': 'sun',
       'Moon': 'moon',
@@ -122,7 +158,10 @@ serve(async (req) => {
       'Saturn': 'saturn',
       'Uranus': 'uranus',
       'Neptune': 'neptune',
-      'Pluto': 'pluto'
+      'Pluto': 'pluto',
+      'North Node': 'north_node',
+      'South Node': 'south_node',
+      'Chiron': 'chiron'
     };
 
     const planetsObject: any = {};
@@ -130,6 +169,7 @@ serve(async (req) => {
 
     // Process planets from API response
     if (planets && Array.isArray(planets)) {
+      console.log('Processing planets...');
       for (const planet of planets) {
         const planetName = planet.planet?.en || planet.name;
         const mappedName = planetMapping[planetName];
@@ -148,8 +188,12 @@ serve(async (req) => {
           };
 
           planetPositions[mappedName] = longitude;
+          console.log(`  ${mappedName}: ${sign} ${degree.toFixed(2)}° (House ${planet.house_number})${planet.isRetro ? ' ℞' : ''}`);
         }
       }
+    } else {
+      console.error('No planets data in API response');
+      throw new Error('No planets data returned from API');
     }
 
     console.log('Processed planets:', Object.keys(planetsObject));
