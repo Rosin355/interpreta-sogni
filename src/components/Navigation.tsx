@@ -68,12 +68,6 @@ const Navigation = () => {
                 Collezioni
               </button>
               <button
-                onClick={() => navigate("/timeline")}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Timeline
-              </button>
-              <button
                 onClick={() => navigate("/astrology")}
                 className="text-muted-foreground hover:text-foreground transition-colors"
               >
@@ -138,15 +132,6 @@ const Navigation = () => {
                     className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
                   >
                     Collezioni
-                  </button>
-                  <button
-                    onClick={() => {
-                      navigate("/timeline");
-                      setMobileMenuOpen(false);
-                    }}
-                    className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-                  >
-                    Timeline
                   </button>
                   <button
                     onClick={() => {

@@ -13,7 +13,6 @@ import NewDream from "./pages/NewDream";
 import DreamDetail from "./pages/DreamDetail";
 import Collections from "./pages/Collections";
 import CollectionDetail from "./pages/CollectionDetail";
-import Timeline from "./pages/Timeline";
 import Explore from "./pages/Explore";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
@@ -39,7 +38,6 @@ const App = () => (
           <Route path="/dreams/:id" element={<DreamDetail />} />
           <Route path="/collections" element={<Collections />} />
           <Route path="/collections/:id" element={<CollectionDetail />} />
-          <Route path="/timeline" element={<Timeline />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
