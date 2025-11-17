@@ -363,13 +363,16 @@ serve(async (req) => {
     let aspectsArray: any[] = [];
     
     if (aspects && Array.isArray(aspects)) {
-      aspectsArray = aspects.map((aspect: any) => ({
-        planet1: planetMapping[aspect.planet1] || aspect.planet1.toLowerCase(),
-        planet2: planetMapping[aspect.planet2] || aspect.planet2.toLowerCase(),
-        type: aspect.type.toLowerCase(),
-        angle: parseFloat((aspect.angle || 0).toFixed(2)),
-        orb: parseFloat((aspect.orb || 0).toFixed(2))
-      }));
+      aspectsArray = aspects
+        .filter((aspect: any) => aspect && aspect.planet1 && aspect.planet2 && aspect.type)
+        .map((aspect: any) => ({
+          planet1: planetMapping[aspect.planet1] || (typeof aspect.planet1 === 'string' ? aspect.planet1.toLowerCase() : 'unknown'),
+          planet2: planetMapping[aspect.planet2] || (typeof aspect.planet2 === 'string' ? aspect.planet2.toLowerCase() : 'unknown'),
+          type: typeof aspect.type === 'string' ? aspect.type.toLowerCase() : 'unknown',
+          angle: parseFloat((aspect.angle || 0).toFixed(2)),
+          orb: parseFloat((aspect.orb || 0).toFixed(2))
+        }))
+        .filter((aspect: any) => aspect.planet1 !== 'unknown' && aspect.planet2 !== 'unknown' && aspect.type !== 'unknown');
     } else {
       // Calculate aspects manually if not provided by API
       const planetNames = Object.keys(planetPositions);
