@@ -1,7 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.1';
-import Origin from 'https://esm.sh/circular-natal-horoscope-js@1.1.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -60,123 +59,130 @@ serve(async (req) => {
 
     console.log('Parsed data:', { year, month, day, hours, minutes, latitude, longitude });
 
-    // Create Origin object for circular-natal-horoscope-js
-    console.log('Creating Origin with:', { year, month, date: day, hour: hours, minute: minutes, latitude, longitude });
+    // Convert timezone string to number (e.g., "UTC+1" -> 1)
+    const timezoneOffset = parseFloat(timezone.replace('UTC', '').replace('+', ''));
+
+    // Call Free Astrology API
+    const apiKey = Deno.env.get('FREE_ASTROLOGY_API_KEY');
+    if (!apiKey) {
+      throw new Error('FREE_ASTROLOGY_API_KEY not configured');
+    }
+
+    console.log('Calling Free Astrology API...');
     
-    const OriginClass: any = (Origin as any)?.Origin || Origin;
-    const origin = new OriginClass({
-      year,
-      month,
-      date: day,
-      hour: hours,
-      minute: minutes,
-      latitude,
-      longitude
+    const apiResponse = await fetch('https://json.freeastrologyapi.com/western/natal-wheel-chart', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        year,
+        month,
+        date: day,
+        hours,
+        minutes,
+        seconds: 0,
+        latitude,
+        longitude,
+        timezone: timezoneOffset,
+        config: {
+          observation_point: 'topocentric',
+          ayanamsha: 'tropical',
+          house_system: 'Placidus',
+          language: 'en',
+        }
+      })
     });
 
-    console.log('Origin created:', origin);
-    console.log('Origin keys:', Object.keys(origin || {}));
-    console.log('CelestialBodies:', origin?.CelestialBodies);
-
-    // Get celestial bodies positions
-    if (!origin || !origin.CelestialBodies || !origin.CelestialBodies.all) {
-      throw new Error('Failed to initialize astrology calculator. CelestialBodies is undefined.');
+    if (!apiResponse.ok) {
+      const errorText = await apiResponse.text();
+      console.error('Free Astrology API error:', errorText);
+      throw new Error(`Free Astrology API returned ${apiResponse.status}: ${errorText}`);
     }
-    
-    const celestialBodies = origin.CelestialBodies.all;
-    const ascendant = origin.Ascendant;
-    const houses = origin.Houses;
 
-    console.log('Horoscope calculated successfully');
+    const apiData = await apiResponse.json();
+    console.log('Free Astrology API response received');
 
-    // Map planet data
+    if (apiData.statusCode !== 200 || !apiData.output) {
+      console.error('Invalid API response:', apiData);
+      throw new Error('Invalid response from Free Astrology API');
+    }
+
+    const { planets, houses, aspects } = apiData.output;
+
+    // Map planets to our format
     const planetMapping: { [key: string]: string } = {
-      'sun': 'sun',
-      'moon': 'moon',
-      'mercury': 'mercury',
-      'venus': 'venus',
-      'mars': 'mars',
-      'jupiter': 'jupiter',
-      'saturn': 'saturn',
-      'uranus': 'uranus',
-      'neptune': 'neptune',
-      'pluto': 'pluto'
+      'Sun': 'sun',
+      'Moon': 'moon',
+      'Mercury': 'mercury',
+      'Venus': 'venus',
+      'Mars': 'mars',
+      'Jupiter': 'jupiter',
+      'Saturn': 'saturn',
+      'Uranus': 'uranus',
+      'Neptune': 'neptune',
+      'Pluto': 'pluto'
     };
 
     const planetsObject: any = {};
     const planetPositions: { [key: string]: number } = {};
 
-    // Process celestial bodies
-    for (const [key, body] of Object.entries(celestialBodies)) {
-      const planetKey = key.toLowerCase();
-      const mappedName = planetMapping[planetKey];
-      
-      if (mappedName && body && typeof body === 'object') {
-        const bodyData = body as any;
-        const longitude = bodyData.ChartPosition?.Ecliptic?.DecimalDegrees || 0;
-        const sign = getZodiacSign(longitude);
-        const degree = getDegreeInSign(longitude);
-        const houseNumber = bodyData.House?.id || 1;
-        const isRetrograde = bodyData.isRetrograde || false;
-
-        planetsObject[mappedName] = {
-          longitude,
-          sign,
-          degree: parseFloat(degree.toFixed(2)),
-          house: houseNumber,
-          retrograde: isRetrograde
-        };
-
-        planetPositions[mappedName] = longitude;
-      }
-    }
-
-    console.log('Processed planets:', planetsObject);
-
-    // Process houses (Placidus system)
-    const housesArray: any[] = [];
-    if (houses && typeof houses === 'object') {
-      const housesData = houses as any;
-      for (let i = 1; i <= 12; i++) {
-        const houseKey = `House${i}`;
-        const house = housesData[houseKey];
+    // Process planets from API response
+    if (planets && Array.isArray(planets)) {
+      for (const planet of planets) {
+        const planetName = planet.planet?.en || planet.name;
+        const mappedName = planetMapping[planetName];
         
-        if (house && house.ChartPosition) {
-          const longitude = house.ChartPosition.Ecliptic?.DecimalDegrees || ((i - 1) * 30);
-          const sign = getZodiacSign(longitude);
-          const degree = getDegreeInSign(longitude);
-
-          housesArray.push({
-            number: i,
+        if (mappedName) {
+          const longitude = planet.fullDegree || 0;
+          const sign = planet.zodiac_sign?.name?.en || getZodiacSign(longitude);
+          const degree = planet.normDegree || getDegreeInSign(longitude);
+          
+          planetsObject[mappedName] = {
             longitude,
             sign,
-            degree: parseFloat(degree.toFixed(2))
-          });
-        } else {
-          // Fallback to equal houses
-          const ascLongitude = ascendant?.ChartPosition?.Ecliptic?.DecimalDegrees || 0;
-          const longitude = (ascLongitude + (i - 1) * 30) % 360;
-          const sign = getZodiacSign(longitude);
-          const degree = getDegreeInSign(longitude);
+            degree: parseFloat(degree.toFixed(2)),
+            house: planet.house_number || 1,
+            retrograde: planet.isRetro === 'True' || planet.isRetro === true
+          };
 
-          housesArray.push({
-            number: i,
-            longitude,
-            sign,
-            degree: parseFloat(degree.toFixed(2))
-          });
+          planetPositions[mappedName] = longitude;
         }
       }
     }
 
-    console.log('Processed houses:', housesArray);
+    console.log('Processed planets:', Object.keys(planetsObject));
 
-    // Get Ascendant and Midheaven
-    const ascendantLongitude = ascendant?.ChartPosition?.Ecliptic?.DecimalDegrees || 0;
+    // Process houses
+    const housesArray: any[] = [];
+    if (houses && Array.isArray(houses)) {
+      for (let i = 0; i < houses.length && i < 12; i++) {
+        const house = houses[i];
+        const longitude = house.fullDegree || house.degree || ((i) * 30);
+        const sign = house.zodiac_sign?.name?.en || getZodiacSign(longitude);
+        const degree = house.normDegree || getDegreeInSign(longitude);
+
+        housesArray.push({
+          number: i + 1,
+          longitude,
+          sign,
+          degree: parseFloat(degree.toFixed(2))
+        });
+      }
+    }
+
+    console.log('Processed houses:', housesArray.length);
+
+    // Find Ascendant and Midheaven from planets array
+    const ascendantPlanet = planets?.find((p: any) => 
+      (p.planet?.en === 'Ascendant' || p.name === 'Ascendant')
+    );
+    const ascendantLongitude = ascendantPlanet?.fullDegree || (housesArray[0]?.longitude || 0);
     const ascendantData = {
       longitude: ascendantLongitude,
-      sign: getZodiacSign(ascendantLongitude),
-      degree: parseFloat(getDegreeInSign(ascendantLongitude).toFixed(2))
+      sign: ascendantPlanet?.zodiac_sign?.name?.en || getZodiacSign(ascendantLongitude),
+      degree: parseFloat((ascendantPlanet?.normDegree || getDegreeInSign(ascendantLongitude)).toFixed(2))
     };
 
     // Midheaven is the 10th house cusp
@@ -191,68 +197,69 @@ serve(async (req) => {
       degree: parseFloat(getDegreeInSign((ascendantLongitude + 270) % 360).toFixed(2))
     };
 
-    console.log('Ascendant:', ascendantData, 'Midheaven:', midheavenData);
+    console.log('Ascendant:', ascendantData.sign, 'Midheaven:', midheavenData.sign);
 
-    // Calculate aspects between planets
-    const aspectsArray: any[] = [];
-    const planetNames = Object.keys(planetPositions);
+    // Process aspects from API or calculate if not provided
+    let aspectsArray: any[] = [];
     
-    for (let i = 0; i < planetNames.length; i++) {
-      for (let j = i + 1; j < planetNames.length; j++) {
-        const planet1 = planetNames[i];
-        const planet2 = planetNames[j];
-        const pos1 = planetPositions[planet1];
-        const pos2 = planetPositions[planet2];
-        
-        let angle = Math.abs(pos1 - pos2);
-        if (angle > 180) angle = 360 - angle;
-        
-        // Check for major aspects with proper orbs
-        if (Math.abs(angle - 0) < 8) {
-          aspectsArray.push({ 
-            planet1, 
-            planet2, 
-            type: 'conjunction', 
-            angle: parseFloat(angle.toFixed(2)), 
-            orb: parseFloat(Math.abs(angle - 0).toFixed(2))
-          });
-        } else if (Math.abs(angle - 60) < 6) {
-          aspectsArray.push({ 
-            planet1, 
-            planet2, 
-            type: 'sextile', 
-            angle: parseFloat(angle.toFixed(2)), 
-            orb: parseFloat(Math.abs(angle - 60).toFixed(2))
-          });
-        } else if (Math.abs(angle - 90) < 8) {
-          aspectsArray.push({ 
-            planet1, 
-            planet2, 
-            type: 'square', 
-            angle: parseFloat(angle.toFixed(2)), 
-            orb: parseFloat(Math.abs(angle - 90).toFixed(2))
-          });
-        } else if (Math.abs(angle - 120) < 8) {
-          aspectsArray.push({ 
-            planet1, 
-            planet2, 
-            type: 'trine', 
-            angle: parseFloat(angle.toFixed(2)), 
-            orb: parseFloat(Math.abs(angle - 120).toFixed(2))
-          });
-        } else if (Math.abs(angle - 180) < 8) {
-          aspectsArray.push({ 
-            planet1, 
-            planet2, 
-            type: 'opposition', 
-            angle: parseFloat(angle.toFixed(2)), 
-            orb: parseFloat(Math.abs(angle - 180).toFixed(2))
-          });
+    if (aspects && Array.isArray(aspects)) {
+      aspectsArray = aspects.map((aspect: any) => ({
+        planet1: planetMapping[aspect.planet1] || aspect.planet1.toLowerCase(),
+        planet2: planetMapping[aspect.planet2] || aspect.planet2.toLowerCase(),
+        type: aspect.type.toLowerCase(),
+        angle: parseFloat((aspect.angle || 0).toFixed(2)),
+        orb: parseFloat((aspect.orb || 0).toFixed(2))
+      }));
+    } else {
+      // Calculate aspects manually if not provided by API
+      const planetNames = Object.keys(planetPositions);
+      for (let i = 0; i < planetNames.length; i++) {
+        for (let j = i + 1; j < planetNames.length; j++) {
+          const planet1 = planetNames[i];
+          const planet2 = planetNames[j];
+          const pos1 = planetPositions[planet1];
+          const pos2 = planetPositions[planet2];
+          
+          let angle = Math.abs(pos1 - pos2);
+          if (angle > 180) angle = 360 - angle;
+          
+          // Check for major aspects
+          if (Math.abs(angle - 0) < 8) {
+            aspectsArray.push({ 
+              planet1, planet2, type: 'conjunction', 
+              angle: parseFloat(angle.toFixed(2)), 
+              orb: parseFloat(Math.abs(angle - 0).toFixed(2))
+            });
+          } else if (Math.abs(angle - 60) < 6) {
+            aspectsArray.push({ 
+              planet1, planet2, type: 'sextile', 
+              angle: parseFloat(angle.toFixed(2)), 
+              orb: parseFloat(Math.abs(angle - 60).toFixed(2))
+            });
+          } else if (Math.abs(angle - 90) < 8) {
+            aspectsArray.push({ 
+              planet1, planet2, type: 'square', 
+              angle: parseFloat(angle.toFixed(2)), 
+              orb: parseFloat(Math.abs(angle - 90).toFixed(2))
+            });
+          } else if (Math.abs(angle - 120) < 8) {
+            aspectsArray.push({ 
+              planet1, planet2, type: 'trine', 
+              angle: parseFloat(angle.toFixed(2)), 
+              orb: parseFloat(Math.abs(angle - 120).toFixed(2))
+            });
+          } else if (Math.abs(angle - 180) < 8) {
+            aspectsArray.push({ 
+              planet1, planet2, type: 'opposition', 
+              angle: parseFloat(angle.toFixed(2)), 
+              orb: parseFloat(Math.abs(angle - 180).toFixed(2))
+            });
+          }
         }
       }
     }
 
-    console.log('Calculated aspects:', aspectsArray);
+    console.log('Processed aspects:', aspectsArray.length);
 
     // Prepare natal chart data
     const natalChartData = {
