@@ -31,39 +31,92 @@ function buildAstrologicalContext(natalData: any): string {
     return "Tema natale non disponibile.";
   }
 
-  const chiron = natalData.planets.chiron;
-  const mercury = natalData.planets.mercury;
-  const venus = natalData.planets.venus;
-  const sun = natalData.planets.sun;
-  const moon = natalData.planets.moon;
+  const planets = natalData.planets;
+  const sun = planets.sun;
+  const moon = planets.moon;
+  const mercury = planets.mercury;
+  const venus = planets.venus;
+  const mars = planets.mars;
+  const jupiter = planets.jupiter;
+  const saturn = planets.saturn;
+  const neptune = planets.neptune;
+  const pluto = planets.pluto;
+  const chiron = planets.chiron;
   
   let context = "DATI ASTROLOGICI DELLA PERSONA:\n\n";
   
+  // LUMINARI E PILASTRI
   if (sun) {
-    context += `- SOLE in ${translateSign(sun.sign)}, Casa ${sun.house}: rappresenta l'identità e la coscienza di sé\n`;
+    context += `- SOLE in ${translateSign(sun.sign)}, Casa ${sun.house}: identità e coscienza di sé\n`;
   }
   
   if (moon) {
-    context += `- LUNA in ${translateSign(moon.sign)}, Casa ${moon.house}: rappresenta le emozioni e il mondo inconscio\n`;
-  }
-  
-  if (chiron) {
-    context += `- CHIRONE in ${translateSign(chiron.sign)}, Casa ${chiron.house}: indica la ferita emotiva principale`;
-    context += ` - ${getChironTheme(chiron.sign, chiron.house)}\n`;
-  }
-  
-  if (mercury) {
-    context += `- MERCURIO in ${translateSign(mercury.sign)}, Casa ${mercury.house}: stile comunicativo`;
-    context += ` - ${getMercuryStyle(mercury.sign)}\n`;
-  }
-  
-  if (venus) {
-    context += `- VENERE in ${translateSign(venus.sign)}, Casa ${venus.house}: modo di amare`;
-    context += ` - ${getVenusStyle(venus.sign)}\n`;
+    context += `- LUNA in ${translateSign(moon.sign)}, Casa ${moon.house}: emozioni e mondo inconscio - ${getHouseContext(moon.house)}\n`;
   }
   
   if (natalData.ascendant) {
     context += `- ASCENDENTE in ${translateSign(natalData.ascendant.sign)}: come si presenta al mondo\n`;
+  }
+  
+  context += "\n";
+  
+  // PIANETI PERSONALI
+  if (mercury) {
+    context += `- MERCURIO in ${translateSign(mercury.sign)}, Casa ${mercury.house}: comunicazione ${getMercuryStyle(mercury.sign)}\n`;
+  }
+  
+  if (venus) {
+    context += `- VENERE in ${translateSign(venus.sign)}, Casa ${venus.house}: amore ${getVenusStyle(venus.sign)}\n`;
+  }
+  
+  if (mars) {
+    context += `- MARTE in ${translateSign(mars.sign)}, Casa ${mars.house}: ${getMarsTheme(mars.sign, mars.house)}\n`;
+  }
+  
+  context += "\n";
+  
+  // PIANETI SOCIALI E TRANSPERSONALI
+  if (jupiter) {
+    context += `- GIOVE in ${translateSign(jupiter.sign)}, Casa ${jupiter.house}: ${getJupiterTheme(jupiter.sign, jupiter.house)}\n`;
+  }
+  
+  if (saturn) {
+    context += `- SATURNO in ${translateSign(saturn.sign)}, Casa ${saturn.house}: ${getSaturnLesson(saturn.sign, saturn.house)}\n`;
+  }
+  
+  if (neptune) {
+    context += `- NETTUNO in ${translateSign(neptune.sign)}, Casa ${neptune.house}: ${getNeptuneTheme(neptune.sign, neptune.house)}\n`;
+  }
+  
+  if (pluto) {
+    context += `- PLUTONE in ${translateSign(pluto.sign)}, Casa ${pluto.house}: ${getPlutoTransformation(pluto.sign, pluto.house)}\n`;
+  }
+  
+  context += "\n";
+  
+  // PUNTI SPECIALI
+  if (chiron) {
+    context += `- CHIRONE in ${translateSign(chiron.sign)}, Casa ${chiron.house}: ${getChironTheme(chiron.sign, chiron.house)}\n`;
+  }
+  
+  // CASE RILEVANTI (menziona solo case con più pianeti o case chiave)
+  const houseCounts: Record<number, string[]> = {};
+  Object.entries(planets).forEach(([planetName, data]: [string, any]) => {
+    if (data && data.house) {
+      if (!houseCounts[data.house]) houseCounts[data.house] = [];
+      houseCounts[data.house].push(planetName.toUpperCase());
+    }
+  });
+  
+  const relevantHouses = Object.entries(houseCounts)
+    .filter(([house, planetsInHouse]) => planetsInHouse.length > 1 || [4, 7, 8, 12].includes(Number(house)))
+    .sort((a, b) => b[1].length - a[1].length);
+  
+  if (relevantHouses.length > 0) {
+    context += "\nCASE RILEVANTI:\n";
+    relevantHouses.slice(0, 3).forEach(([house, planetsInHouse]) => {
+      context += `- Casa ${house} (${getHouseContext(Number(house))}): contiene ${planetsInHouse.join(', ')}\n`;
+    });
   }
 
   return context;
@@ -121,6 +174,128 @@ function getVenusStyle(sign: string): string {
     'Pisces': 'compassionevole e idealista'
   };
   return styles[sign] || 'unico';
+}
+
+function getMarsTheme(sign: string, house: number): string {
+  const themes: Record<string, string> = {
+    'Aries': 'energia diretta e assertiva',
+    'Taurus': 'energia lenta ma persistente',
+    'Gemini': 'energia mentale e dispersiva',
+    'Cancer': 'energia difensiva e protettiva',
+    'Leo': 'energia creativa e orgogliosa',
+    'Virgo': 'energia precisa e critica',
+    'Libra': 'energia indiretta e diplomatica',
+    'Scorpio': 'energia intensa e controllata',
+    'Sagittarius': 'energia espansiva e avventurosa',
+    'Capricorn': 'energia disciplinata e ambiziosa',
+    'Aquarius': 'energia ribelle e innovativa',
+    'Pisces': 'energia diffusa, difficoltà nell\'esprimere rabbia'
+  };
+  const baseTheme = themes[sign] || 'energia unica';
+  if (house === 12) return `${baseTheme}, spesso repressa nell'inconscio`;
+  if (house === 1) return `${baseTheme}, espressa apertamente`;
+  return baseTheme;
+}
+
+function getSaturnLesson(sign: string, house: number): string {
+  const lessons: Record<string, string> = {
+    'Aries': 'imparare pazienza e disciplinare l\'impulso',
+    'Taurus': 'superare paura di perdere sicurezza materiale',
+    'Gemini': 'strutturare il pensiero dispersivo',
+    'Cancer': 'affrontare vulnerabilità emotiva',
+    'Leo': 'umiltà e accettazione dei limiti',
+    'Virgo': 'perfezionismo e autocritica',
+    'Libra': 'paura del rifiuto nelle relazioni',
+    'Scorpio': 'controllo e paura della perdita di potere',
+    'Sagittarius': 'limitazioni nelle opportunità di crescita',
+    'Capricorn': 'peso della responsabilità e del dovere',
+    'Aquarius': 'isolamento e difficoltà nel gruppo',
+    'Pisces': 'confini deboli e senso di sacrificio'
+  };
+  const baseLesson = lessons[sign] || 'lezioni karmiche';
+  if (house === 4) return `${baseLesson}, questioni con famiglia e figura paterna`;
+  if (house === 10) return `${baseLesson}, pressione professionale e sociale`;
+  if (house === 12) return `${baseLesson}, paure inconsce profonde`;
+  return baseLesson;
+}
+
+function getNeptuneTheme(sign: string, house: number): string {
+  const themes: Record<string, string> = {
+    'Pisces': 'sensibilità psichica molto elevata',
+    'Aquarius': 'idealismo umanitario',
+    'Capricorn': 'dissoluzione delle strutture rigide',
+    'Sagittarius': 'ricerca mistica e spirituale',
+    'Scorpio': 'intuizione profonda dei misteri',
+    'Libra': 'idealizzazione delle relazioni',
+    'Virgo': 'servizio compassionevole',
+    'Leo': 'creatività artistica e ispirata',
+    'Cancer': 'empatia emotiva intensa',
+    'Gemini': 'immaginazione e fantasia mentale',
+    'Taurus': 'connessione con la bellezza naturale',
+    'Aries': 'ispirazione visionaria'
+  };
+  const baseTheme = themes[sign] || 'confini sottili e sensibilità';
+  if (house === 12) return `${baseTheme}, confine molto sottile tra sogno e realtà`;
+  if (house === 8) return `${baseTheme}, percezione dell'invisibile`;
+  if (house === 4) return `${baseTheme}, atmosfera familiare eterea`;
+  return baseTheme;
+}
+
+function getPlutoTransformation(sign: string, house: number): string {
+  const themes: Record<string, string> = {
+    'Scorpio': 'intensi processi di morte e rinascita',
+    'Leo': 'trasformazione dell\'ego e del potere personale',
+    'Cancer': 'trasformazione emotiva profonda',
+    'Libra': 'trasformazione attraverso le relazioni',
+    'Virgo': 'perfezionamento ossessivo',
+    'Sagittarius': 'trasformazione delle credenze',
+    'Capricorn': 'ristrutturazione dell\'autorità',
+    'Aquarius': 'rivoluzione e innovazione radicale',
+    'Pisces': 'dissoluzione dell\'ego',
+    'Aries': 'rinascita dell\'identità',
+    'Taurus': 'trasformazione dei valori',
+    'Gemini': 'trasformazione mentale'
+  };
+  const baseTheme = themes[sign] || 'trasformazione profonda';
+  if (house === 8) return `${baseTheme}, potere di rigenerazione`;
+  if (house === 12) return `${baseTheme}, nell'inconscio`;
+  return baseTheme;
+}
+
+function getJupiterTheme(sign: string, house: number): string {
+  const themes: Record<string, string> = {
+    'Sagittarius': 'grande espansione e ricerca di significato',
+    'Pisces': 'crescita spirituale e compassione',
+    'Cancer': 'crescita emotiva e protezione',
+    'Aries': 'ottimismo e iniziativa',
+    'Taurus': 'abbondanza materiale',
+    'Gemini': 'curiosità intellettuale',
+    'Leo': 'generosità e creatività',
+    'Virgo': 'crescita attraverso il servizio',
+    'Libra': 'espansione nelle relazioni',
+    'Scorpio': 'crescita attraverso la crisi',
+    'Capricorn': 'successo attraverso la disciplina',
+    'Aquarius': 'visione umanitaria'
+  };
+  return themes[sign] || 'opportunità di crescita';
+}
+
+function getHouseContext(house: number): string {
+  const contexts: Record<number, string> = {
+    1: 'identità e autoimmagine',
+    2: 'risorse e valori personali',
+    3: 'comunicazione e apprendimento',
+    4: 'famiglia, radici, sicurezza emotiva',
+    5: 'creatività, piacere, espressione di sé',
+    6: 'lavoro quotidiano e salute',
+    7: 'relazioni e partnerships',
+    8: 'trasformazione, intimità, morte e rinascita',
+    9: 'filosofia, viaggi, espansione',
+    10: 'carriera, ambizioni, immagine pubblica',
+    11: 'amicizie, gruppi, ideali',
+    12: 'inconscio, spiritualità, segreti'
+  };
+  return contexts[house] || `area di vita ${house}`;
 }
 
 serve(async (req) => {
@@ -182,19 +357,50 @@ serve(async (req) => {
 
 ${astroContext}${genderContext}
 
-ISTRUZIONI PER L'INTERPRETAZIONE:
+COLLEGAMENTI PRIMARI (menziona SOLO se pertinenti al sogno):
+
+🌟 IDENTITÀ E AUTOSTIMA:
+- Chirone (ferita), Sole (essenza), Casa 1 (maschera), Casa 5 (creatività)
+
+💬 COMUNICAZIONE E PENSIERO:
+- Mercurio (stile comunicativo), Casa 3 (apprendimento)
+
+❤️ AMORE E RELAZIONI:
+- Venere (modo di amare), Casa 7 (partnerships)
+
+🌙 EMOZIONI E INCONSCIO:
+- Luna (emozioni), Casa 4 (famiglia/madre), Nettuno (confini), Casa 12 (inconscio/segreti/spiritualità)
+
+🔥 ENERGIA, RABBIA, CONFLITTI:
+- Marte (assertività/conflitto), Casa 1 (azione diretta), Casa 12 (rabbia repressa)
+
+⚠️ PAURE, LIMITI, ANSIA:
+- Saturno (struttura/limite/paura), Casa 4 (famiglia/padre), Casa 10 (autorità), Casa 12 (paure inconsce)
+
+🌊 SOGNI, ILLUSIONI, SPIRITUALITÀ:
+- Nettuno (dissoluzione/spiritualità), Casa 12 (inconscio), Casa 8 (misteri)
+
+💀 TRASFORMAZIONE, MORTE, POTERE:
+- Plutone (morte/rinascita), Casa 8 (sessualità/trasformazione)
+
+🎯 CRESCITA, OPPORTUNITÀ:
+- Giove (espansione), Casa 9 (ricerca di significato)
+
+REGOLE:
+- Massimo 1-2 riferimenti astrologici per interpretazione
+- Solo se VERAMENTE pertinenti al tema del sogno
+- Linguaggio accessibile: "potrebbe essere collegato a...", "il tuo tema suggerisce..."
+- NON forzare mai i collegamenti
+- L'astrologia arricchisce, non domina l'interpretazione
+- Particolare attenzione a Casa 12 e Nettuno per sogni onirici/simbolici
+
+ISTRUZIONI:
 1. Interpreta il sogno usando simbolismo, archetipi junghiani e psicologia dei sogni
-2. Considera il tema natale della persona per collegamenti pertinenti
-3. Menziona collegamenti astrologici SOLO quando sono veramente pertinenti al sogno:
-   - Se il sogno riguarda autostima, identità, creatività → collega a CHIRONE e SOLE
-   - Se il sogno riguarda comunicazione, apprendimento, parole → collega a MERCURIO
-   - Se il sogno riguarda amore, relazioni, bellezza → collega a VENERE
-   - Se il sogno riguarda emozioni profonde, famiglia → collega a LUNA
-4. NON forzare collegamenti astrologici se il sogno non li suggerisce naturalmente
-5. Scrivi in italiano, in modo poetico ma chiaro e accessibile
-6. Mantieni un tono empatico e non giudicante
-7. Lunghezza: 250-350 parole
-8. Offri spunti di riflessione alla fine
+2. Considera il tema natale per collegamenti pertinenti (vedi collegamenti sopra)
+3. Scrivi in italiano, in modo poetico ma chiaro e accessibile
+4. Mantieni un tono empatico e non giudicante
+5. Lunghezza: 250-350 parole
+6. Offri spunti di riflessione alla fine
 
 STILE:
 - Usa metafore e linguaggio evocativo
