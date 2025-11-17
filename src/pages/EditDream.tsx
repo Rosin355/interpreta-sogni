@@ -200,8 +200,8 @@ const EditDream = () => {
           dreamId: id,
           content: formData.content,
           mood: formData.mood,
-          imageStyle: imageStyle || undefined,
-          autoStyle: !imageStyle,
+          imageStyle: imageStyle && imageStyle !== 'auto' ? imageStyle : undefined,
+          autoStyle: !imageStyle || imageStyle === 'auto',
           customPrompt: customPrompt || undefined
         }
       });
@@ -389,12 +389,12 @@ const EditDream = () => {
                     
                     <div className="space-y-2">
                       <Label htmlFor="imageStyle">Stile Immagine (opzionale)</Label>
-                      <Select value={imageStyle} onValueChange={setImageStyle}>
+                      <Select value={imageStyle || "auto"} onValueChange={setImageStyle}>
                         <SelectTrigger id="imageStyle">
                           <SelectValue placeholder="Lascia scegliere all'AI" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Automatico (AI sceglie)</SelectItem>
+                          <SelectItem value="auto">✨ Automatico (AI sceglie)</SelectItem>
                           <SelectItem value="realistico">🎬 Realistico</SelectItem>
                           <SelectItem value="onirico">✨ Onirico</SelectItem>
                           <SelectItem value="artistico">🎨 Artistico</SelectItem>
