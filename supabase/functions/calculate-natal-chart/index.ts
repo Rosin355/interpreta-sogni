@@ -115,9 +115,12 @@ serve(async (req) => {
       latitude,
       longitude,
       timezone: timezoneOffset,
-      house_system: 'placidus', // Placidus house system
+      config: {
+        observation_point: 'topocentric',
+        house_system: 'Placidus',
+        language: 'en'
+      }
     };
-
     console.log('API Request Body:', JSON.stringify(requestBody, null, 2));
 
     // Implement retry logic with exponential backoff
