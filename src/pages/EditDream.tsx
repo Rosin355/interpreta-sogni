@@ -260,7 +260,7 @@ const EditDream = () => {
             Torna al Sogno
           </Button>
 
-          <Card>
+          <Card className="bg-card/95 backdrop-blur-sm border-border/50">
             <CardHeader>
               <CardTitle className="text-3xl">Modifica Sogno</CardTitle>
               <CardDescription>
