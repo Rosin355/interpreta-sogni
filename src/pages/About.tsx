@@ -112,8 +112,10 @@ const About = () => {
                 Chi Siamo
               </h1>
               <p className="text-muted-foreground">
-                Dream's Alchemist è un team appassionato dedicato alla creazione di soluzioni innovative 
-                che uniscono tecnologia, spiritualità e crescita personale attraverso l'interpretazione dei sogni.
+                Dream's Alchemist è nato dalla visione di Jessica Marin, Tarologa Esoterista Professionista 
+                con oltre 15 anni di esperienza nelle arti divinatorie. Questo strumento innovativo unisce 
+                la sua profonda conoscenza esoterica con la tecnologia moderna per offrire interpretazioni 
+                personalizzate dei sogni che guidano verso l'auto-conoscenza e la crescita spirituale.
               </p>
             </div>
 
