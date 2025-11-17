@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, CalendarIcon, Clock } from "lucide-react";
+import { ArrowLeft, Save, CalendarIcon, Clock, Image as ImageIcon, Loader2, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -34,6 +34,10 @@ const EditDream = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [newTag, setNewTag] = useState("");
   const [tagsList, setTagsList] = useState<string[]>([]);
+  const [imageStyle, setImageStyle] = useState("");
+  const [customPrompt, setCustomPrompt] = useState("");
+  const [imageGenerating, setImageGenerating] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
 
   const moodOptions = [
     { value: "felicita", label: "😊 Felicità" },
@@ -86,6 +90,8 @@ const EditDream = () => {
         });
         setTagsList(data.tags || []);
         setSelectedDate(new Date(data.dream_date));
+        setImageUrl(data.image_url || "");
+        setImageStyle(data.image_style || "");
       }
     } catch (error) {
       console.error("Error loading dream:", error);
@@ -180,6 +186,49 @@ const EditDream = () => {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleRegenerateImage = async () => {
+    if (!id) return;
+    
+    setImageGenerating(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-dream-image', {
+        body: {
+          dreamId: id,
+          content: formData.content,
+          mood: formData.mood,
+          imageStyle: imageStyle || undefined,
+          autoStyle: !imageStyle,
+          customPrompt: customPrompt || undefined
+        }
+      });
+
+      if (error) {
+        console.error('Errore generazione immagine:', error);
+        toast({
+          title: "Errore",
+          description: error.message || "Impossibile generare l'immagine",
+          variant: "destructive",
+        });
+      } else if (data?.image_url) {
+        setImageUrl(data.image_url);
+        toast({
+          title: "Successo",
+          description: "Immagine generata con successo",
+        });
+      }
+    } catch (error) {
+      console.error('Errore:', error);
+      toast({
+        title: "Errore",
+        description: "Si è verificato un errore durante la generazione",
+        variant: "destructive",
+      });
+    } finally {
+      setImageGenerating(false);
     }
   };
 
@@ -315,6 +364,73 @@ const EditDream = () => {
                     required
                   />
                 </div>
+
+                {/* Dream Image Section */}
+                <Card className="bg-muted/30">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <ImageIcon className="h-5 w-5" />
+                      Immagine del Sogno
+                    </CardTitle>
+                    <CardDescription>
+                      Genera un'immagine evocativa per visualizzare il tuo sogno
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {imageUrl && (
+                      <div className="relative rounded-lg overflow-hidden">
+                        <img 
+                          src={imageUrl} 
+                          alt="Dream visualization" 
+                          className="w-full h-64 object-cover"
+                        />
+                      </div>
+                    )}
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="imageStyle">Stile Immagine (opzionale)</Label>
+                      <Select value={imageStyle} onValueChange={setImageStyle}>
+                        <SelectTrigger id="imageStyle">
+                          <SelectValue placeholder="Lascia scegliere all'AI" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Automatico (AI sceglie)</SelectItem>
+                          <SelectItem value="realistico">🎬 Realistico</SelectItem>
+                          <SelectItem value="onirico">✨ Onirico</SelectItem>
+                          <SelectItem value="artistico">🎨 Artistico</SelectItem>
+                          <SelectItem value="minimalista">⚪ Minimalista</SelectItem>
+                          <SelectItem value="fantastico">🌟 Fantastico</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="customPrompt">Suggerimenti Personalizzati (opzionale)</Label>
+                      <Textarea
+                        id="customPrompt"
+                        value={customPrompt}
+                        onChange={(e) => setCustomPrompt(e.target.value)}
+                        placeholder="es: ambiente più scuro, scena più semplice, focus su un particolare elemento..."
+                        rows={3}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Descrivi come vorresti che fosse l'immagine
+                      </p>
+                    </div>
+
+                    <Button
+                      type="button"
+                      onClick={handleRegenerateImage}
+                      disabled={imageGenerating}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      {imageGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      {imageUrl ? "Rigenera Immagine" : "Genera Immagine"}
+                    </Button>
+                  </CardContent>
+                </Card>
 
                 {/* Tags */}
                 <div className="space-y-2">

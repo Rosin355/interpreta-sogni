@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Download, CheckCircle2, Smartphone, TrendingUp, Upload, X, Sparkles } from "lucide-react";
 import Navigation from "@/components/Navigation";
@@ -24,6 +25,7 @@ export default function Profile() {
   const [profile, setProfile] = useState<any>(null);
   const [username, setUsername] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [gender, setGender] = useState("");
   const [isPWAInstalled, setIsPWAInstalled] = useState(false);
   const [dreamStats, setDreamStats] = useState({
     total: 0,
@@ -70,6 +72,7 @@ export default function Profile() {
       setProfile(data);
       setUsername(data?.username || "");
       setAvatarUrl(data?.avatar_url || "");
+      setGender(data?.gender || "");
       
       // Carica dati tema natale se presenti
       if (data?.natal_chart_data) {
@@ -229,10 +232,13 @@ export default function Profile() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ username })
-        .eq('id', user.id);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ 
+        username,
+        gender: gender || null 
+      })
+      .eq('id', user.id);
 
       if (error) throw error;
 
@@ -351,6 +357,24 @@ export default function Profile() {
                     className="bg-muted"
                   />
                 </div>
+              </div>
+
+              <div>
+                <Label htmlFor="gender">Genere (opzionale)</Label>
+                <Select value={gender} onValueChange={setGender}>
+                  <SelectTrigger id="gender">
+                    <SelectValue placeholder="Seleziona il tuo genere" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="maschio">Maschio</SelectItem>
+                    <SelectItem value="femmina">Femmina</SelectItem>
+                    <SelectItem value="altro">Altro</SelectItem>
+                    <SelectItem value="preferisco_non_dire">Preferisco non dire</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Aiuta a personalizzare le interpretazioni dei sogni
+                </p>
               </div>
 
               <Button onClick={handleSave} disabled={saving}>

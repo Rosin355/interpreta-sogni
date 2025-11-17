@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 const DreamDetail = () => {
   const { id } = useParams();
@@ -178,13 +179,16 @@ const DreamDetail = () => {
     setDialogOpen(false);
 
     try {
+      const customPromptValue = (document.getElementById('customPrompt') as HTMLTextAreaElement)?.value || '';
+      
       const { data, error } = await supabase.functions.invoke('generate-dream-image', {
         body: {
           dreamId: id,
           content: dream.content,
           mood: dream.mood,
           imageStyle: style || regenerateStyle,
-          autoStyle: !style && !regenerateStyle
+          autoStyle: !style && !regenerateStyle,
+          customPrompt: customPromptValue || undefined
         }
       });
 
@@ -344,6 +348,17 @@ const DreamDetail = () => {
                               <SelectItem value="fantastico">🧙 Fantastico</SelectItem>
                             </SelectContent>
                           </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="customPrompt">Suggerimenti Personalizzati (opzionale)</Label>
+                          <Textarea
+                            id="customPrompt"
+                            placeholder="es: ambiente più scuro, scena più semplice, focus su un particolare elemento..."
+                            rows={3}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Descrivi come vorresti che fosse l'immagine
+                          </p>
                         </div>
                         <Button
                           onClick={() => handleGenerateImage()}

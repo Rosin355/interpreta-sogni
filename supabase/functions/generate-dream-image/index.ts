@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { dreamId, content, mood, imageStyle, autoStyle } = await req.json();
+    const { dreamId, content, mood, imageStyle, autoStyle, customPrompt } = await req.json();
 
     console.log('Richiesta generazione immagine per sogno:', dreamId);
 
@@ -106,10 +106,16 @@ serve(async (req) => {
     const styleDesc = styleDescriptions[finalStyle] || styleDescriptions['onirico'];
     const colorDesc = mood ? moodColors[mood.toLowerCase()] || 'colori naturali' : 'colori naturali';
     
-    const imagePrompt = `Crea un'immagine ${styleDesc} che rappresenti questo sogno: ${content}. 
+    let imagePrompt = `Crea un'immagine ${styleDesc} che rappresenti questo sogno: ${content}. 
 Usa ${colorDesc} per riflettere l'emozione. 
 L'immagine deve essere evocativa, simbolica e catturare l'essenza onirica del sogno. 
 Aspect ratio 16:9, alta qualità, composizione bilanciata.`;
+
+    // Aggiungi suggerimenti personalizzati se presenti
+    if (customPrompt) {
+      imagePrompt += `\n\nSuggerimenti aggiuntivi dall'utente: ${customPrompt}`;
+      console.log('Suggerimenti personalizzati aggiunti:', customPrompt);
+    }
 
     console.log('Generazione immagine con Nano Banana...');
 
