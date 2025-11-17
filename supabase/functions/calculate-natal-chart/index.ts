@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.1';
-import { Origin } from 'https://esm.sh/circular-natal-horoscope-js@1.1.0';
+import Origin from 'https://esm.sh/circular-natal-horoscope-js@1.1.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -61,7 +61,8 @@ serve(async (req) => {
     console.log('Parsed data:', { year, month, day, hours, minutes, latitude, longitude });
 
     // Create Origin object for circular-natal-horoscope-js
-    const origin = new Origin({
+    const OriginClass: any = (Origin as any)?.Origin || Origin;
+    const origin = new OriginClass({
       year,
       month,
       date: day,

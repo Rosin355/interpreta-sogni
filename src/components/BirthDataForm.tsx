@@ -151,8 +151,7 @@ export function BirthDataForm({ onSuccess, initialData }: BirthDataFormProps) {
             `Errore dopo ${MAX_RETRIES + 1} tentativi.\n\nDettaglio: ${functionError.message || 'Errore del server'}`,
             { duration: 6000 }
           );
-          setIsLoading(false);
-          return;
+          break;
         }
 
         if (!functionData?.success) {
@@ -170,8 +169,7 @@ export function BirthDataForm({ onSuccess, initialData }: BirthDataFormProps) {
             `Errore dopo ${MAX_RETRIES + 1} tentativi.\n\nDettaglio: ${functionData?.error || 'Risposta non valida'}`,
             { duration: 6000 }
           );
-          setIsLoading(false);
-          return;
+          break;
         }
 
         // Successo!
@@ -207,9 +205,62 @@ export function BirthDataForm({ onSuccess, initialData }: BirthDataFormProps) {
           `Errore dopo ${MAX_RETRIES + 1} tentativi.\n\nDettaglio: ${error.message || 'Errore di connessione'}`,
           { duration: 6000 }
         );
-        setIsLoading(false);
-        return;
+        break;
       }
+    }
+
+    // Fallback locale se l'Edge Function non è raggiungibile
+    try {
+      toast.message('Impossibile contattare il server, eseguo il calcolo in locale...');
+
+      const timezone = getTimezone(selectedPlace.latitude, selectedPlace.longitude);
+
+      // Calcolo locale del tema natale
+      const { computeNatalChartData } = await import('@/utils/natal-calc');
+      const natalChartData = computeNatalChartData({
+        birthDate: format(data.birthDate, 'yyyy-MM-dd'),
+        birthTime: data.birthTime,
+        birthPlace: {
+          latitude: selectedPlace.latitude,
+          longitude: selectedPlace.longitude,
+          placeName: selectedPlace.displayName,
+          timezone,
+        }
+      });
+
+      // Salvataggio sul profilo
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+      if (!user) throw new Error('Utente non autenticato');
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          natal_chart_data: natalChartData,
+          birth_date: format(data.birthDate, 'yyyy-MM-dd'),
+          birth_time: data.birthTime,
+          birth_place_name: selectedPlace.displayName,
+          birth_latitude: selectedPlace.latitude,
+          birth_longitude: selectedPlace.longitude,
+          birth_timezone: timezone,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      toast.success('Tema natale calcolato in locale e salvato ✨');
+      setTimeout(() => {
+        form.reset();
+        setSelectedPlace(null);
+        setPlaceSearch('');
+        onSuccess?.();
+      }, 400);
+    } catch (fallbackError: any) {
+      console.error('Fallback locale fallito:', fallbackError);
+      toast.error(`Impossibile calcolare in locale: ${fallbackError.message || 'Errore sconosciuto'}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
