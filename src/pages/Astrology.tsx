@@ -9,8 +9,7 @@ import { AspectGrid } from "@/components/AspectGrid";
 import { BirthDataForm } from "@/components/BirthDataForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Download, Sparkles, Calendar, Star, Edit2 } from "lucide-react";
-import { exportNatalChartToPDF } from "@/utils/natal-chart-pdf";
+import { Sparkles, Calendar, Star, Edit2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const Astrology = () => {
@@ -70,24 +69,6 @@ const Astrology = () => {
     }
   };
 
-  const handleExportPDF = async () => {
-    if (!natalChartData || !profile) return;
-    
-    try {
-      await exportNatalChartToPDF(profile, natalChartData);
-      toast({
-        title: "PDF Generato",
-        description: "Il tuo tema natale è stato esportato con successo!",
-      });
-    } catch (error) {
-      console.error("Error exporting PDF:", error);
-      toast({
-        title: "Errore",
-        description: "Si è verificato un errore durante l'esportazione del PDF.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleNatalChartSuccess = () => {
     setShowEditForm(false);
@@ -248,10 +229,6 @@ const Astrology = () => {
               >
                 <Edit2 className="h-4 w-4" />
                 Modifica Dati
-              </Button>
-              <Button onClick={handleExportPDF} className="gap-2">
-                <Download className="h-4 w-4" />
-                Esporta PDF
               </Button>
             </div>
           </div>
