@@ -104,35 +104,75 @@ serve(async (req) => {
 
     console.log('Calling Free Astrology API with Swiss Ephemeris...');
     
-    const apiResponse = await fetch('https://json.freeastrologyapi.com/western/natal-wheel-chart', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-      },
-      body: JSON.stringify({
-        year,
-        month,
-        date: day,
-        hours,
-        minutes,
-        seconds: 0,
-        latitude,
-        longitude,
-        timezone: timezoneOffset,
-        config: {
-          observation_point: 'topocentric',
-          ayanamsha: 'tropical',
-          house_system: 'P', // P = Placidus
-          language: 'en',
-        }
-      })
-    });
+    // Prepare request body according to API specification
+    const requestBody = {
+      year,
+      month,
+      date: day,
+      hours,
+      minutes,
+      seconds: 0,
+      latitude,
+      longitude,
+      timezone: timezoneOffset,
+      house_system: 'placidus', // Placidus house system
+    };
 
-    if (!apiResponse.ok) {
-      const errorText = await apiResponse.text();
-      console.error('Free Astrology API error response:', errorText);
-      throw new Error(`Free Astrology API returned ${apiResponse.status}: ${errorText}`);
+    console.log('API Request Body:', JSON.stringify(requestBody, null, 2));
+
+    // Implement retry logic with exponential backoff
+    let retries = 3;
+    let apiResponse: Response | null = null;
+    let lastError: Error | null = null;
+
+    while (retries > 0) {
+      try {
+        apiResponse = await fetch('https://json.freeastrologyapi.com/western/natal-wheel-chart', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+          },
+          body: JSON.stringify(requestBody)
+        });
+
+        if (apiResponse.ok) {
+          console.log('API call successful');
+          break;
+        }
+
+        const errorText = await apiResponse.text();
+        console.error(`Free Astrology API error (${retries} retries left):`, errorText);
+        
+        // Don't retry on 400 (validation errors)
+        if (apiResponse.status === 400) {
+          throw new Error(`Invalid request to API: ${errorText}`);
+        }
+
+        lastError = new Error(`API returned ${apiResponse.status}: ${errorText}`);
+        retries--;
+
+        if (retries > 0) {
+          const waitTime = (4 - retries) * 1000; // 1s, 2s, 3s backoff
+          console.log(`Waiting ${waitTime}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+      } catch (error) {
+        lastError = error as Error;
+        retries--;
+        
+        if (retries > 0 && !(error as Error).message.includes('Invalid request')) {
+          const waitTime = (4 - retries) * 1000;
+          console.log(`Error occurred, waiting ${waitTime}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    if (!apiResponse || !apiResponse.ok) {
+      throw lastError || new Error('Failed to call Free Astrology API after retries');
     }
 
     const apiData = await apiResponse.json();
