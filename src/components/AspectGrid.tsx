@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { translatePlanet, translateAspect, getPlanetSymbol } from '@/utils/astrology-translations';
+import { translatePlanet, translateAspect, getPlanetSymbol, getPlanetDescription } from '@/utils/astrology-translations';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface AspectGridProps {
   aspects: Array<{
@@ -73,25 +74,42 @@ export function AspectGrid({ aspects }: AspectGridProps) {
               <tr>
                 <th className="p-2 border border-gray-200 bg-gray-50"></th>
                 {planets.map(planet => (
-                  <th 
-                    key={planet} 
-                    className="p-2 border text-lg font-normal"
-                    title={translatePlanet(planet)}
-                  >
-                    {getPlanetSymbol(planet)}
-                  </th>
+                  <TooltipProvider key={planet}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <th 
+                          className="p-2 border text-lg font-normal cursor-help"
+                        >
+                          {getPlanetSymbol(planet)}
+                        </th>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="font-semibold mb-1">{translatePlanet(planet)}</p>
+                        <p className="text-xs text-muted-foreground">{getPlanetDescription(planet)}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 ))}
               </tr>
             </thead>
             <tbody>
               {planets.map((planet1, i) => (
                 <tr key={planet1}>
-                  <th 
-                    className="p-2 border text-lg font-normal"
-                    title={translatePlanet(planet1)}
-                  >
-                    {getPlanetSymbol(planet1)}
-                  </th>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <th 
+                          className="p-2 border text-lg font-normal cursor-help"
+                        >
+                          {getPlanetSymbol(planet1)}
+                        </th>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="font-semibold mb-1">{translatePlanet(planet1)}</p>
+                        <p className="text-xs text-muted-foreground">{getPlanetDescription(planet1)}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   {planets.map((planet2, j) => {
                     // Only show upper triangle (excluding diagonal)
                     if (j <= i) {
