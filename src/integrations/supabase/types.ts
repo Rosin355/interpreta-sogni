@@ -159,6 +159,7 @@ export type Database = {
           image_style: string | null
           image_url: string | null
           interpretation: string | null
+          interpretation_summary: string | null
           is_private: boolean | null
           mood: string | null
           no_recall: boolean | null
@@ -177,6 +178,7 @@ export type Database = {
           image_style?: string | null
           image_url?: string | null
           interpretation?: string | null
+          interpretation_summary?: string | null
           is_private?: boolean | null
           mood?: string | null
           no_recall?: boolean | null
@@ -195,6 +197,7 @@ export type Database = {
           image_style?: string | null
           image_url?: string | null
           interpretation?: string | null
+          interpretation_summary?: string | null
           is_private?: boolean | null
           mood?: string | null
           no_recall?: boolean | null

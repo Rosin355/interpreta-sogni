@@ -13,6 +13,7 @@ import ReactMarkdown from "react-markdown";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { VoiceNoteRecorder } from "@/components/VoiceNoteRecorder";
+import { TTSButton } from "@/components/TTSButton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -396,7 +397,10 @@ const DreamDetail = () => {
               )}
 
               <div>
-                <h3 className="font-semibold mb-2">Descrizione</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold">Descrizione</h3>
+                  <TTSButton text={dream.content} label="Leggi il sogno" />
+                </div>
                 <p className="text-muted-foreground whitespace-pre-wrap">{dream.content}</p>
               </div>
 
@@ -497,6 +501,12 @@ const DreamDetail = () => {
                     </TooltipProvider>
                   )}
                 </div>
+                {dream.interpretation_summary && (
+                  <TTSButton 
+                    text={dream.interpretation_summary} 
+                    label="Leggi interpretazione" 
+                  />
+                )}
               </div>
             </CardHeader>
             <CardContent>
