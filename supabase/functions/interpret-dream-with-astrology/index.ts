@@ -469,11 +469,80 @@ STILE:
       throw new Error('No interpretation generated');
     }
 
-    console.log('Dream interpretation generated successfully');
+    console.log(`Dream interpretation with astrology generated: ${interpretation.length} characters`);
+
+    // Genera riassunto intelligente se > 500 caratteri
+    let interpretationSummary = interpretation;
+
+    if (interpretation.length > 500) {
+      console.log('Generating TTS summary...');
+      
+      const summaryPrompt = `Riassumi questa interpretazione di sogno in MASSIMO 500 caratteri, mantenendo:
+- I concetti chiave e simboli principali
+- I riferimenti astrologici più importanti
+- Il tono empatico
+- Le conclusioni importanti
+
+Interpretazione completa:
+${interpretation}
+
+Riassunto (max 500 caratteri):`;
+
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      const summaryResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "user", content: summaryPrompt }
+          ],
+          max_tokens: 200,
+        }),
+      });
+
+      if (summaryResponse.ok) {
+        const summaryData = await summaryResponse.json();
+        const generatedSummary = summaryData.choices?.[0]?.message?.content?.trim();
+        
+        if (generatedSummary && generatedSummary.length <= 500) {
+          interpretationSummary = generatedSummary;
+          console.log(`Summary generated: ${interpretationSummary.length} characters`);
+        } else {
+          interpretationSummary = interpretation.substring(0, 497) + '...';
+          console.log('Fallback: truncated summary');
+        }
+      } else {
+        interpretationSummary = interpretation.substring(0, 497) + '...';
+        console.log('Fallback: truncated summary (API error)');
+      }
+    }
+
+    // Salva nel database
+    console.log('Saving interpretation to database...');
+
+    const { error: updateError } = await supabase
+      .from('dreams')
+      .update({ 
+        interpretation,
+        interpretation_summary: interpretationSummary 
+      })
+      .eq('id', dreamId);
+
+    if (updateError) {
+      console.error('Error updating dream:', updateError);
+      console.warn('Continuing despite DB update error');
+    }
+
+    console.log('Dream interpretation with astrology saved successfully');
 
     return new Response(
       JSON.stringify({ 
         interpretation,
+        interpretation_summary: interpretationSummary,
         hasAstrologicalContext: hasNatalChart,
         success: true 
       }),

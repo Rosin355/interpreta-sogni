@@ -140,12 +140,65 @@ Fornisci un'interpretazione dettagliata e significativa.`;
       throw new Error('Nessuna interpretazione ricevuta dall\'AI');
     }
 
-    console.log('Interpretazione generata, aggiornamento sogno...');
+    console.log(`Interpretazione generata: ${interpretation.length} caratteri`);
 
-    // Salva l'interpretazione nel database
+    // Genera riassunto intelligente se > 500 caratteri
+    let interpretationSummary = interpretation;
+
+    if (interpretation.length > 500) {
+      console.log('Generazione riassunto per TTS...');
+      
+      const summaryPrompt = `Riassumi questa interpretazione di sogno in MASSIMO 500 caratteri, mantenendo:
+- I concetti chiave e simboli principali
+- Il tono empatico
+- Le conclusioni importanti
+
+Interpretazione completa:
+${interpretation}
+
+Riassunto (max 500 caratteri):`;
+
+      const summaryResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'user', content: summaryPrompt }
+          ],
+          max_tokens: 200,
+        }),
+      });
+
+      if (summaryResponse.ok) {
+        const summaryData = await summaryResponse.json();
+        const generatedSummary = summaryData.choices?.[0]?.message?.content?.trim();
+        
+        if (generatedSummary && generatedSummary.length <= 500) {
+          interpretationSummary = generatedSummary;
+          console.log(`Riassunto generato: ${interpretationSummary.length} caratteri`);
+        } else {
+          interpretationSummary = interpretation.substring(0, 497) + '...';
+          console.log('Fallback: riassunto troncato');
+        }
+      } else {
+        interpretationSummary = interpretation.substring(0, 497) + '...';
+        console.log('Fallback: riassunto troncato (errore API)');
+      }
+    }
+
+    console.log('Interpretazione salvata, aggiornamento sogno...');
+
+    // Salva interpretazione completa e riassunto nel database
     const { error: updateError } = await supabase
       .from('dreams')
-      .update({ interpretation })
+      .update({ 
+        interpretation,
+        interpretation_summary: interpretationSummary 
+      })
       .eq('id', dreamId);
 
     if (updateError) {
@@ -153,10 +206,13 @@ Fornisci un'interpretazione dettagliata e significativa.`;
       throw updateError;
     }
 
-    console.log('Interpretazione salvata con successo');
+    console.log('Interpretazione e riassunto salvati con successo');
 
     return new Response(
-      JSON.stringify({ interpretation }),
+      JSON.stringify({ 
+        interpretation,
+        interpretation_summary: interpretationSummary 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

@@ -1,0 +1,102 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+function processBase64Chunks(base64String: string, chunkSize = 32768) {
+  const chunks: Uint8Array[] = [];
+  let position = 0;
+  
+  while (position < base64String.length) {
+    const chunk = base64String.slice(position, position + chunkSize);
+    const binaryChunk = atob(chunk);
+    const bytes = new Uint8Array(binaryChunk.length);
+    
+    for (let i = 0; i < binaryChunk.length; i++) {
+      bytes[i] = binaryChunk.charCodeAt(i);
+    }
+    
+    chunks.push(bytes);
+    position += chunkSize;
+  }
+
+  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  }
+
+  return result;
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const { audio } = await req.json();
+    
+    if (!audio) {
+      throw new Error('No audio data provided');
+    }
+
+    console.log('Received audio data for transcription (ElevenLabs STT)');
+
+    const binaryAudio = processBase64Chunks(audio);
+    console.log(`Audio size: ${binaryAudio.length} bytes`);
+
+    const formData = new FormData();
+    const blob = new Blob([binaryAudio], { type: 'audio/webm' });
+    formData.append('file', blob, 'audio.webm');
+    formData.append('model_id', 'scribe_v1');
+    formData.append('language_code', 'it');
+
+    const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
+    if (!ELEVENLABS_API_KEY) {
+      throw new Error('ELEVENLABS_API_KEY is not configured');
+    }
+
+    console.log('Sending to ElevenLabs STT API...');
+
+    const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text/convert', {
+      method: 'POST',
+      headers: {
+        'xi-api-key': ELEVENLABS_API_KEY,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('ElevenLabs STT API error:', response.status, errorText);
+      throw new Error(`ElevenLabs STT API error: ${errorText}`);
+    }
+
+    const result = await response.json();
+    const text = result.text;
+
+    console.log('Transcription successful:', text?.substring(0, 100));
+
+    return new Response(
+      JSON.stringify({ text }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('Error in speech-to-text-elevenlabs:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+});

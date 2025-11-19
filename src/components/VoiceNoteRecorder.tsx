@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+import { TTSButton } from "@/components/TTSButton";
 
 interface VoiceNote {
   id: string;
@@ -34,6 +35,15 @@ export const VoiceNoteRecorder = ({ dreamId }: VoiceNoteRecorderProps) => {
 
   useEffect(() => {
     fetchVoiceNotes();
+    
+    // Cleanup audio elements on unmount
+    return () => {
+      Object.values(audioElementsRef.current).forEach(audio => {
+        audio.pause();
+        audio.src = '';
+      });
+      audioElementsRef.current = {};
+    };
   }, [dreamId]);
 
   const fetchVoiceNotes = async () => {
@@ -187,28 +197,76 @@ export const VoiceNoteRecorder = ({ dreamId }: VoiceNoteRecorderProps) => {
     }
   };
 
-  const togglePlayPause = (noteId: string, audioUrl: string) => {
-    if (!audioElementsRef.current[noteId]) {
-      const audio = new Audio(audioUrl);
-      audio.addEventListener('ended', () => setPlayingNoteId(null));
-      audioElementsRef.current[noteId] = audio;
-    }
-
-    const audio = audioElementsRef.current[noteId];
-
-    if (playingNoteId === noteId) {
-      audio.pause();
-      setPlayingNoteId(null);
-    } else {
-      // Pause all other audios
-      Object.keys(audioElementsRef.current).forEach(id => {
-        if (id !== noteId) {
-          audioElementsRef.current[id].pause();
+  const togglePlayPause = async (note: VoiceNote) => {
+    try {
+      if (!audioElementsRef.current[note.id]) {
+        const audio = new Audio(note.audio_url);
+        
+        audio.onerror = (e) => {
+          console.error('Audio loading error:', e, 'URL:', note.audio_url);
+          toast({
+            title: "Errore riproduzione",
+            description: "Impossibile caricare l'audio. Verifica la connessione.",
+            variant: "destructive"
+          });
+        };
+        
+        audio.onloadeddata = () => {
+          console.log('Audio loaded successfully:', note.id);
+        };
+        
+        audio.onended = () => {
+          console.log('Audio playback ended:', note.id);
+          setPlayingNoteId(null);
+        };
+        
+        audioElementsRef.current[note.id] = audio;
+      }
+      
+      const audio = audioElementsRef.current[note.id];
+      
+      if (playingNoteId === note.id) {
+        audio.pause();
+        setPlayingNoteId(null);
+        return;
+      }
+      
+      Object.entries(audioElementsRef.current).forEach(([id, a]) => {
+        if (id !== note.id) {
+          a.pause();
+          a.currentTime = 0;
         }
       });
-
-      audio.play();
-      setPlayingNoteId(noteId);
+      
+      try {
+        await audio.play();
+        setPlayingNoteId(note.id);
+        console.log('Audio playback started:', note.id);
+      } catch (playError: any) {
+        console.error('Play error:', playError);
+        
+        if (playError.name === 'NotAllowedError') {
+          toast({
+            title: "Riproduzione bloccata",
+            description: "Il browser ha bloccato l'autoplay. Clicca di nuovo per riprodurre.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Errore riproduzione",
+            description: "Impossibile riprodurre l'audio.",
+            variant: "destructive"
+          });
+        }
+      }
+      
+    } catch (error) {
+      console.error('Toggle play/pause error:', error);
+      toast({
+        title: "Errore",
+        description: "Si è verificato un errore durante la riproduzione",
+        variant: "destructive"
+      });
     }
   };
 
@@ -345,16 +403,22 @@ export const VoiceNoteRecorder = ({ dreamId }: VoiceNoteRecorderProps) => {
                   )}
                 </div>
                 {note.transcription && (
-                  <p className="text-sm text-muted-foreground">
-                    {note.transcription}
-                  </p>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      {note.transcription}
+                    </p>
+                    <TTSButton 
+                      text={note.transcription} 
+                      label="Leggi trascrizione" 
+                    />
+                  </div>
                 )}
               </div>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => togglePlayPause(note.id, note.audio_url)}
+                  onClick={() => togglePlayPause(note)}
                 >
                   {playingNoteId === note.id ? (
                     <Pause className="h-4 w-4" />

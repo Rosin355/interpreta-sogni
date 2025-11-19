@@ -88,7 +88,7 @@ export const VoiceRecorder = ({ onTranscription }: VoiceRecorderProps) => {
           throw new Error('Failed to convert audio to base64');
         }
 
-        const { data, error } = await supabase.functions.invoke('transcribe-audio', {
+        const { data, error } = await supabase.functions.invoke('speech-to-text-elevenlabs', {
           body: { audio: base64Audio }
         });
 
