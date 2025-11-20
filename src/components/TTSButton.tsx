@@ -92,13 +92,14 @@ export const TTSButton = ({
   };
 
   return (
-    <div className="flex flex-col gap-2 w-full">
-      <div className="flex gap-2 items-center">
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-2 items-center flex-shrink-0">
         <Button
           variant="outline"
           size="sm"
           onClick={handleSpeak}
           disabled={isLoading}
+          className="whitespace-nowrap"
         >
           {isLoading ? (
             <>
@@ -128,6 +129,7 @@ export const TTSButton = ({
             variant="ghost"
             size="sm"
             onClick={handleStop}
+            className="flex-shrink-0"
           >
             <VolumeX className="h-4 w-4" />
           </Button>

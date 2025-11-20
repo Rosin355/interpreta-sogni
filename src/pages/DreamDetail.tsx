@@ -465,7 +465,7 @@ const DreamDetail = () => {
           {/* Interpretazione AI */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-4">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-5 w-5" />
                   <CardTitle>Interpretazione AI</CardTitle>
@@ -498,10 +498,11 @@ const DreamDetail = () => {
                     </TooltipProvider>
                   )}
                 </div>
-                {(dream.interpretation_summary || dream.interpretation) && (
+                {dream.interpretation && (
                   <TTSButton 
-                    text={dream.interpretation_summary || (dream.interpretation?.substring(0, 500) ?? '')} 
-                    label="Leggi interpretazione" 
+                    text={dream.interpretation} 
+                    label="Leggi ad alta voce" 
+                    voiceId="cnDF6tD6CWVBeLKYlCXW"
                   />
                 )}
               </div>
