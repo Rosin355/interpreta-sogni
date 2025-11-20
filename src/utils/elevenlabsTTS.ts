@@ -16,6 +16,43 @@ export class ElevenLabsTTS {
     this.onProgressCallback = callback;
   }
 
+  private splitTextIntoChunks(text: string, maxLength: number = 450): string[] {
+    const chunks: string[] = [];
+    let currentChunk = '';
+    
+    const sentences = text.split(/([.!?]\s+)/);
+    
+    for (let i = 0; i < sentences.length; i++) {
+      const sentence = sentences[i];
+      
+      if ((currentChunk + sentence).length <= maxLength) {
+        currentChunk += sentence;
+      } else {
+        if (currentChunk) {
+          chunks.push(currentChunk.trim());
+          currentChunk = sentence;
+        } else {
+          // Sentence is longer than maxLength, split by words
+          const words = sentence.split(' ');
+          for (const word of words) {
+            if ((currentChunk + ' ' + word).length <= maxLength) {
+              currentChunk += (currentChunk ? ' ' : '') + word;
+            } else {
+              if (currentChunk) chunks.push(currentChunk.trim());
+              currentChunk = word;
+            }
+          }
+        }
+      }
+    }
+    
+    if (currentChunk) {
+      chunks.push(currentChunk.trim());
+    }
+    
+    return chunks.filter(chunk => chunk.length > 0);
+  }
+
   async speak(text: string, voiceId: string = 'cnDF6tD6CWVBeLKYlCXW'): Promise<void> {
     try {
       this.stop();
@@ -24,28 +61,39 @@ export class ElevenLabsTTS {
         throw new Error('Testo vuoto');
       }
 
-      const truncatedText = text.length > 500 ? text.substring(0, 497) + '...' : text;
-      this.currentText = truncatedText;
+      this.currentText = text;
+      const chunks = this.splitTextIntoChunks(text);
 
-      console.log(`ElevenLabsTTS: Generazione audio per ${truncatedText.length} caratteri...`);
+      console.log(`ElevenLabsTTS: Generazione audio per ${text.length} caratteri in ${chunks.length} blocchi...`);
 
-      const { data, error } = await supabase.functions.invoke('text-to-speech-elevenlabs', {
-        body: { 
-          text: truncatedText,
-          voiceId 
+      // Generate audio for all chunks
+      const audioBlobs: Blob[] = [];
+      
+      for (let i = 0; i < chunks.length; i++) {
+        console.log(`ElevenLabsTTS: Generazione blocco ${i + 1}/${chunks.length}`);
+        
+        const { data, error } = await supabase.functions.invoke('text-to-speech-elevenlabs', {
+          body: { 
+            text: chunks[i],
+            voiceId 
+          }
+        });
+
+        if (error) {
+          throw new Error(error.message || 'Errore nella generazione audio');
         }
-      });
 
-      if (error) {
-        throw new Error(error.message || 'Errore nella generazione audio');
+        if (!data?.audioContent) {
+          throw new Error('Nessun audio ricevuto');
+        }
+
+        const audioBlob = this.base64ToBlob(data.audioContent, 'audio/mpeg');
+        audioBlobs.push(audioBlob);
       }
 
-      if (!data?.audioContent) {
-        throw new Error('Nessun audio ricevuto');
-      }
-
-      const audioBlob = this.base64ToBlob(data.audioContent, 'audio/mpeg');
-      const audioUrl = URL.createObjectURL(audioBlob);
+      // Concatenate all audio blobs
+      const combinedBlob = new Blob(audioBlobs, { type: 'audio/mpeg' });
+      const audioUrl = URL.createObjectURL(combinedBlob);
 
       this.audio = new Audio(audioUrl);
       
