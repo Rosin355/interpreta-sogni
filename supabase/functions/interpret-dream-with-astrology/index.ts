@@ -414,7 +414,12 @@ ISTRUZIONI:
 2. Scrivi in italiano, in modo poetico ma chiaro
 3. Mantieni un tono empatico e non giudicante
 4. Lunghezza: 250-350 parole
-5. Offri spunti di riflessione alla fine
+5. IMPORTANTE: concludi sempre il pensiero con una frase completa e significativa, anche se stai raggiungendo il limite di lunghezza
+6. Termina sempre con una frase conclusiva completa
+7. Non lasciare mai concetti incompleti o frasi troncate
+8. Se stai per raggiungere il limite, concludi elegantemente il discorso
+9. È meglio una interpretazione più breve ma completa che una lunga ma tagliata
+10. Offri spunti di riflessione alla fine
 
 STILE:
 - Usa metafore e linguaggio evocativo
@@ -452,7 +457,7 @@ STILE:
           { role: "user", content: userPrompt }
         ],
         temperature: 0.8,
-        max_tokens: 1000
+        max_tokens: 1200
       }),
     });
 
@@ -482,6 +487,7 @@ STILE:
 - I riferimenti astrologici più importanti
 - Il tono empatico
 - Le conclusioni importanti
+IMPORTANTE: termina sempre con una frase completa e significativa.
 
 Interpretazione completa:
 ${interpretation}
