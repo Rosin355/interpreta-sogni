@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 // Static cache for generated audio
 const audioCache = new Map<string, Blob>();
@@ -188,6 +189,11 @@ export class ElevenLabsTTS {
       // Check memory cache first
       if (audioCache.has(textHash)) {
         console.log('ElevenLabsTTS: Audio trovato in cache memoria');
+        toast({
+          title: "Audio caricato",
+          description: "Audio trovato in cache, riproduzione immediata",
+          duration: 2000,
+        });
         const cachedBlob = audioCache.get(textHash)!;
         this.currentAudioBlob = cachedBlob;
         const audioUrl = URL.createObjectURL(cachedBlob);
@@ -207,6 +213,11 @@ export class ElevenLabsTTS {
       const cachedBlob = await getFromIndexedDB(textHash);
       if (cachedBlob) {
         console.log('ElevenLabsTTS: Audio trovato in IndexedDB');
+        toast({
+          title: "Audio caricato",
+          description: "Audio recuperato dalla cache locale",
+          duration: 2000,
+        });
         // Also save to memory cache for faster access
         audioCache.set(textHash, cachedBlob);
         this.currentAudioBlob = cachedBlob;
@@ -226,12 +237,26 @@ export class ElevenLabsTTS {
       const chunks = this.splitTextIntoChunks(text);
 
       console.log(`ElevenLabsTTS: Generazione audio per ${text.length} caratteri in ${chunks.length} blocchi...`);
+      
+      toast({
+        title: "Generazione audio",
+        description: `Generazione di ${chunks.length} ${chunks.length === 1 ? 'blocco' : 'blocchi'} audio...`,
+        duration: 3000,
+      });
 
       // Generate audio for all chunks
       const audioBlobs: Blob[] = [];
       
       for (let i = 0; i < chunks.length; i++) {
         console.log(`ElevenLabsTTS: Generazione blocco ${i + 1}/${chunks.length}`);
+        
+        if (chunks.length > 1) {
+          toast({
+            title: "Generazione in corso",
+            description: `Blocco ${i + 1} di ${chunks.length}`,
+            duration: 2000,
+          });
+        }
         
         // Notify generation progress
         if (this.onGenerationProgressCallback) {
@@ -261,6 +286,12 @@ export class ElevenLabsTTS {
       const combinedBlob = new Blob(audioBlobs, { type: 'audio/mpeg' });
       this.currentAudioBlob = combinedBlob;
       
+      toast({
+        title: "Salvataggio audio",
+        description: "Audio salvato nella cache locale per riproduzione offline",
+        duration: 2000,
+      });
+      
       // Save to memory cache
       audioCache.set(textHash, combinedBlob);
       console.log('ElevenLabsTTS: Audio salvato in cache memoria');
@@ -283,6 +314,12 @@ export class ElevenLabsTTS {
 
     } catch (error) {
       console.error('ElevenLabsTTS speak error:', error);
+      toast({
+        title: "Errore generazione audio",
+        description: error instanceof Error ? error.message : "Impossibile generare l'audio",
+        variant: "destructive",
+        duration: 4000,
+      });
       throw error;
     }
   }
