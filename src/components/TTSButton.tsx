@@ -21,6 +21,11 @@ export const TTSButton = ({
   const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
+    tts.setOnEndedCallback(() => {
+      setIsPlaying(false);
+      setIsPaused(false);
+    });
+
     return () => {
       tts.stop();
     };

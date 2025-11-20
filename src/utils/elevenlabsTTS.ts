@@ -5,6 +5,11 @@ export class ElevenLabsTTS {
   private currentText: string = '';
   private isCurrentlyPlaying: boolean = false;
   private isCurrentlyPaused: boolean = false;
+  private onEndedCallback?: () => void;
+
+  setOnEndedCallback(callback: () => void): void {
+    this.onEndedCallback = callback;
+  }
 
   async speak(text: string, voiceId: string = 'cnDF6tD6CWVBeLKYlCXW'): Promise<void> {
     try {
@@ -44,6 +49,9 @@ export class ElevenLabsTTS {
         this.isCurrentlyPlaying = false;
         this.isCurrentlyPaused = false;
         this.cleanup();
+        if (this.onEndedCallback) {
+          this.onEndedCallback();
+        }
       };
 
       this.audio.onerror = (e) => {
