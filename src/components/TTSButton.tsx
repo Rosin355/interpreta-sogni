@@ -156,8 +156,64 @@ export const TTSButton = ({
     });
   };
 
+  const isGenerating = isLoading || generationProgress !== null;
+  const audioBlob = tts.getCurrentAudioBlob();
+
   return (
     <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        <Button
+          onClick={handleSpeak}
+          disabled={isGenerating}
+          variant="ghost"
+          size="sm"
+          className="gap-2"
+        >
+          {isGenerating ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : isPaused ? (
+            <Play className="h-4 w-4" />
+          ) : isPlaying ? (
+            <Pause className="h-4 w-4" />
+          ) : (
+            <Volume2 className="h-4 w-4" />
+          )}
+          {isGenerating 
+            ? (generationProgress 
+              ? `Blocco ${generationProgress.current}/${generationProgress.total}` 
+              : 'Generazione...')
+            : isPaused 
+              ? 'Riprendi' 
+              : isPlaying 
+                ? 'Pausa' 
+                : label
+          }
+        </Button>
+
+        {(isPlaying || isPaused) && (
+          <Button
+            onClick={handleStop}
+            variant="ghost"
+            size="sm"
+            title="Ferma riproduzione"
+          >
+            <VolumeX className="h-4 w-4" />
+          </Button>
+        )}
+
+        {audioBlob && (
+          <Button
+            onClick={handleDownload}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            title="Scarica audio MP3"
+          >
+            <Download className="h-4 w-4" />
+            MP3
+          </Button>
+        )}
+      </div>
       <div className="flex gap-2 items-center flex-shrink-0">
         <Button
           variant="outline"

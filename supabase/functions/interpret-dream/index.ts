@@ -218,13 +218,15 @@ Riassunto (max 500 caratteri):`;
 
     console.log('Interpretazione e riassunto salvati con successo');
 
-    // Pre-cache TTS audio in background (non-blocking)
+    // Pre-cache TTS audio in background (non-blocking) for both interpretation and dream content
     if (interpretationSummary && interpretationSummary.length > 0) {
-      console.log('Starting background TTS pre-caching for interpretation summary');
+      console.log('Starting background TTS pre-caching');
       
       const precacheTTS = async () => {
         try {
-          const ttsResponse = await fetch(
+          // Pre-cache interpretation summary
+          console.log('Pre-caching interpretation summary');
+          const summaryResponse = await fetch(
             `${Deno.env.get('SUPABASE_URL')}/functions/v1/text-to-speech-elevenlabs`,
             {
               method: 'POST',
@@ -239,10 +241,35 @@ Riassunto (max 500 caratteri):`;
             }
           );
           
-          if (ttsResponse.ok) {
-            console.log('TTS audio pre-cached successfully');
+          if (summaryResponse.ok) {
+            console.log('TTS audio pre-cached successfully for interpretation summary');
           } else {
-            console.error('TTS pre-caching failed:', await ttsResponse.text());
+            console.error('TTS pre-caching failed for summary:', await summaryResponse.text());
+          }
+
+          // Pre-cache dream content
+          if (dream.content && dream.content.length > 0) {
+            console.log('Pre-caching dream content');
+            const contentResponse = await fetch(
+              `${Deno.env.get('SUPABASE_URL')}/functions/v1/text-to-speech-elevenlabs`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+                },
+                body: JSON.stringify({
+                  text: dream.content,
+                  voiceId: 'cnDF6tD6CWVBeLKYlCXW'
+                })
+              }
+            );
+            
+            if (contentResponse.ok) {
+              console.log('TTS audio pre-cached successfully for dream content');
+            } else {
+              console.error('TTS pre-caching failed for content:', await contentResponse.text());
+            }
           }
         } catch (error) {
           console.error('Error pre-caching TTS:', error);
