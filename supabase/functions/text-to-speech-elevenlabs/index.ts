@@ -60,7 +60,9 @@ serve(async (req) => {
 
     const audioBuffer = await response.arrayBuffer();
     const base64Audio = btoa(
-      String.fromCharCode(...new Uint8Array(audioBuffer))
+      Array.from(new Uint8Array(audioBuffer))
+        .map(b => String.fromCharCode(b))
+        .join('')
     );
 
     console.log('TTS generated successfully');
