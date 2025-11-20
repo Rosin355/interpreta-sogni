@@ -80,6 +80,14 @@ Fornisci un'interpretazione approfondita ma accessibile del sogno, considerando:
 - Possibili significati psicologici
 - Connessioni con l'inconscio
 
+REGOLE ESSENZIALI:
+- Lunghezza: 250-350 parole
+- IMPORTANTE: concludi sempre il pensiero con una frase completa e significativa, anche se stai raggiungendo il limite di lunghezza
+- Termina sempre con una frase conclusiva completa
+- Non lasciare mai concetti incompleti o frasi troncate
+- Se stai per raggiungere il limite, concludi elegantemente il discorso
+- È meglio una interpretazione più breve ma completa che una lunga ma tagliata
+
 Mantieni un tono empatico e professionale. Scrivi in italiano.`;
 
     const userPrompt = `Interpreta questo sogno:
@@ -109,6 +117,7 @@ Fornisci un'interpretazione dettagliata e significativa.`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
+        max_tokens: 1200,
       }),
     });
 
@@ -152,6 +161,7 @@ Fornisci un'interpretazione dettagliata e significativa.`;
 - I concetti chiave e simboli principali
 - Il tono empatico
 - Le conclusioni importanti
+IMPORTANTE: termina sempre con una frase completa e significativa.
 
 Interpretazione completa:
 ${interpretation}

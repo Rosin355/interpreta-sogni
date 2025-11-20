@@ -58,6 +58,44 @@ export default function Settings() {
       });
     }
   };
+
+  const handleClearTTSCache = async () => {
+    try {
+      const dbName = 'TTSAudioCache';
+      const request = indexedDB.open(dbName, 1);
+      
+      request.onsuccess = () => {
+        const db = request.result;
+        const transaction = db.transaction(['audios'], 'readwrite');
+        const store = transaction.objectStore('audios');
+        const clearRequest = store.clear();
+        
+        clearRequest.onsuccess = () => {
+          toast({
+            title: "Cache Audio TTS cancellata",
+            description: "Tutti gli audio TTS sono stati eliminati. Verranno rigenerati al prossimo ascolto.",
+          });
+        };
+        
+        clearRequest.onerror = () => {
+          throw new Error('Impossibile cancellare la cache');
+        };
+        
+        db.close();
+      };
+      
+      request.onerror = () => {
+        throw new Error('Impossibile aprire il database cache');
+      };
+    } catch (error) {
+      console.error('Errore durante la cancellazione della cache TTS:', error);
+      toast({
+        title: "Errore",
+        description: "Impossibile cancellare la cache audio TTS.",
+        variant: "destructive",
+      });
+    }
+  };
   const handleExportData = async () => {
     try {
       const {
@@ -181,16 +219,34 @@ export default function Settings() {
               <CardTitle>Impostazioni App</CardTitle>
               <CardDescription>Gestisci cache e storage dell'applicazione</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Cache dell'app</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Cancella la cache per liberare spazio
-                  </p>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Cache Browser</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Elimina i dati temporanei memorizzati dall'app
+                    </p>
+                  </div>
                 </div>
-                <Button variant="outline" onClick={handleClearCache}>
-                  Cancella Cache
+                <Button variant="outline" onClick={handleClearCache} className="w-full">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Cancella Cache Browser
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Cache Audio TTS</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Libera spazio eliminando gli audio TTS generati. Gli audio verranno rigenerati al prossimo ascolto.
+                    </p>
+                  </div>
+                </div>
+                <Button variant="outline" onClick={handleClearTTSCache} className="w-full">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Cancella Cache Audio TTS
                 </Button>
               </div>
             </CardContent>

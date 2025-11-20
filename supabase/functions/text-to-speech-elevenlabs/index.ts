@@ -11,11 +11,27 @@ serve(async (req) => {
   }
 
   try {
-    const { text, voiceId = 'cnDF6tD6CWVBeLKYlCXW' } = await req.json();
+    const requestBody = await req.json();
+    const { text, voiceId = 'cnDF6tD6CWVBeLKYlCXW' } = requestBody;
     
-    if (!text || text.length > 500) {
+    console.log('TTS request received:', { 
+      textLength: text?.length, 
+      voiceId,
+      textPreview: text?.substring(0, 50) 
+    });
+    
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      console.error('Invalid text parameter:', { text, type: typeof text });
       return new Response(
-        JSON.stringify({ error: 'Text must be provided and max 500 characters' }),
+        JSON.stringify({ error: 'Text must be provided and non-empty' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    if (text.length > 500) {
+      console.error('Text too long:', text.length);
+      return new Response(
+        JSON.stringify({ error: 'Text must be max 500 characters' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
