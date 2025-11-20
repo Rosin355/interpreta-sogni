@@ -545,6 +545,41 @@ Riassunto (max 500 caratteri):`;
 
     console.log('Dream interpretation with astrology saved successfully');
 
+    // Pre-cache TTS audio in background (non-blocking)
+    if (interpretationSummary && interpretationSummary.length > 0) {
+      console.log('Starting background TTS pre-caching for astrological interpretation summary');
+      
+      const precacheTTS = async () => {
+        try {
+          const ttsResponse = await fetch(
+            `${Deno.env.get('SUPABASE_URL')}/functions/v1/text-to-speech-elevenlabs`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+              },
+              body: JSON.stringify({
+                text: interpretationSummary,
+                voiceId: 'cnDF6tD6CWVBeLKYlCXW'
+              })
+            }
+          );
+          
+          if (ttsResponse.ok) {
+            console.log('TTS audio pre-cached successfully for astrological interpretation');
+          } else {
+            console.error('TTS pre-caching failed:', await ttsResponse.text());
+          }
+        } catch (error) {
+          console.error('Error pre-caching TTS:', error);
+        }
+      };
+      
+      // Run in background without blocking response
+      EdgeRuntime.waitUntil(precacheTTS());
+    }
+
     return new Response(
       JSON.stringify({ 
         interpretation,
