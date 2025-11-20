@@ -14,6 +14,72 @@ function hashText(text: string): string {
   return hash.toString(36);
 }
 
+// IndexedDB management
+const DB_NAME = 'TTSAudioCache';
+const DB_VERSION = 1;
+const STORE_NAME = 'audios';
+
+async function openDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+  });
+}
+
+async function saveToIndexedDB(key: string, blob: Blob): Promise<void> {
+  try {
+    const db = await openDB();
+    const transaction = db.transaction(STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    store.put(blob, key);
+    
+    return new Promise((resolve, reject) => {
+      transaction.oncomplete = () => {
+        db.close();
+        resolve();
+      };
+      transaction.onerror = () => {
+        db.close();
+        reject(transaction.error);
+      };
+    });
+  } catch (error) {
+    console.error('IndexedDB save error:', error);
+  }
+}
+
+async function getFromIndexedDB(key: string): Promise<Blob | null> {
+  try {
+    const db = await openDB();
+    const transaction = db.transaction(STORE_NAME, 'readonly');
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.get(key);
+    
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => {
+        db.close();
+        resolve(request.result || null);
+      };
+      request.onerror = () => {
+        db.close();
+        reject(request.error);
+      };
+    });
+  } catch (error) {
+    console.error('IndexedDB get error:', error);
+    return null;
+  }
+}
+
 export class ElevenLabsTTS {
   private audio: HTMLAudioElement | null = null;
   private currentText: string = '';
@@ -22,6 +88,7 @@ export class ElevenLabsTTS {
   private onEndedCallback?: () => void;
   private onProgressCallback?: (progress: number) => void;
   private onGenerationProgressCallback?: (current: number, total: number) => void;
+  private onTimeUpdateCallback?: (currentTime: number, duration: number) => void;
 
   setOnEndedCallback(callback: () => void): void {
     this.onEndedCallback = callback;
@@ -33,6 +100,10 @@ export class ElevenLabsTTS {
 
   setOnGenerationProgressCallback(callback: (current: number, total: number) => void): void {
     this.onGenerationProgressCallback = callback;
+  }
+
+  setOnTimeUpdateCallback(callback: (currentTime: number, duration: number) => void): void {
+    this.onTimeUpdateCallback = callback;
   }
 
   private splitTextIntoChunks(text: string, maxLength: number = 450): string[] {
@@ -83,9 +154,9 @@ export class ElevenLabsTTS {
       this.currentText = text;
       const textHash = hashText(text + voiceId);
 
-      // Check cache first
+      // Check memory cache first
       if (audioCache.has(textHash)) {
-        console.log('ElevenLabsTTS: Audio trovato in cache');
+        console.log('ElevenLabsTTS: Audio trovato in cache memoria');
         const cachedBlob = audioCache.get(textHash)!;
         const audioUrl = URL.createObjectURL(cachedBlob);
         
@@ -95,6 +166,23 @@ export class ElevenLabsTTS {
         this.isCurrentlyPlaying = true;
         this.isCurrentlyPaused = false;
         console.log('ElevenLabsTTS: Riproduzione da cache avviata');
+        return;
+      }
+
+      // Check IndexedDB cache
+      const cachedBlob = await getFromIndexedDB(textHash);
+      if (cachedBlob) {
+        console.log('ElevenLabsTTS: Audio trovato in IndexedDB');
+        // Also save to memory cache for faster access
+        audioCache.set(textHash, cachedBlob);
+        
+        const audioUrl = URL.createObjectURL(cachedBlob);
+        this.audio = new Audio(audioUrl);
+        this.setupAudioListeners();
+        await this.audio.play();
+        this.isCurrentlyPlaying = true;
+        this.isCurrentlyPaused = false;
+        console.log('ElevenLabsTTS: Riproduzione da IndexedDB avviata');
         return;
       }
 
@@ -135,9 +223,13 @@ export class ElevenLabsTTS {
       // Concatenate all audio blobs
       const combinedBlob = new Blob(audioBlobs, { type: 'audio/mpeg' });
       
-      // Save to cache
+      // Save to memory cache
       audioCache.set(textHash, combinedBlob);
-      console.log('ElevenLabsTTS: Audio salvato in cache');
+      console.log('ElevenLabsTTS: Audio salvato in cache memoria');
+      
+      // Save to IndexedDB for persistence
+      await saveToIndexedDB(textHash, combinedBlob);
+      console.log('ElevenLabsTTS: Audio salvato in IndexedDB');
       
       const audioUrl = URL.createObjectURL(combinedBlob);
 
@@ -175,9 +267,14 @@ export class ElevenLabsTTS {
     };
 
     this.audio.ontimeupdate = () => {
-      if (this.audio && this.onProgressCallback) {
-        const progress = (this.audio.currentTime / this.audio.duration) * 100;
-        this.onProgressCallback(progress);
+      if (this.audio) {
+        if (this.onProgressCallback) {
+          const progress = (this.audio.currentTime / this.audio.duration) * 100;
+          this.onProgressCallback(progress);
+        }
+        if (this.onTimeUpdateCallback) {
+          this.onTimeUpdateCallback(this.audio.currentTime, this.audio.duration);
+        }
       }
     };
   }

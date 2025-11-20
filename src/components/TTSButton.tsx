@@ -21,6 +21,8 @@ export const TTSButton = ({
   const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState(0);
   const [generationProgress, setGenerationProgress] = useState<{ current: number; total: number } | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
 
   useEffect(() => {
     tts.setOnEndedCallback(() => {
@@ -28,6 +30,8 @@ export const TTSButton = ({
       setIsPaused(false);
       setProgress(0);
       setGenerationProgress(null);
+      setCurrentTime(0);
+      setDuration(0);
     });
 
     tts.setOnProgressCallback((prog) => {
@@ -36,6 +40,11 @@ export const TTSButton = ({
 
     tts.setOnGenerationProgressCallback((current, total) => {
       setGenerationProgress({ current, total });
+    });
+
+    tts.setOnTimeUpdateCallback((current, total) => {
+      setCurrentTime(current);
+      setDuration(total);
     });
 
     return () => {
@@ -86,6 +95,8 @@ export const TTSButton = ({
     setIsPlaying(false);
     setIsPaused(false);
     setProgress(0);
+    setCurrentTime(0);
+    setDuration(0);
   };
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -97,6 +108,13 @@ export const TTSButton = ({
     
     tts.seek(percentage);
     setProgress(percentage);
+  };
+
+  const formatTime = (seconds: number): string => {
+    if (!isFinite(seconds)) return '00:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -148,14 +166,20 @@ export const TTSButton = ({
       </div>
 
       {isPlaying && (
-        <div 
-          className="w-full h-2 bg-muted rounded-full cursor-pointer overflow-hidden"
-          onClick={handleProgressClick}
-        >
+        <div className="w-full space-y-1">
           <div 
-            className="h-full bg-primary transition-all duration-100"
-            style={{ width: `${progress}%` }}
-          />
+            className="w-full h-2 bg-muted rounded-full cursor-pointer overflow-hidden"
+            onClick={handleProgressClick}
+          >
+            <div 
+              className="h-full bg-primary transition-all duration-100"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-xs text-muted-foreground px-1">
+            <span>{formatTime(currentTime)}</span>
+            <span>{formatTime(duration)}</span>
+          </div>
         </div>
       )}
     </div>
