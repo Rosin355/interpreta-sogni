@@ -1,8 +1,15 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Volume2, VolumeX, Pause, Play, Loader2 } from "lucide-react";
+import { Volume2, VolumeX, Pause, Play, Loader2, Download } from "lucide-react";
 import { ElevenLabsTTS } from "@/utils/elevenlabsTTS";
 import { toast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface TTSButtonProps {
   text: string;
@@ -23,6 +30,7 @@ export const TTSButton = ({
   const [generationProgress, setGenerationProgress] = useState<{ current: number; total: number } | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [playbackSpeed, setPlaybackSpeed] = useState<string>("1");
 
   useEffect(() => {
     tts.setOnEndedCallback(() => {
@@ -117,6 +125,37 @@ export const TTSButton = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleSpeedChange = (value: string) => {
+    setPlaybackSpeed(value);
+    tts.setPlaybackRate(parseFloat(value));
+  };
+
+  const handleDownload = () => {
+    const blob = tts.getCurrentAudioBlob();
+    if (!blob) {
+      toast({
+        title: "Nessun audio disponibile",
+        description: "Genera prima l'audio per scaricarlo",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `audio-tts-${Date.now()}.mp3`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Download avviato",
+      description: "Il file audio è stato scaricato",
+    });
+  };
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex gap-2 items-center flex-shrink-0">
@@ -154,14 +193,40 @@ export const TTSButton = ({
         </Button>
         
         {isPlaying && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleStop}
-            className="flex-shrink-0"
-          >
-            <VolumeX className="h-4 w-4" />
-          </Button>
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleStop}
+              className="flex-shrink-0"
+            >
+              <VolumeX className="h-4 w-4" />
+            </Button>
+            
+            <Select value={playbackSpeed} onValueChange={handleSpeedChange}>
+              <SelectTrigger className="w-20 h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0.5">0.5x</SelectItem>
+                <SelectItem value="0.75">0.75x</SelectItem>
+                <SelectItem value="1">1x</SelectItem>
+                <SelectItem value="1.25">1.25x</SelectItem>
+                <SelectItem value="1.5">1.5x</SelectItem>
+                <SelectItem value="2">2x</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDownload}
+              className="flex-shrink-0"
+              title="Scarica audio MP3"
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+          </>
         )}
       </div>
 

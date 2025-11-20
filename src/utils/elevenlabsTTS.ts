@@ -82,9 +82,12 @@ async function getFromIndexedDB(key: string): Promise<Blob | null> {
 
 export class ElevenLabsTTS {
   private audio: HTMLAudioElement | null = null;
+  private audioUrl: string | null = null;
+  private currentAudioBlob: Blob | null = null;
   private currentText: string = '';
   private isCurrentlyPlaying: boolean = false;
   private isCurrentlyPaused: boolean = false;
+  private playbackRate: number = 1.0;
   private onEndedCallback?: () => void;
   private onProgressCallback?: (progress: number) => void;
   private onGenerationProgressCallback?: (current: number, total: number) => void;
@@ -104,6 +107,21 @@ export class ElevenLabsTTS {
 
   setOnTimeUpdateCallback(callback: (currentTime: number, duration: number) => void): void {
     this.onTimeUpdateCallback = callback;
+  }
+
+  setPlaybackRate(rate: number): void {
+    this.playbackRate = rate;
+    if (this.audio) {
+      this.audio.playbackRate = rate;
+    }
+  }
+
+  getPlaybackRate(): number {
+    return this.playbackRate;
+  }
+
+  getCurrentAudioBlob(): Blob | null {
+    return this.currentAudioBlob;
   }
 
   private splitTextIntoChunks(text: string, maxLength: number = 450): string[] {
@@ -158,9 +176,12 @@ export class ElevenLabsTTS {
       if (audioCache.has(textHash)) {
         console.log('ElevenLabsTTS: Audio trovato in cache memoria');
         const cachedBlob = audioCache.get(textHash)!;
+        this.currentAudioBlob = cachedBlob;
         const audioUrl = URL.createObjectURL(cachedBlob);
         
+        this.audioUrl = audioUrl;
         this.audio = new Audio(audioUrl);
+        this.audio.playbackRate = this.playbackRate;
         this.setupAudioListeners();
         await this.audio.play();
         this.isCurrentlyPlaying = true;
@@ -175,9 +196,12 @@ export class ElevenLabsTTS {
         console.log('ElevenLabsTTS: Audio trovato in IndexedDB');
         // Also save to memory cache for faster access
         audioCache.set(textHash, cachedBlob);
+        this.currentAudioBlob = cachedBlob;
         
         const audioUrl = URL.createObjectURL(cachedBlob);
+        this.audioUrl = audioUrl;
         this.audio = new Audio(audioUrl);
+        this.audio.playbackRate = this.playbackRate;
         this.setupAudioListeners();
         await this.audio.play();
         this.isCurrentlyPlaying = true;
@@ -222,6 +246,7 @@ export class ElevenLabsTTS {
 
       // Concatenate all audio blobs
       const combinedBlob = new Blob(audioBlobs, { type: 'audio/mpeg' });
+      this.currentAudioBlob = combinedBlob;
       
       // Save to memory cache
       audioCache.set(textHash, combinedBlob);
@@ -232,8 +257,10 @@ export class ElevenLabsTTS {
       console.log('ElevenLabsTTS: Audio salvato in IndexedDB');
       
       const audioUrl = URL.createObjectURL(combinedBlob);
+      this.audioUrl = audioUrl;
 
       this.audio = new Audio(audioUrl);
+      this.audio.playbackRate = this.playbackRate;
       this.setupAudioListeners();
       await this.audio.play();
       this.isCurrentlyPlaying = true;
@@ -321,14 +348,13 @@ export class ElevenLabsTTS {
   }
 
   private cleanup(): void {
+    if (this.audioUrl) {
+      URL.revokeObjectURL(this.audioUrl);
+      this.audioUrl = null;
+    }
     if (this.audio) {
-      const url = this.audio.src;
-      this.audio.src = '';
+      this.audio.pause();
       this.audio = null;
-      
-      if (url && url.startsWith('blob:')) {
-        URL.revokeObjectURL(url);
-      }
     }
   }
 
