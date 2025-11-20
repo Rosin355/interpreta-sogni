@@ -6,9 +6,14 @@ export class ElevenLabsTTS {
   private isCurrentlyPlaying: boolean = false;
   private isCurrentlyPaused: boolean = false;
   private onEndedCallback?: () => void;
+  private onProgressCallback?: (progress: number) => void;
 
   setOnEndedCallback(callback: () => void): void {
     this.onEndedCallback = callback;
+  }
+
+  setOnProgressCallback(callback: (progress: number) => void): void {
+    this.onProgressCallback = callback;
   }
 
   async speak(text: string, voiceId: string = 'cnDF6tD6CWVBeLKYlCXW'): Promise<void> {
@@ -60,6 +65,13 @@ export class ElevenLabsTTS {
         this.isCurrentlyPaused = false;
       };
 
+      this.audio.ontimeupdate = () => {
+        if (this.audio && this.onProgressCallback) {
+          const progress = (this.audio.currentTime / this.audio.duration) * 100;
+          this.onProgressCallback(progress);
+        }
+      };
+
       await this.audio.play();
       this.isCurrentlyPlaying = true;
       this.isCurrentlyPaused = false;
@@ -105,6 +117,12 @@ export class ElevenLabsTTS {
 
   isPaused(): boolean {
     return this.isCurrentlyPaused;
+  }
+
+  seek(percentage: number): void {
+    if (this.audio && this.audio.duration) {
+      this.audio.currentTime = (percentage / 100) * this.audio.duration;
+    }
   }
 
   private cleanup(): void {
