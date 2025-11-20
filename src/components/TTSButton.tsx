@@ -20,16 +20,22 @@ export const TTSButton = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [generationProgress, setGenerationProgress] = useState<{ current: number; total: number } | null>(null);
 
   useEffect(() => {
     tts.setOnEndedCallback(() => {
       setIsPlaying(false);
       setIsPaused(false);
       setProgress(0);
+      setGenerationProgress(null);
     });
 
     tts.setOnProgressCallback((prog) => {
       setProgress(prog);
+    });
+
+    tts.setOnGenerationProgressCallback((current, total) => {
+      setGenerationProgress({ current, total });
     });
 
     return () => {
@@ -54,10 +60,12 @@ export const TTSButton = ({
       }
 
       setIsLoading(true);
+      setGenerationProgress(null);
       await tts.speak(text, voiceId);
       setIsPlaying(true);
       setIsPaused(false);
       setIsLoading(false);
+      setGenerationProgress(null);
 
     } catch (error: any) {
       console.error('TTS error:', error);
@@ -104,7 +112,10 @@ export const TTSButton = ({
           {isLoading ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Caricamento...
+              {generationProgress 
+                ? `Generazione audio... (${generationProgress.current}/${generationProgress.total})`
+                : 'Caricamento...'
+              }
             </>
           ) : isPlaying && !isPaused ? (
             <>
