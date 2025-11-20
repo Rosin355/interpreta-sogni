@@ -200,13 +200,31 @@ export const VoiceNoteRecorder = ({ dreamId }: VoiceNoteRecorderProps) => {
   const togglePlayPause = async (note: VoiceNote) => {
     try {
       if (!audioElementsRef.current[note.id]) {
-        const audio = new Audio(note.audio_url);
+        // Generate a signed URL for secure audio access
+        const urlParts = note.audio_url.split('/voice-notes/');
+        let audioUrl = note.audio_url;
+        
+        if (urlParts.length >= 2) {
+          const filePath = urlParts[1];
+          const { data: signedUrlData, error: signedUrlError } = await (supabase as any).storage
+            .from('voice-notes')
+            .createSignedUrl(filePath, 3600); // 1 hour expiry
+          
+          if (!signedUrlError && signedUrlData?.signedUrl) {
+            audioUrl = signedUrlData.signedUrl;
+            console.log('Generated signed URL for audio:', note.id);
+          } else {
+            console.error('Error generating signed URL:', signedUrlError);
+          }
+        }
+        
+        const audio = new Audio(audioUrl);
         
         audio.onerror = (e) => {
-          console.error('Audio loading error:', e, 'URL:', note.audio_url);
+          console.error('Audio loading error:', e, 'URL:', audioUrl);
           toast({
             title: "Errore riproduzione",
-            description: "Impossibile caricare l'audio. Verifica la connessione.",
+            description: "Impossibile caricare l'audio. Verifica che il file esista.",
             variant: "destructive"
           });
         };
