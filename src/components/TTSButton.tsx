@@ -19,11 +19,17 @@ export const TTSButton = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     tts.setOnEndedCallback(() => {
       setIsPlaying(false);
       setIsPaused(false);
+      setProgress(0);
+    });
+
+    tts.setOnProgressCallback((prog) => {
+      setProgress(prog);
     });
 
     return () => {
@@ -71,47 +77,73 @@ export const TTSButton = ({
     tts.stop();
     setIsPlaying(false);
     setIsPaused(false);
+    setProgress(0);
+  };
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isPlaying) return;
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const percentage = (clickX / rect.width) * 100;
+    
+    tts.seek(percentage);
+    setProgress(percentage);
   };
 
   return (
-    <div className="flex gap-2 items-center">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleSpeak}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Caricamento...
-          </>
-        ) : isPlaying && !isPaused ? (
-          <>
-            <Pause className="h-4 w-4 mr-2" />
-            Pausa
-          </>
-        ) : isPaused ? (
-          <>
-            <Play className="h-4 w-4 mr-2" />
-            Riprendi
-          </>
-        ) : (
-          <>
-            <Volume2 className="h-4 w-4 mr-2" />
-            {label}
-          </>
-        )}
-      </Button>
-      
-      {isPlaying && (
+    <div className="flex flex-col gap-2 w-full">
+      <div className="flex gap-2 items-center">
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
-          onClick={handleStop}
+          onClick={handleSpeak}
+          disabled={isLoading}
         >
-          <VolumeX className="h-4 w-4" />
+          {isLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Caricamento...
+            </>
+          ) : isPlaying && !isPaused ? (
+            <>
+              <Pause className="h-4 w-4 mr-2" />
+              Pausa
+            </>
+          ) : isPaused ? (
+            <>
+              <Play className="h-4 w-4 mr-2" />
+              Riprendi
+            </>
+          ) : (
+            <>
+              <Volume2 className="h-4 w-4 mr-2" />
+              {label}
+            </>
+          )}
         </Button>
+        
+        {isPlaying && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleStop}
+          >
+            <VolumeX className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+
+      {isPlaying && (
+        <div 
+          className="w-full h-2 bg-muted rounded-full cursor-pointer overflow-hidden"
+          onClick={handleProgressClick}
+        >
+          <div 
+            className="h-full bg-primary transition-all duration-100"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
       )}
     </div>
   );

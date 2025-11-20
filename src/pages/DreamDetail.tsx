@@ -498,9 +498,9 @@ const DreamDetail = () => {
                     </TooltipProvider>
                   )}
                 </div>
-                {dream.interpretation_summary && (
+                {(dream.interpretation_summary || dream.interpretation) && (
                   <TTSButton 
-                    text={dream.interpretation_summary} 
+                    text={dream.interpretation_summary || (dream.interpretation?.substring(0, 500) ?? '')} 
                     label="Leggi interpretazione" 
                   />
                 )}
