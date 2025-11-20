@@ -15,10 +15,20 @@ function hashText(text: string): string {
   return hash.toString(36);
 }
 
-// IndexedDB management
+// IndexedDB management with limits
 const DB_NAME = 'TTSAudioCache';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = 'audios';
+const METADATA_STORE = 'metadata';
+const MAX_CACHE_FILES = 100;
+const MAX_CACHE_SIZE_MB = 50;
+const MAX_CACHE_SIZE_BYTES = MAX_CACHE_SIZE_MB * 1024 * 1024;
+
+interface CacheMetadata {
+  key: string;
+  size: number;
+  timestamp: number;
+}
 
 async function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -29,19 +39,125 @@ async function openDB(): Promise<IDBDatabase> {
     
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
+      
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME);
+      }
+      
+      if (!db.objectStoreNames.contains(METADATA_STORE)) {
+        const metadataStore = db.createObjectStore(METADATA_STORE, { keyPath: 'key' });
+        metadataStore.createIndex('timestamp', 'timestamp', { unique: false });
       }
     };
   });
 }
 
-async function saveToIndexedDB(key: string, blob: Blob): Promise<void> {
+async function getCacheStats(): Promise<{ count: number; totalSize: number }> {
   try {
     const db = await openDB();
-    const transaction = db.transaction(STORE_NAME, 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
-    store.put(blob, key);
+    const transaction = db.transaction(METADATA_STORE, 'readonly');
+    const store = transaction.objectStore(METADATA_STORE);
+    const request = store.getAll();
+    
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => {
+        const metadata: CacheMetadata[] = request.result;
+        const totalSize = metadata.reduce((sum, item) => sum + item.size, 0);
+        db.close();
+        resolve({ count: metadata.length, totalSize });
+      };
+      request.onerror = () => {
+        db.close();
+        reject(request.error);
+      };
+    });
+  } catch (error) {
+    console.error('Error getting cache stats:', error);
+    return { count: 0, totalSize: 0 };
+  }
+}
+
+async function cleanupOldestEntries(requiredSpace: number): Promise<void> {
+  try {
+    const db = await openDB();
+    const transaction = db.transaction([STORE_NAME, METADATA_STORE], 'readwrite');
+    const metadataStore = transaction.objectStore(METADATA_STORE);
+    const audioStore = transaction.objectStore(STORE_NAME);
+    
+    const index = metadataStore.index('timestamp');
+    const request = index.openCursor();
+    
+    let freedSpace = 0;
+    let deletedCount = 0;
+    
+    return new Promise((resolve, reject) => {
+      request.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest).result;
+        
+        if (cursor && (freedSpace < requiredSpace || deletedCount < 10)) {
+          const metadata: CacheMetadata = cursor.value;
+          
+          audioStore.delete(metadata.key);
+          cursor.delete();
+          
+          freedSpace += metadata.size;
+          deletedCount++;
+          
+          cursor.continue();
+        } else {
+          transaction.oncomplete = () => {
+            db.close();
+            console.log(`Pulizia cache completata: ${deletedCount} file rimossi, ${(freedSpace / 1024 / 1024).toFixed(2)}MB liberati`);
+            toast({
+              title: "Cache TTS pulita",
+              description: `${deletedCount} file audio più vecchi sono stati rimossi`,
+              duration: 3000,
+            });
+            resolve();
+          };
+        }
+      };
+      
+      request.onerror = () => {
+        db.close();
+        reject(request.error);
+      };
+    });
+  } catch (error) {
+    console.error('Error cleaning up cache:', error);
+  }
+}
+
+async function saveToIndexedDB(key: string, blob: Blob): Promise<void> {
+  try {
+    const stats = await getCacheStats();
+    
+    // Check if cleanup is needed
+    if (stats.count >= MAX_CACHE_FILES || stats.totalSize + blob.size > MAX_CACHE_SIZE_BYTES) {
+      console.log(`Limite cache raggiunto (${stats.count} file, ${(stats.totalSize / 1024 / 1024).toFixed(2)}MB). Avvio pulizia...`);
+      toast({
+        title: "Pulizia cache in corso",
+        description: "Rimozione file audio più vecchi per fare spazio...",
+        duration: 2000,
+      });
+      await cleanupOldestEntries(blob.size);
+    }
+    
+    const db = await openDB();
+    const transaction = db.transaction([STORE_NAME, METADATA_STORE], 'readwrite');
+    const audioStore = transaction.objectStore(STORE_NAME);
+    const metadataStore = transaction.objectStore(METADATA_STORE);
+    
+    // Save audio blob
+    audioStore.put(blob, key);
+    
+    // Save metadata
+    const metadata: CacheMetadata = {
+      key,
+      size: blob.size,
+      timestamp: Date.now(),
+    };
+    metadataStore.put(metadata);
     
     return new Promise((resolve, reject) => {
       transaction.oncomplete = () => {
