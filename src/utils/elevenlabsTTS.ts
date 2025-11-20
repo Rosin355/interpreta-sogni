@@ -158,7 +158,20 @@ export class ElevenLabsTTS {
       chunks.push(currentChunk.trim());
     }
     
-    return chunks.filter(chunk => chunk.length > 0);
+    // Final safety check: force split any chunk > maxLength
+    const finalChunks: string[] = [];
+    for (const chunk of chunks) {
+      if (chunk.length <= maxLength) {
+        finalChunks.push(chunk);
+      } else {
+        // Force split by character if necessary
+        for (let i = 0; i < chunk.length; i += maxLength) {
+          finalChunks.push(chunk.slice(i, i + maxLength));
+        }
+      }
+    }
+    
+    return finalChunks.filter(chunk => chunk.length > 0);
   }
 
   async speak(text: string, voiceId: string = 'cnDF6tD6CWVBeLKYlCXW'): Promise<void> {
