@@ -11,6 +11,7 @@ import { it } from "date-fns/locale";
 import { getTagColor } from "@/utils/tag-colors";
 import { dreamCategories, getDreamCategories } from "@/utils/dream-categories";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ImageZoomModal } from "@/components/ImageZoomModal";
 
 const MyDreams = () => {
   const navigate = useNavigate();
@@ -166,20 +167,36 @@ const MyDreams = () => {
               {filteredDreams.map((dream) => (
                 <Card
                   key={dream.id}
-                  onClick={() => navigate(`/dreams/${dream.id}`)}
                   className="cursor-pointer hover:shadow-lg transition-shadow overflow-hidden"
                 >
                   {/* Thumbnail Immagine */}
                   {dream.image_url ? (
-                    <div className="aspect-video w-full overflow-hidden bg-muted">
-                      <img
-                        src={dream.image_url}
-                        alt={dream.title}
-                        className="w-full h-full object-cover"
-                      />
+                    <div 
+                      className="aspect-video w-full overflow-hidden bg-muted"
+                      onClick={(e) => {
+                        // Impedisci la navigazione quando si clicca sull'immagine per lo zoom
+                        if ((e.target as HTMLElement).closest('.image-zoom-wrapper')) {
+                          e.stopPropagation();
+                        } else {
+                          navigate(`/dreams/${dream.id}`);
+                        }
+                      }}
+                    >
+                      <div className="image-zoom-wrapper">
+                        <ImageZoomModal src={dream.image_url} alt={dream.title}>
+                          <img
+                            src={dream.image_url}
+                            alt={dream.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </ImageZoomModal>
+                      </div>
                     </div>
                   ) : (
-                    <div className="aspect-video w-full bg-gradient-to-br from-primary/5 to-primary/10 flex items-center justify-center">
+                    <div 
+                      className="aspect-video w-full bg-gradient-to-br from-primary/5 to-primary/10 flex items-center justify-center"
+                      onClick={() => navigate(`/dreams/${dream.id}`)}
+                    >
                       <div className="text-muted-foreground/30">
                         <svg
                           className="w-16 h-16"
@@ -198,7 +215,7 @@ const MyDreams = () => {
                     </div>
                   )}
 
-                  <CardHeader>
+                  <CardHeader onClick={() => navigate(`/dreams/${dream.id}`)} className="cursor-pointer">
                     <div className="flex items-start justify-between mb-2">
                       <CardTitle className="text-xl">{dream.title}</CardTitle>
                     </div>
@@ -206,7 +223,7 @@ const MyDreams = () => {
                       {format(new Date(dream.dream_date), "d MMMM yyyy", { locale: it })}
                     </p>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent onClick={() => navigate(`/dreams/${dream.id}`)} className="cursor-pointer">
                     <p className="text-muted-foreground line-clamp-3 mb-3">
                       {dream.content}
                     </p>
