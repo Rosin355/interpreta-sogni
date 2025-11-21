@@ -39,30 +39,58 @@ serve(async (req) => {
 
     console.log('Authenticated user:', user.id);
 
+    // Rate Limiting
+    const { RateLimiter, RATE_LIMITS } = await import("../_shared/rate-limiter.ts");
+    const { textToSpeechSchema, sanitizeText } = await import("../_shared/validation.ts");
+    
+    const rateLimiter = new RateLimiter();
+    const rateLimit = await rateLimiter.checkLimit(
+      user.id,
+      'text-to-speech',
+      RATE_LIMITS.TTS
+    );
+
+    if (!rateLimit.allowed) {
+      const resetDate = new Date(rateLimit.resetAt);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Limite di richieste raggiunto. Riprova più tardi.',
+          resetAt: resetDate.toISOString()
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': resetDate.toISOString()
+          } 
+        }
+      );
+    }
+
+    // Input Validation
     const requestBody = await req.json();
-    const { text, voiceId = 'cnDF6tD6CWVBeLKYlCXW' } = requestBody;
+    const validation = textToSpeechSchema.safeParse(requestBody);
+    
+    if (!validation.success) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Dati non validi', 
+          details: validation.error.issues.map(i => i.message).join(', ')
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { text, voiceId = 'cnDF6tD6CWVBeLKYlCXW' } = validation.data;
     
     console.log('TTS request received:', { 
-      textLength: text?.length, 
+      textLength: text.length, 
       voiceId,
-      textPreview: text?.substring(0, 50) 
+      userId: user.id,
+      textPreview: text.substring(0, 50) 
     });
-    
-    if (!text || typeof text !== 'string' || text.trim().length === 0) {
-      console.error('Invalid text parameter:', { text, type: typeof text });
-      return new Response(
-        JSON.stringify({ error: 'Text must be provided and non-empty' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    if (text.length > 500) {
-      console.error('Text too long:', text.length);
-      return new Response(
-        JSON.stringify({ error: 'Text must be max 500 characters' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
 
     const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
     if (!ELEVENLABS_API_KEY) {
@@ -114,7 +142,11 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ audioContent: base64Audio }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'X-RateLimit-Remaining': rateLimit.remaining.toString()
+        },
       }
     );
 

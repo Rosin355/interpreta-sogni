@@ -1,5 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { RateLimiter, RATE_LIMITS } from "../_shared/rate-limiter.ts";
+import { suggestTagsSchema } from "../_shared/validation.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,19 +48,81 @@ serve(async (req) => {
   }
 
   try {
-    const { content } = await req.json();
-
-    if (!content || content.length < 20) {
+    // 1. JWT Authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
       return new Response(
-        JSON.stringify({ tags: [] }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Autenticazione richiesta' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+
     if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+      throw new Error('LOVABLE_API_KEY non configurata');
     }
+
+    // Authenticate user
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Autenticazione non valida' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Authenticated user:', user.id);
+
+    // 2. Rate Limiting
+    const rateLimiter = new RateLimiter();
+    const rateLimit = await rateLimiter.checkLimit(
+      user.id,
+      'suggest-tags',
+      RATE_LIMITS.DREAM_OPERATIONS
+    );
+
+    if (!rateLimit.allowed) {
+      const resetDate = new Date(rateLimit.resetAt);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Limite di richieste raggiunto. Riprova più tardi.',
+          resetAt: resetDate.toISOString()
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': resetDate.toISOString()
+          } 
+        }
+      );
+    }
+
+    // 3. Input Validation
+    const requestBody = await req.json();
+    const validation = suggestTagsSchema.safeParse(requestBody);
+    
+    if (!validation.success) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Dati non validi', 
+          details: validation.error.issues.map(i => i.message).join(', '),
+          tags: []
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { content } = validation.data;
 
     const systemPrompt = `Sei un esperto analista di sogni. Analizza il testo del sogno e suggerisci tag appropriati basandoti sulle seguenti categorie:
 
@@ -111,17 +176,13 @@ Ogni tag dovrebbe essere breve (1-3 parole) e pertinente al contenuto del sogno.
       }),
     });
 
-    if (response.status === 429) {
+    if (response.status === 429 || response.status === 402) {
       return new Response(
-        JSON.stringify({ error: 'Rate limit exceeded', code: 'RATE_LIMIT' }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (response.status === 402) {
-      return new Response(
-        JSON.stringify({ error: 'Payment required', code: 'PAYMENT_REQUIRED' }),
-        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          error: response.status === 429 ? 'Rate limit raggiunto' : 'Crediti insufficienti',
+          tags: []
+        }),
+        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -132,13 +193,19 @@ Ogni tag dovrebbe essere breve (1-3 parole) e pertinente al contenuto del sogno.
     }
 
     const data = await response.json();
-    console.log('AI response:', JSON.stringify(data));
+    console.log('AI response received');
 
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
       return new Response(
         JSON.stringify({ tags: [] }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'X-RateLimit-Remaining': rateLimit.remaining.toString()
+          } 
+        }
       );
     }
 
@@ -146,7 +213,13 @@ Ogni tag dovrebbe essere breve (1-3 parole) e pertinente al contenuto del sogno.
     
     return new Response(
       JSON.stringify({ tags: suggestedTags.tags }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'X-RateLimit-Remaining': rateLimit.remaining.toString()
+        } 
+      }
     );
 
   } catch (error) {

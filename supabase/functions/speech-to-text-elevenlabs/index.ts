@@ -69,7 +69,51 @@ serve(async (req) => {
 
     console.log('Authenticated user:', user.id);
 
-    const { audio } = await req.json();
+    // Rate Limiting
+    const { RateLimiter, RATE_LIMITS } = await import("../_shared/rate-limiter.ts");
+    const { speechToTextSchema } = await import("../_shared/validation.ts");
+    
+    const rateLimiter = new RateLimiter();
+    const rateLimit = await rateLimiter.checkLimit(
+      user.id,
+      'speech-to-text',
+      RATE_LIMITS.STT
+    );
+
+    if (!rateLimit.allowed) {
+      const resetDate = new Date(rateLimit.resetAt);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Limite di richieste raggiunto. Riprova più tardi.',
+          resetAt: resetDate.toISOString()
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': resetDate.toISOString()
+          } 
+        }
+      );
+    }
+
+    // Input Validation
+    const requestBody = await req.json();
+    const validation = speechToTextSchema.safeParse(requestBody);
+    
+    if (!validation.success) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Dati non validi', 
+          details: validation.error.issues.map(i => i.message).join(', ')
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { audio } = validation.data;
     
     if (!audio) {
       throw new Error('No audio data provided');
@@ -114,7 +158,13 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ text }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'X-RateLimit-Remaining': rateLimit.remaining.toString()
+        } 
+      }
     );
 
   } catch (error) {

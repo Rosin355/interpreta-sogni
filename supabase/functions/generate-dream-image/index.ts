@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { RateLimiter, RATE_LIMITS } from "../_shared/rate-limiter.ts";
+import { generateDreamImageSchema } from "../_shared/validation.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,25 +9,112 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { dreamId, content, mood, imageStyle, autoStyle, customPrompt } = await req.json();
+    // 1. JWT Authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Autenticazione richiesta' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    console.log('Richiesta generazione immagine per sogno:', dreamId);
-
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY non configurata');
     }
 
-    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+    // Authenticate user
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Autenticazione non valida' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Authenticated user:', user.id);
+
+    // 2. Rate Limiting
+    const rateLimiter = new RateLimiter();
+    const rateLimit = await rateLimiter.checkLimit(
+      user.id,
+      'generate-dream-image',
+      RATE_LIMITS.DREAM_OPERATIONS
+    );
+
+    if (!rateLimit.allowed) {
+      const resetDate = new Date(rateLimit.resetAt);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Limite di richieste raggiunto. Riprova più tardi.',
+          resetAt: resetDate.toISOString()
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': resetDate.toISOString()
+          } 
+        }
+      );
+    }
+
+    // 3. Input Validation
+    const requestBody = await req.json();
+    const validation = generateDreamImageSchema.safeParse(requestBody);
+    
+    if (!validation.success) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Dati non validi', 
+          details: validation.error.issues.map(i => i.message).join(', ')
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { dreamId, content, mood, imageStyle, autoStyle, customPrompt } = validation.data;
+
+    console.log('Richiesta generazione immagine per sogno:', dreamId);
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // 4. Verify dream ownership
+    const { data: dream, error: dreamError } = await supabase
+      .from('dreams')
+      .select('user_id')
+      .eq('id', dreamId)
+      .single();
+
+    if (dreamError || !dream) {
+      return new Response(
+        JSON.stringify({ error: 'Sogno non trovato' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (dream.user_id !== user.id) {
+      console.error('Ownership verification failed');
+      return new Response(
+        JSON.stringify({ error: 'Non sei autorizzato a generare immagini per questo sogno' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Determina lo stile da usare
     let finalStyle = imageStyle;
@@ -33,7 +122,6 @@ serve(async (req) => {
     if (autoStyle) {
       console.log('Determinazione automatica dello stile...');
       
-      // Chiama Lovable AI per determinare lo stile migliore
       const styleResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -56,16 +144,10 @@ serve(async (req) => {
       });
 
       if (!styleResponse.ok) {
-        if (styleResponse.status === 429) {
+        if (styleResponse.status === 429 || styleResponse.status === 402) {
           return new Response(
-            JSON.stringify({ error: 'Rate limit raggiunto. Riprova tra qualche minuto.' }),
-            { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-        if (styleResponse.status === 402) {
-          return new Response(
-            JSON.stringify({ error: 'Crediti insufficienti. Aggiungi fondi al tuo workspace Lovable AI.' }),
-            { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            JSON.stringify({ error: styleResponse.status === 429 ? 'Rate limit raggiunto' : 'Crediti insufficienti' }),
+            { status: styleResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
         throw new Error('Errore nella determinazione dello stile');
@@ -85,7 +167,6 @@ serve(async (req) => {
       'fantastico': 'fantasy art, magico, elementi fantastici, colori vividi, luci brillanti'
     };
 
-    // Mappa dei colori in base all'umore
     const moodColors: Record<string, string> = {
       'felicita': 'toni caldi dorati e gialli luminosi',
       'tristezza': 'toni freddi blu e grigi',
@@ -102,8 +183,7 @@ serve(async (req) => {
       'orgoglio': 'ori e porpora regali'
     };
 
-    // Costruisci il prompt per l'immagine
-    const styleDesc = styleDescriptions[finalStyle] || styleDescriptions['onirico'];
+    const styleDesc = styleDescriptions[finalStyle || 'onirico'] || styleDescriptions['onirico'];
     const colorDesc = mood ? moodColors[mood.toLowerCase()] || 'colori naturali' : 'colori naturali';
     
     let imagePrompt = `Crea un'immagine ${styleDesc} che rappresenti questo sogno: ${content}. 
@@ -111,15 +191,13 @@ Usa ${colorDesc} per riflettere l'emozione.
 L'immagine deve essere evocativa, simbolica e catturare l'essenza onirica del sogno. 
 Aspect ratio 16:9, alta qualità, composizione bilanciata.`;
 
-    // Aggiungi suggerimenti personalizzati se presenti
     if (customPrompt) {
       imagePrompt += `\n\nSuggerimenti aggiuntivi dall'utente: ${customPrompt}`;
-      console.log('Suggerimenti personalizzati aggiunti:', customPrompt);
+      console.log('Suggerimenti personalizzati aggiunti');
     }
 
     console.log('Generazione immagine con Nano Banana...');
 
-    // Genera l'immagine con Nano Banana
     const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -139,21 +217,13 @@ Aspect ratio 16:9, alta qualità, composizione bilanciata.`;
     });
 
     if (!imageResponse.ok) {
-      if (imageResponse.status === 429) {
+      if (imageResponse.status === 429 || imageResponse.status === 402) {
         return new Response(
-          JSON.stringify({ error: 'Rate limit raggiunto. Riprova tra qualche minuto.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: imageResponse.status === 429 ? 'Rate limit raggiunto' : 'Crediti insufficienti' }),
+          { status: imageResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (imageResponse.status === 402) {
-        return new Response(
-          JSON.stringify({ error: 'Crediti insufficienti. Aggiungi fondi al tuo workspace Lovable AI.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      const errorText = await imageResponse.text();
-      console.error('Errore generazione immagine:', errorText);
-      throw new Error('Errore nella generazione dell\'immagine');
+      throw new Error(`Errore generazione immagine: ${imageResponse.status}`);
     }
 
     const imageData = await imageResponse.json();
@@ -163,43 +233,42 @@ Aspect ratio 16:9, alta qualità, composizione bilanciata.`;
       throw new Error('Nessuna immagine generata');
     }
 
-    console.log('Immagine generata, aggiornamento sogno...');
+    console.log('Immagine generata con successo');
 
-    // Aggiorna il sogno con l'immagine e lo stile
+    // Salva l'URL dell'immagine nel database
     const { error: updateError } = await supabase
       .from('dreams')
       .update({
         image_url: imageUrl,
-        image_style: finalStyle,
-        auto_style: autoStyle
+        image_style: finalStyle
       })
       .eq('id', dreamId);
 
     if (updateError) {
-      console.error('Errore aggiornamento sogno:', updateError);
-      throw updateError;
+      console.error('Errore nel salvataggio dell\'immagine:', updateError);
     }
-
-    console.log('Immagine salvata con successo');
 
     return new Response(
       JSON.stringify({ 
-        success: true, 
-        image_url: imageUrl,
-        image_style: finalStyle
+        imageUrl,
+        style: finalStyle
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'X-RateLimit-Remaining': rateLimit.remaining.toString()
+        } 
+      }
     );
 
   } catch (error) {
-    console.error('Errore nella funzione generate-dream-image:', error);
+    console.error('Error in generate-dream-image function:', error);
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Errore sconosciuto' 
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      JSON.stringify({ error: error.message }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }
