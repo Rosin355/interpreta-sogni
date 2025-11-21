@@ -12,8 +12,6 @@ import MyDreams from "./pages/MyDreams";
 import NewDream from "./pages/NewDream";
 import EditDream from "./pages/EditDream";
 import DreamDetail from "./pages/DreamDetail";
-import Collections from "./pages/Collections";
-import CollectionDetail from "./pages/CollectionDetail";
 import Explore from "./pages/Explore";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
@@ -38,8 +36,6 @@ const App = () => (
           <Route path="/dreams/new" element={<NewDream />} />
           <Route path="/dreams/:id/edit" element={<EditDream />} />
           <Route path="/dreams/:id" element={<DreamDetail />} />
-          <Route path="/collections" element={<Collections />} />
-          <Route path="/collections/:id" element={<CollectionDetail />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
