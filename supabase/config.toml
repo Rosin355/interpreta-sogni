@@ -22,7 +22,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.text-to-speech-elevenlabs]
-verify_jwt = false
+verify_jwt = true
 
 [functions.speech-to-text-elevenlabs]
-verify_jwt = false
+verify_jwt = true
