@@ -21,23 +21,42 @@ const UserMenu = () => {
 
   useEffect(() => {
     const loadUserAndProfile = async () => {
-      console.log("[UserMenu] loadUserAndProfile START");
-      const { data: { user }, error } = await supabase.auth.getUser();
-      console.log("[UserMenu] getUser result", { user, error });
-      setUser(user);
-      
-      if (user) {
-        console.log("[UserMenu] fetching profile for", user.id);
-        const { data, error: profileError } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
-        console.log("[UserMenu] profile fetch result (init)", { data, profileError });
-        setProfile(data);
-      } else {
-        console.log("[UserMenu] no user on init, clearing profile");
-        setProfile(null);
+      try {
+        console.log("[UserMenu] loadUserAndProfile START");
+        console.log("[UserMenu] calling supabase.auth.getUser()...");
+        
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        console.log("[UserMenu] getUser completed", { 
+          hasUser: !!user, 
+          userId: user?.id,
+          userEmail: user?.email,
+          error: error?.message 
+        });
+        
+        setUser(user);
+        
+        if (user) {
+          console.log("[UserMenu] fetching profile for user:", user.id);
+          const { data, error: profileError } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", user.id)
+            .single();
+          
+          console.log("[UserMenu] profile fetch completed", { 
+            hasProfile: !!data,
+            username: data?.username,
+            error: profileError?.message 
+          });
+          
+          setProfile(data);
+        } else {
+          console.log("[UserMenu] no user found, clearing profile");
+          setProfile(null);
+        }
+      } catch (err) {
+        console.error("[UserMenu] loadUserAndProfile ERROR:", err);
       }
     };
 
@@ -67,19 +86,38 @@ const UserMenu = () => {
   }, []);
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
+    console.log("[UserMenu] handleLogout START");
+    
+    // Aggiornamento immediato dello stato UI
+    setUser(null);
+    setProfile(null);
+    
+    try {
+      const { error } = await supabase.auth.signOut();
+      console.log("[UserMenu] signOut completed", { error: error?.message });
+      
+      if (error) {
+        console.error("[UserMenu] signOut ERROR:", error);
+        toast({
+          title: "Errore",
+          description: "Impossibile disconnettersi. Riprova.",
+          variant: "destructive",
+        });
+      } else {
+        console.log("[UserMenu] logout successful, navigating to /");
+        toast({
+          title: "Disconnesso",
+          description: "Logout effettuato con successo.",
+        });
+        navigate("/");
+      }
+    } catch (err) {
+      console.error("[UserMenu] handleLogout EXCEPTION:", err);
       toast({
         title: "Errore",
-        description: "Impossibile disconnettersi. Riprova.",
+        description: "Si è verificato un errore inatteso durante il logout.",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Disconnesso",
-        description: "Logout effettuato con successo.",
-      });
-      navigate("/");
     }
   };
 
