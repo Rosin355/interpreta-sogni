@@ -22,13 +22,17 @@ const Navigation = () => {
 
   useEffect(() => {
     const checkUserAndAdmin = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      console.log("[Navigation] checkUserAndAdmin START");
+      const { data: { user }, error } = await supabase.auth.getUser();
+      console.log("[Navigation] getUser result", { user, error });
       setUser(user);
       
       if (user) {
-        const { data: isAdminData } = await supabase.rpc('is_admin', { _user_id: user.id });
+        const { data: isAdminData, error: isAdminError } = await supabase.rpc('is_admin', { _user_id: user.id });
+        console.log("[Navigation] is_admin (init) result", { isAdminData, isAdminError });
         setIsAdmin(!!isAdminData);
       } else {
+        console.log("[Navigation] no user on init, setting isAdmin = false");
         setIsAdmin(false);
       }
     };
@@ -37,12 +41,16 @@ const Navigation = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log("[Navigation] onAuthStateChange", { event, hasSession: !!session });
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          const { data: isAdminData } = await supabase.rpc('is_admin', { _user_id: session.user.id });
+          console.log("[Navigation] checking is_admin after auth event for", session.user.id);
+          const { data: isAdminData, error: isAdminError } = await supabase.rpc('is_admin', { _user_id: session.user.id });
+          console.log("[Navigation] is_admin (auth event) result", { isAdminData, isAdminError });
           setIsAdmin(!!isAdminData);
         } else {
+          console.log("[Navigation] no session, setting isAdmin = false");
           setIsAdmin(false);
         }
       }
@@ -98,6 +106,22 @@ const Navigation = () => {
                 </button>
               )}
             </div>
+
+            {isAdmin && (
+              <div className="hidden md:flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 shadow-sm">
+                <span className="text-[11px] font-semibold tracking-wide uppercase text-primary">
+                  Modalità Admin
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("/admin")}
+                  className="h-7 px-2 text-[11px]"
+                >
+                  Dashboard
+                </Button>
+              </div>
+            )}
             
             <Button 
               size="sm"
@@ -123,6 +147,29 @@ const Navigation = () => {
                 <SheetHeader>
                   <SheetTitle>Menu</SheetTitle>
                 </SheetHeader>
+                {isAdmin && (
+                  <div className="mt-4 px-4 py-3 rounded-xl border border-primary/40 bg-primary/10 flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-primary tracking-wide uppercase">
+                        Modalità Admin
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        Stai usando l'app come amministratore.
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        navigate("/admin");
+                        setMobileMenuOpen(false);
+                      }}
+                      className="ml-3 text-xs h-8 px-3"
+                    >
+                      Dashboard
+                    </Button>
+                  </div>
+                )}
                 <div className="flex flex-col space-y-4 mt-8">
                   <button
                     onClick={() => {
