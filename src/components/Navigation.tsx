@@ -62,12 +62,6 @@ const Navigation = () => {
                 I Miei Sogni
               </button>
               <button
-                onClick={() => navigate("/collections")}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Collezioni
-              </button>
-              <button
                 onClick={() => navigate("/astrology")}
                 className="text-muted-foreground hover:text-foreground transition-colors"
               >
@@ -123,15 +117,6 @@ const Navigation = () => {
                     className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
                   >
                     I Miei Sogni
-                  </button>
-                  <button
-                    onClick={() => {
-                      navigate("/collections");
-                      setMobileMenuOpen(false);
-                    }}
-                    className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-                  >
-                    Collezioni
                   </button>
                   <button
                     onClick={() => {
