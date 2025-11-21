@@ -20,17 +20,41 @@ const UserMenu = () => {
   const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    const loadUserAndProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
+      
       if (user) {
-        supabase
+        const { data } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", user.id)
-          .single()
-          .then(({ data }) => setProfile(data));
+          .single();
+        setProfile(data);
+      } else {
+        setProfile(null);
+      }
+    };
+
+    loadUserAndProfile();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", session.user.id)
+          .single();
+        setProfile(data);
+      } else {
+        setProfile(null);
       }
     });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLogout = async () => {
@@ -52,6 +76,10 @@ const UserMenu = () => {
 
   const getInitials = () => {
     if (profile?.username) {
+      const names = profile.username.split(' ');
+      if (names.length >= 2) {
+        return (names[0][0] + names[names.length - 1][0]).toUpperCase();
+      }
       return profile.username.substring(0, 2).toUpperCase();
     }
     if (user?.email) {
