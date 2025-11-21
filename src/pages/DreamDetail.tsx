@@ -8,13 +8,15 @@ import { getTagColor } from "@/utils/tag-colors";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowLeft, Edit, Trash2, Sparkles, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Sparkles, Image as ImageIcon, Share2, MessageSquare } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { VoiceNoteRecorder } from "@/components/VoiceNoteRecorder";
 import { TTSButton } from "@/components/TTSButton";
 import { ImageZoomModal } from "@/components/ImageZoomModal";
+import { ShareDreamDialog } from "@/components/ShareDreamDialog";
+import { ProfessionalCommentForm } from "@/components/ProfessionalCommentForm";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,11 +51,48 @@ const DreamDetail = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [hasAstrologicalContext, setHasAstrologicalContext] = useState(false);
   const [natalChartData, setNatalChartData] = useState<any>(null);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [comments, setComments] = useState<any[]>([]);
+  const [isUserOwner, setIsUserOwner] = useState(false);
+  const [isProfessional, setIsProfessional] = useState(false);
+  const [canComment, setCanComment] = useState(false);
 
   useEffect(() => {
     checkAuth();
     fetchDream();
     loadNatalChartData();
+    loadComments();
+    checkProfessionalStatus();
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+
+    // Real-time subscription for new comments
+    const channel = supabase
+      .channel(`dream-comments-${id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "professional_comments",
+          filter: `dream_id=eq.${id}`,
+        },
+        (payload) => {
+          console.log("New comment received:", payload);
+          toast({
+            title: "💬 Nuovo feedback ricevuto!",
+            description: "Un professionista ha commentato il tuo sogno",
+          });
+          loadComments();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [id]);
 
   const loadNatalChartData = async () => {
@@ -75,6 +114,79 @@ const DreamDetail = () => {
     }
   };
 
+  const loadComments = async () => {
+    if (!id) return;
+
+    try {
+      const { data: commentsData, error } = await supabase
+        .from("professional_comments")
+        .select("*")
+        .eq("dream_id", id)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+
+      // Enrich with professional data
+      const enrichedComments = await Promise.all(
+        (commentsData || []).map(async (comment) => {
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("username")
+            .eq("id", comment.professional_id)
+            .single();
+
+          const { data: profData } = await supabase
+            .from("professional_profiles")
+            .select("specialization")
+            .eq("user_id", comment.professional_id)
+            .single();
+
+          return {
+            ...comment,
+            professional_name: profileData?.username || "Professionista",
+            specialization: profData?.specialization || "Specialista",
+          };
+        })
+      );
+
+      setComments(enrichedComments);
+    } catch (error: any) {
+      console.error("Error loading comments:", error);
+    }
+  };
+
+  const checkProfessionalStatus = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !id) return;
+
+      // Check if user is a professional
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "professional")
+        .single();
+
+      setIsProfessional(!!roleData);
+
+      // Check if professional can comment (has accepted share)
+      if (roleData) {
+        const { data: shareData } = await supabase
+          .from("dream_shares")
+          .select("status")
+          .eq("dream_id", id)
+          .eq("professional_id", user.id)
+          .eq("status", "accepted")
+          .single();
+
+        setCanComment(!!shareData);
+      }
+    } catch (error: any) {
+      console.error("Error checking professional status:", error);
+    }
+  };
+
   const checkAuth = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -85,6 +197,7 @@ const DreamDetail = () => {
   const fetchDream = async () => {
     if (!id) return;
 
+    const { data: { user } } = await supabase.auth.getUser();
     const { data, error } = await supabase
       .from("dreams")
       .select("*")
@@ -101,6 +214,7 @@ const DreamDetail = () => {
       navigate("/my-dreams");
     } else {
       setDream(data);
+      setIsUserOwner(user?.id === data.user_id);
     }
     setLoading(false);
   };
@@ -263,35 +377,47 @@ const DreamDetail = () => {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => navigate(`/dreams/${id}/edit`)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="icon">
-                        <Trash2 className="h-4 w-4" />
+                  {isUserOwner && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setShareDialogOpen(true)}
+                        title="Condividi con Professionista"
+                      >
+                        <Share2 className="h-4 w-4" />
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Conferma Eliminazione</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Sei sicuro di voler eliminare questo sogno? Questa azione non può
-                          essere annullata.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Annulla</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete}>
-                          Elimina
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => navigate(`/dreams/${id}/edit`)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="icon">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Conferma Eliminazione</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Sei sicuro di voler eliminare questo sogno? Questa azione non può
+                              essere annullata.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annulla</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDelete}>
+                              Elimina
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </>
+                  )}
                 </div>
               </div>
             </CardHeader>
@@ -569,10 +695,62 @@ const DreamDetail = () => {
             </CardContent>
           </Card>
 
+          {/* Professional Comments Section */}
+          {(comments.length > 0 || canComment) && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  Feedback Professionali
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {comments.length > 0 && (
+                  <div className="space-y-4">
+                    {comments.map((comment) => (
+                      <Card key={comment.id} className="border-l-4 border-l-primary/50">
+                        <CardHeader>
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="font-semibold">{comment.professional_name}</p>
+                              <p className="text-sm text-muted-foreground">{comment.specialization}</p>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(comment.created_at), "d MMM yyyy 'alle' HH:mm", { locale: it })}
+                            </p>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+                
+                {canComment && (
+                  <ProfessionalCommentForm
+                    dreamId={id!}
+                    dreamOwnerId={dream.user_id}
+                    onCommentAdded={loadComments}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Voice Notes */}
           <VoiceNoteRecorder dreamId={id!} />
         </div>
       </div>
+
+      {/* Share Dream Dialog */}
+      <ShareDreamDialog
+        dreamId={id!}
+        dreamTitle={dream.title}
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+      />
     </>
   );
 };

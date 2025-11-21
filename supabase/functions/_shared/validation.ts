@@ -68,3 +68,20 @@ export const speechToTextSchema = z.object({
       { message: 'File audio troppo grande (max 10MB)' }
     ),
 });
+
+export const shareDreamSchema = z.object({
+  dreamId: uuidSchema,
+  professionalId: uuidSchema,
+  message: z.string()
+    .max(500, 'Messaggio troppo lungo (max 500 caratteri)')
+    .optional()
+    .transform(val => val ? sanitizeText(val, 500) : undefined),
+});
+
+export const commentSchema = z.object({
+  dreamId: uuidSchema,
+  content: z.string()
+    .min(10, 'Il commento deve essere di almeno 10 caratteri')
+    .max(2000, 'Il commento deve essere massimo 2000 caratteri')
+    .transform(val => sanitizeText(val, 2000)),
+});
