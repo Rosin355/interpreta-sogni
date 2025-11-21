@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { VoiceNoteRecorder } from "@/components/VoiceNoteRecorder";
 import { TTSButton } from "@/components/TTSButton";
+import { ImageZoomModal } from "@/components/ImageZoomModal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -304,12 +305,24 @@ const DreamDetail = () => {
                       {dream.image_style || 'auto'}
                     </Badge>
                   </div>
-                  <div className="relative aspect-video rounded-lg overflow-hidden">
-                    <img
-                      src={dream.image_url}
-                      alt={dream.title}
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="relative aspect-video rounded-lg overflow-hidden group">
+                    <ImageZoomModal src={dream.image_url} alt={dream.title}>
+                      <img
+                        src={dream.image_url}
+                        alt={dream.title}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 rounded-full p-3">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="m21 21-4.35-4.35"/>
+                            <line x1="11" y1="8" x2="11" y2="14"/>
+                            <line x1="8" y1="11" x2="14" y2="11"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </ImageZoomModal>
                   </div>
                   <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                     <DialogTrigger asChild>
