@@ -149,6 +149,47 @@ export type Database = {
         }
         Relationships: []
       }
+      dream_shares: {
+        Row: {
+          created_at: string
+          dream_id: string
+          id: string
+          message: string | null
+          professional_id: string
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dream_id: string
+          id?: string
+          message?: string | null
+          professional_id: string
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dream_id?: string
+          id?: string
+          message?: string | null
+          professional_id?: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dream_shares_dream_id_fkey"
+            columns: ["dream_id"]
+            isOneToOne: false
+            referencedRelation: "dreams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dreams: {
         Row: {
           auto_style: boolean | null
@@ -238,6 +279,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      professional_comments: {
+        Row: {
+          content: string
+          created_at: string
+          dream_id: string
+          id: string
+          professional_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          dream_id: string
+          id?: string
+          professional_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          dream_id?: string
+          id?: string
+          professional_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professional_comments_dream_id_fkey"
+            columns: ["dream_id"]
+            isOneToOne: false
+            referencedRelation: "dreams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       professional_profiles: {
         Row: {

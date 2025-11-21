@@ -19,6 +19,7 @@ import About from "./pages/About";
 import Astrology from "./pages/Astrology";
 import ProfessionalVerification from "./pages/ProfessionalVerification";
 import AdminDashboard from "./pages/AdminDashboard";
+import SharedDreams from "./pages/SharedDreams";
 import NotFound from "./pages/NotFound";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 
@@ -38,6 +39,7 @@ const App = () => (
           <Route path="/dreams/new" element={<NewDream />} />
           <Route path="/dreams/:id/edit" element={<EditDream />} />
           <Route path="/dreams/:id" element={<DreamDetail />} />
+          <Route path="/dream/:id" element={<DreamDetail />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
@@ -45,6 +47,7 @@ const App = () => (
           <Route path="/about" element={<About />} />
           <Route path="/professional-verification" element={<ProfessionalVerification />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/shared-dreams" element={<SharedDreams />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

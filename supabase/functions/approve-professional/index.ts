@@ -122,6 +122,26 @@ serve(async (req) => {
       if (accountTypeError) {
         console.error('Account type update error:', accountTypeError);
       }
+
+      // Send approval email notification
+      try {
+        const { data: authData } = await supabase.auth.admin.getUserById(professionalProfile.user_id);
+        const professionalEmail = authData?.user?.email;
+
+        if (professionalEmail) {
+          await supabase.functions.invoke('send-email-notification', {
+            body: {
+              type: 'professional_approved',
+              recipientEmail: professionalEmail,
+              recipientName: professionalProfile.profiles?.username || 'Professionista',
+            },
+          });
+          console.log('Approval email sent to:', professionalEmail);
+        }
+      } catch (emailError) {
+        console.error('Error sending approval email:', emailError);
+        // Don't fail the approval if email fails
+      }
     }
 
     console.log(`Professional ${professionalId} ${action === 'approve' ? 'approved' : 'rejected'} by admin ${user.id}`);
