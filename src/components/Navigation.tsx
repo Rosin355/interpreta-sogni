@@ -40,15 +40,19 @@ const Navigation = () => {
     checkUserAndAdmin();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log("[Navigation] onAuthStateChange", { event, hasSession: !!session });
         setUser(session?.user ?? null);
         
+        // CRITICAL: Use setTimeout to avoid deadlock
+        // Never call Supabase functions directly inside onAuthStateChange
         if (session?.user) {
-          console.log("[Navigation] checking is_admin after auth event for", session.user.id);
-          const { data: isAdminData, error: isAdminError } = await supabase.rpc('is_admin', { _user_id: session.user.id });
-          console.log("[Navigation] is_admin (auth event) result", { isAdminData, isAdminError });
-          setIsAdmin(!!isAdminData);
+          setTimeout(async () => {
+            console.log("[Navigation] checking is_admin after auth event for", session.user.id);
+            const { data: isAdminData, error: isAdminError } = await supabase.rpc('is_admin', { _user_id: session.user.id });
+            console.log("[Navigation] is_admin (auth event) result", { isAdminData, isAdminError });
+            setIsAdmin(!!isAdminData);
+          }, 0);
         } else {
           console.log("[Navigation] no session, setting isAdmin = false");
           setIsAdmin(false);
