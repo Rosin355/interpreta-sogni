@@ -21,17 +21,22 @@ const UserMenu = () => {
 
   useEffect(() => {
     const loadUserAndProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      console.log("[UserMenu] loadUserAndProfile START");
+      const { data: { user }, error } = await supabase.auth.getUser();
+      console.log("[UserMenu] getUser result", { user, error });
       setUser(user);
       
       if (user) {
-        const { data } = await supabase
+        console.log("[UserMenu] fetching profile for", user.id);
+        const { data, error: profileError } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", user.id)
           .single();
+        console.log("[UserMenu] profile fetch result (init)", { data, profileError });
         setProfile(data);
       } else {
+        console.log("[UserMenu] no user on init, clearing profile");
         setProfile(null);
       }
     };
@@ -40,16 +45,20 @@ const UserMenu = () => {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("[UserMenu] onAuthStateChange", { event, hasSession: !!session });
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        const { data } = await supabase
+        console.log("[UserMenu] fetching profile after auth event", { userId: session.user.id });
+        const { data, error } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", session.user.id)
           .single();
+        console.log("[UserMenu] profile fetch result (auth event)", { data, error });
         setProfile(data);
       } else {
+        console.log("[UserMenu] no session in onAuthStateChange, clearing profile");
         setProfile(null);
       }
     });
