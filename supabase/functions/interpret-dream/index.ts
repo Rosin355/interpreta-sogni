@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { RateLimiter, RATE_LIMITS } from "../_shared/rate-limiter.ts";
+import { interpretDreamSchema } from "../_shared/validation.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,16 +14,17 @@ serve(async (req) => {
   }
 
   try {
-    const { dreamId } = await req.json();
-    
-    if (!dreamId) {
+    // 1. JWT Authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'dreamId è richiesto' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Autenticazione richiesta' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
@@ -29,9 +32,68 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY non configurato');
     }
 
+    // Authenticate user
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Autenticazione non valida' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Authenticated user:', user.id);
+
+    // 2. Rate Limiting
+    const rateLimiter = new RateLimiter();
+    const rateLimit = await rateLimiter.checkLimit(
+      user.id,
+      'interpret-dream',
+      RATE_LIMITS.DREAM_OPERATIONS
+    );
+
+    if (!rateLimit.allowed) {
+      const resetDate = new Date(rateLimit.resetAt);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Limite di richieste raggiunto. Riprova più tardi.',
+          resetAt: resetDate.toISOString()
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': resetDate.toISOString()
+          } 
+        }
+      );
+    }
+
+    // 3. Input Validation
+    const requestBody = await req.json();
+    const validation = interpretDreamSchema.safeParse(requestBody);
+    
+    if (!validation.success) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Dati non validi', 
+          details: validation.error.issues.map(i => i.message).join(', ')
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { dreamId } = validation.data;
+
+    // Use service role to fetch dream
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Recupera il sogno
+    // 4. Fetch dream and verify ownership
     const { data: dream, error: dreamError } = await supabase
       .from('dreams')
       .select('*')
@@ -43,6 +105,15 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Sogno non trovato' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify ownership
+    if (dream.user_id !== user.id) {
+      console.error('Ownership verification failed:', { dreamUserId: dream.user_id, requestUserId: user.id });
+      return new Response(
+        JSON.stringify({ error: 'Non sei autorizzato ad interpretare questo sogno' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -149,25 +220,13 @@ Fornisci un'interpretazione dettagliata e significativa.`;
       throw new Error('Nessuna interpretazione ricevuta dall\'AI');
     }
 
-    console.log(`Interpretazione generata: ${interpretation.length} caratteri`);
+    console.log('Interpretazione generata con successo');
 
-    // Genera riassunto intelligente se > 500 caratteri
+    // Generate summary if needed (if longer than 500 chars)
     let interpretationSummary = interpretation;
-
     if (interpretation.length > 500) {
-      console.log('Generazione riassunto per TTS...');
+      console.log('Generazione summary per TTS...');
       
-      const summaryPrompt = `Riassumi questa interpretazione di sogno in MASSIMO 500 caratteri, mantenendo:
-- I concetti chiave e simboli principali
-- Il tono empatico
-- Le conclusioni importanti
-IMPORTANTE: termina sempre con una frase completa e significativa.
-
-Interpretazione completa:
-${interpretation}
-
-Riassunto (max 500 caratteri):`;
-
       const summaryResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -177,122 +236,61 @@ Riassunto (max 500 caratteri):`;
         body: JSON.stringify({
           model: 'google/gemini-2.5-flash',
           messages: [
-            { role: 'user', content: summaryPrompt }
+            { 
+              role: 'system', 
+              content: 'Sei un esperto nel riassumere interpretazioni di sogni. Crea un riassunto conciso ma completo, massimo 500 caratteri, mantenendo i concetti chiave.' 
+            },
+            { 
+              role: 'user', 
+              content: `Riassumi questa interpretazione in massimo 500 caratteri:\n\n${interpretation}` 
+            }
           ],
-          max_tokens: 200,
         }),
       });
 
       if (summaryResponse.ok) {
         const summaryData = await summaryResponse.json();
-        const generatedSummary = summaryData.choices?.[0]?.message?.content?.trim();
-        
-        if (generatedSummary && generatedSummary.length <= 500) {
-          interpretationSummary = generatedSummary;
-          console.log(`Riassunto generato: ${interpretationSummary.length} caratteri`);
-        } else {
-          interpretationSummary = interpretation.substring(0, 497) + '...';
-          console.log('Fallback: riassunto troncato');
-        }
+        interpretationSummary = summaryData.choices?.[0]?.message?.content || interpretation.substring(0, 500);
       } else {
-        interpretationSummary = interpretation.substring(0, 497) + '...';
-        console.log('Fallback: riassunto troncato (errore API)');
+        interpretationSummary = interpretation.substring(0, 500);
       }
     }
 
-    console.log('Interpretazione salvata, aggiornamento sogno...');
-
-    // Salva interpretazione completa e riassunto nel database
+    // Salva l'interpretazione nel database
     const { error: updateError } = await supabase
       .from('dreams')
       .update({ 
         interpretation,
-        interpretation_summary: interpretationSummary 
+        interpretation_summary: interpretationSummary
       })
       .eq('id', dreamId);
 
     if (updateError) {
-      console.error('Errore nell\'aggiornamento del sogno:', updateError);
-      throw updateError;
-    }
-
-    console.log('Interpretazione e riassunto salvati con successo');
-
-    // Pre-cache TTS audio in background (non-blocking) for both interpretation and dream content
-    if (interpretationSummary && interpretationSummary.length > 0) {
-      console.log('Starting background TTS pre-caching');
-      
-      const precacheTTS = async () => {
-        try {
-          // Pre-cache interpretation summary
-          console.log('Pre-caching interpretation summary');
-          const summaryResponse = await fetch(
-            `${Deno.env.get('SUPABASE_URL')}/functions/v1/text-to-speech-elevenlabs`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-              },
-              body: JSON.stringify({
-                text: interpretationSummary,
-                voiceId: 'cnDF6tD6CWVBeLKYlCXW'
-              })
-            }
-          );
-          
-          if (summaryResponse.ok) {
-            console.log('TTS audio pre-cached successfully for interpretation summary');
-          } else {
-            console.error('TTS pre-caching failed for summary:', await summaryResponse.text());
-          }
-
-          // Pre-cache dream content
-          if (dream.content && dream.content.length > 0) {
-            console.log('Pre-caching dream content');
-            const contentResponse = await fetch(
-              `${Deno.env.get('SUPABASE_URL')}/functions/v1/text-to-speech-elevenlabs`,
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-                },
-                body: JSON.stringify({
-                  text: dream.content,
-                  voiceId: 'cnDF6tD6CWVBeLKYlCXW'
-                })
-              }
-            );
-            
-            if (contentResponse.ok) {
-              console.log('TTS audio pre-cached successfully for dream content');
-            } else {
-              console.error('TTS pre-caching failed for content:', await contentResponse.text());
-            }
-          }
-        } catch (error) {
-          console.error('Error pre-caching TTS:', error);
-        }
-      };
-      
-      // Run in background without blocking response
-      EdgeRuntime.waitUntil(precacheTTS());
+      console.error('Errore nel salvataggio dell\'interpretazione:', updateError);
     }
 
     return new Response(
       JSON.stringify({ 
         interpretation,
-        interpretation_summary: interpretationSummary 
+        interpretation_summary: interpretationSummary
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'X-RateLimit-Remaining': rateLimit.remaining.toString()
+        } 
+      }
     );
 
   } catch (error) {
-    console.error('Errore in interpret-dream:', error);
+    console.error('Error in interpret-dream function:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Errore sconosciuto' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: error.message }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
     );
   }
 });

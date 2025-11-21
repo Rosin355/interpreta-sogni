@@ -1,13 +1,13 @@
 project_id = "zufsbpcgcvlcdtksrzhu"
 
 [functions.interpret-dream]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-dream-image]
-verify_jwt = false
+verify_jwt = true
 
 [functions.suggest-tags]
-verify_jwt = false
+verify_jwt = true
 
 [functions.transcribe-audio]
 verify_jwt = false
