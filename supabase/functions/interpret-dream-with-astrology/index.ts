@@ -324,12 +324,16 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { dreamContent, dreamTags, dreamMood } = await req.json();
+    const { dreamId, dreamContent, dreamTags, dreamMood } = await req.json();
 
     console.log('Interpreting dream with astrology for user:', user.id);
 
     if (!dreamContent) {
       throw new Error('Dream content is required');
+    }
+
+    if (!dreamId) {
+      throw new Error('Dream ID is required');
     }
 
     // Carica il profilo con i dati del tema natale

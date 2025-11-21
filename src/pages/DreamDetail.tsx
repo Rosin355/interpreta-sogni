@@ -131,6 +131,7 @@ const DreamDetail = () => {
       // Usa la nuova funzione con supporto astrologico
       const { data, error } = await supabase.functions.invoke('interpret-dream-with-astrology', {
         body: { 
+          dreamId: id,
           dreamContent: dream.content,
           dreamTags: dream.tags || [],
           dreamMood: dream.mood
@@ -145,13 +146,11 @@ const DreamDetail = () => {
           variant: "destructive",
         });
       } else if (data?.interpretation) {
-        // Salva l'interpretazione nel database
-        await supabase
-          .from("dreams")
-          .update({ interpretation: data.interpretation })
-          .eq("id", id);
-          
-        setDream({ ...dream, interpretation: data.interpretation });
+        setDream({ 
+          ...dream, 
+          interpretation: data.interpretation,
+          interpretation_summary: data.interpretation_summary 
+        });
         setHasAstrologicalContext(data.hasAstrologicalContext || false);
         
         toast({
