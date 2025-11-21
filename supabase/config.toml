@@ -1,5 +1,8 @@
 project_id = "zufsbpcgcvlcdtksrzhu"
 
+[functions.approve-professional]
+verify_jwt = true
+
 [functions.interpret-dream]
 verify_jwt = true
 

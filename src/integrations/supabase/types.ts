@@ -239,8 +239,54 @@ export type Database = {
         }
         Relationships: []
       }
+      professional_profiles: {
+        Row: {
+          bio: string | null
+          created_at: string
+          id: string
+          license_number: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          specialization: string
+          status: string
+          updated_at: string
+          user_id: string
+          years_of_experience: number | null
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          id?: string
+          license_number?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          specialization: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          years_of_experience?: number | null
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          id?: string
+          license_number?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          specialization?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          years_of_experience?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          account_type: string | null
           avatar_url: string | null
           bio: string | null
           birth_date: string | null
@@ -257,6 +303,7 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          account_type?: string | null
           avatar_url?: string | null
           bio?: string | null
           birth_date?: string | null
@@ -273,6 +320,7 @@ export type Database = {
           username?: string | null
         }
         Update: {
+          account_type?: string | null
           avatar_url?: string | null
           bio?: string | null
           birth_date?: string | null
@@ -347,6 +395,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       voice_notes: {
         Row: {
           audio_url: string
@@ -393,13 +462,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
       update_user_streak: {
         Args: { p_dream_date: string; p_user_id: string }
         Returns: undefined
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "user" | "professional" | "admin" | "super_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -526,6 +603,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["user", "professional", "admin", "super_admin"],
+    },
   },
 } as const

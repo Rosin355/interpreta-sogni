@@ -17,18 +17,34 @@ import {
 const Navigation = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    // Controlla se l'utente è loggato
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    const checkUserAndAdmin = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
-    });
+      
+      if (user) {
+        const { data: isAdminData } = await supabase.rpc('is_admin', { _user_id: user.id });
+        setIsAdmin(!!isAdminData);
+      } else {
+        setIsAdmin(false);
+      }
+    };
 
-    // Ascolta i cambiamenti di autenticazione
+    checkUserAndAdmin();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          const { data: isAdminData } = await supabase.rpc('is_admin', { _user_id: session.user.id });
+          setIsAdmin(!!isAdminData);
+        } else {
+          setIsAdmin(false);
+        }
       }
     );
 
@@ -73,6 +89,14 @@ const Navigation = () => {
               >
                 Chi Siamo
               </button>
+              {isAdmin && (
+                <button
+                  onClick={() => navigate("/admin")}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Admin
+                </button>
+              )}
             </div>
             
             <Button 
@@ -136,6 +160,17 @@ const Navigation = () => {
                   >
                     Chi Siamo
                   </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => {
+                        navigate("/admin");
+                        setMobileMenuOpen(false);
+                      }}
+                      className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+                    >
+                      Admin
+                    </button>
+                  )}
                   <div className="pt-4 border-t border-border">
                     <Button 
                       onClick={() => {
