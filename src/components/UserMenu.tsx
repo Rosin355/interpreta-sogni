@@ -63,19 +63,23 @@ const UserMenu = () => {
     loadUserAndProfile();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("[UserMenu] onAuthStateChange", { event, hasSession: !!session });
       setUser(session?.user ?? null);
       
+      // CRITICAL: Use setTimeout to avoid deadlock
+      // Never call Supabase functions directly inside onAuthStateChange
       if (session?.user) {
-        console.log("[UserMenu] fetching profile after auth event", { userId: session.user.id });
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", session.user.id)
-          .single();
-        console.log("[UserMenu] profile fetch result (auth event)", { data, error });
-        setProfile(data);
+        setTimeout(async () => {
+          console.log("[UserMenu] fetching profile after auth event", { userId: session.user.id });
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", session.user.id)
+            .single();
+          console.log("[UserMenu] profile fetch result (auth event)", { data, error });
+          setProfile(data);
+        }, 0);
       } else {
         console.log("[UserMenu] no session in onAuthStateChange, clearing profile");
         setProfile(null);
