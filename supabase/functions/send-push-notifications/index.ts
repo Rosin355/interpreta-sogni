@@ -6,189 +6,171 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface PushSubscription {
-  endpoint: string;
-  p256dh: string;
-  auth: string;
-  user_id: string;
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    console.log('Starting send-push-notifications function');
+    
+    const WONDERPUSH_ACCESS_TOKEN = Deno.env.get('WONDERPUSH_ACCESS_TOKEN');
+    const WONDERPUSH_APPLICATION_ID = Deno.env.get('WONDERPUSH_APPLICATION_ID');
+    
+    if (!WONDERPUSH_ACCESS_TOKEN || !WONDERPUSH_APPLICATION_ID) {
+      throw new Error('WONDERPUSH credentials not configured');
+    }
+    
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
-    console.log('Starting push notification process...');
-
-    // Get current time
     const now = new Date();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
-    const currentTime = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}:00`;
+    
+    console.log(`Current time: ${currentHour}:${currentMinute}`);
 
-    console.log(`Current time: ${currentTime}`);
-
-    // Get notification preferences for users who should receive notifications now
-    const { data: preferences, error: prefsError } = await supabase
+    const { data: preferences, error: preferencesError } = await supabaseClient
       .from('notification_preferences')
       .select('user_id, preferred_time, last_notification_sent')
       .eq('enabled', true);
 
-    if (prefsError) {
-      console.error('Error fetching preferences:', prefsError);
-      throw prefsError;
+    if (preferencesError) {
+      console.error('Error fetching preferences:', preferencesError);
+      throw preferencesError;
     }
 
-    console.log(`Found ${preferences?.length || 0} enabled notification preferences`);
+    console.log(`Found ${preferences?.length || 0} users with notifications enabled`);
 
-    // Filter users who should receive notification at this time
-    const usersToNotify = preferences?.filter(pref => {
-      const prefTime = pref.preferred_time.substring(0, 5); // Get HH:MM from HH:MM:SS
-      const lastSent = pref.last_notification_sent ? new Date(pref.last_notification_sent) : null;
-      const today = new Date().toDateString();
-      
-      // Check if it's the right time and hasn't been sent today
-      return prefTime === currentTime.substring(0, 5) && 
-             (!lastSent || lastSent.toDateString() !== today);
-    }) || [];
-
-    console.log(`${usersToNotify.length} users to notify at this time`);
-
-    if (usersToNotify.length === 0) {
+    if (!preferences || preferences.length === 0) {
       return new Response(
-        JSON.stringify({ message: 'No notifications to send at this time', count: 0 }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get push subscriptions for these users
-    const userIds = usersToNotify.map(u => u.user_id);
-    const { data: subscriptions, error: subsError } = await supabase
-      .from('push_subscriptions')
-      .select('*')
-      .in('user_id', userIds);
-
-    if (subsError) {
-      console.error('Error fetching subscriptions:', subsError);
-      throw subsError;
-    }
-
-    console.log(`Found ${subscriptions?.length || 0} push subscriptions`);
-
-    // VAPID keys (these should be environment variables in production)
-    const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
-    const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
-
-    if (!vapidPublicKey || !vapidPrivateKey) {
-      console.error('VAPID keys not configured');
-      return new Response(
-        JSON.stringify({ 
-          error: 'VAPID keys not configured',
-          message: 'Please generate VAPID keys using: npx web-push generate-vapid-keys'
-        }),
+        JSON.stringify({ message: 'No users to notify', count: 0 }),
         { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
         }
       );
     }
 
-    // Send notifications to each subscription
-    let sentCount = 0;
-    const errors = [];
+    const usersToNotify = preferences.filter(pref => {
+      const [prefHour, prefMinute] = pref.preferred_time.split(':').map(Number);
+      
+      const lastSent = pref.last_notification_sent ? new Date(pref.last_notification_sent) : null;
+      const today = new Date().setHours(0, 0, 0, 0);
+      const alreadySentToday = lastSent && lastSent.getTime() >= today;
+      
+      if (alreadySentToday) {
+        console.log(`User ${pref.user_id} already received notification today`);
+        return false;
+      }
+      
+      const timeMatches = currentHour === prefHour;
+      
+      if (timeMatches) {
+        console.log(`User ${pref.user_id} should receive notification (preferred: ${prefHour}:${prefMinute})`);
+      }
+      
+      return timeMatches;
+    });
 
-    for (const subscription of subscriptions || []) {
+    console.log(`${usersToNotify.length} users match notification criteria`);
+
+    let notificationsSent = 0;
+    
+    for (const pref of usersToNotify) {
       try {
-        const payload = JSON.stringify({
-          title: '🌙 Dream Catcher',
-          body: 'Buongiorno! Ricordati di registrare i tuoi sogni della notte.',
-          icon: '/pwa-192x192.png',
-          badge: '/pwa-192x192.png',
-          url: '/dreams/new',
-          tag: 'dream-reminder',
-          requireInteraction: false
+        const { data: devices, error: deviceError } = await supabaseClient
+          .from('wonderpush_devices')
+          .select('installation_id')
+          .eq('user_id', pref.user_id);
+
+        if (deviceError) {
+          console.error(`Error fetching devices for user ${pref.user_id}:`, deviceError);
+          continue;
+        }
+
+        if (!devices || devices.length === 0) {
+          console.log(`No devices found for user ${pref.user_id}`);
+          continue;
+        }
+
+        const notificationPayload = {
+          targetInstallationIds: devices.map(d => d.installation_id),
+          notification: {
+            alert: {
+              title: '🌙 Ricorda i tuoi Sogni',
+              text: 'Buongiorno! Hai sognato qualcosa stanotte? Registra ora i tuoi sogni prima di dimenticarli!'
+            },
+            ios: {
+              sound: 'default',
+              badge: 'auto'
+            },
+            android: {
+              sound: 'default',
+              channelId: 'dream_reminders'
+            }
+          },
+          targetUrl: '/dreams/new'
+        };
+
+        console.log(`Sending notification to ${devices.length} devices for user ${pref.user_id}`);
+
+        const wpResponse = await fetch('https://management-api.wonderpush.com/v1/deliveries', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${WONDERPUSH_ACCESS_TOKEN}`,
+            'X-WonderPush-Application': WONDERPUSH_APPLICATION_ID
+          },
+          body: JSON.stringify(notificationPayload)
         });
 
-        // Using Web Push Protocol
-        // In a real implementation, you would use a web-push library
-        // For now, this is a placeholder showing the structure
+        if (!wpResponse.ok) {
+          const errorText = await wpResponse.text();
+          console.error(`WonderPush API error for user ${pref.user_id}:`, errorText);
+          continue;
+        }
+
+        const wpResult = await wpResponse.json();
+        console.log(`WonderPush delivery result:`, wpResult);
         
-        // NOTE: Deno currently doesn't have a native web-push library
-        // You would need to implement the Web Push Protocol manually
-        // or use a service like Firebase Cloud Messaging
-        
-        console.log(`Would send notification to user ${subscription.user_id}`);
-        
-        // Update last notification sent
-        await supabase
+        const { error: updateError } = await supabaseClient
           .from('notification_preferences')
           .update({ last_notification_sent: now.toISOString() })
-          .eq('user_id', subscription.user_id);
+          .eq('user_id', pref.user_id);
 
-        sentCount++;
+        if (updateError) {
+          console.error(`Error updating last_notification_sent for user ${pref.user_id}:`, updateError);
+        } else {
+          notificationsSent++;
+        }
       } catch (error) {
-        console.error(`Error sending to user ${subscription.user_id}:`, error);
-        errors.push({ user_id: subscription.user_id, error: error.message });
+        console.error(`Error processing user ${pref.user_id}:`, error);
       }
     }
 
-    console.log(`Sent ${sentCount} notifications`);
+    console.log(`Notifications sent: ${notificationsSent}`);
 
     return new Response(
       JSON.stringify({ 
-        success: true,
-        sent: sentCount,
-        errors: errors.length > 0 ? errors : undefined,
-        message: `Sent ${sentCount} notifications`
+        message: `Notifications processed successfully`,
+        count: notificationsSent 
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 
+      }
     );
-
   } catch (error) {
     console.error('Error in send-push-notifications:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500 
       }
     );
   }
 });
-
-/* 
- * SETUP INSTRUCTIONS:
- * 
- * 1. Generate VAPID keys:
- *    npx web-push generate-vapid-keys
- * 
- * 2. Add the keys as Supabase secrets:
- *    - VAPID_PUBLIC_KEY
- *    - VAPID_PRIVATE_KEY
- * 
- * 3. Update the frontend usePushNotifications hook with the public key
- * 
- * 4. Set up a cron job to run this function every morning:
- *    Run this SQL in Supabase SQL Editor:
- * 
- *    select cron.schedule(
- *      'send-morning-dream-notifications',
- *      '0 8 * * *', -- Run at 8:00 AM every day
- *      $$
- *      select
- *        net.http_post(
- *          url:='https://zufsbpcgcvlcdtksrzhu.supabase.co/functions/v1/send-push-notifications',
- *          headers:='{"Content-Type": "application/json", "Authorization": "Bearer YOUR_ANON_KEY"}'::jsonb,
- *          body:='{}'::jsonb
- *        ) as request_id;
- *      $$
- *    );
- * 
- * Note: For production use, you should implement the Web Push Protocol
- * or use a service like Firebase Cloud Messaging to actually send the push notifications.
- */
