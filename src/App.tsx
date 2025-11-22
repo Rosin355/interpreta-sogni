@@ -20,6 +20,7 @@ import Astrology from "./pages/Astrology";
 import ProfessionalVerification from "./pages/ProfessionalVerification";
 import AdminDashboard from "./pages/AdminDashboard";
 import SharedDreams from "./pages/SharedDreams";
+import SharedDreamsReceived from "./pages/SharedDreamsReceived";
 import NotFound from "./pages/NotFound";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 
@@ -48,6 +49,7 @@ const App = () => (
           <Route path="/professional-verification" element={<ProfessionalVerification />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/shared-dreams" element={<SharedDreams />} />
+          <Route path="/shared-with-me" element={<SharedDreamsReceived />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

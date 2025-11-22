@@ -12,6 +12,7 @@ import { getTagColor } from "@/utils/tag-colors";
 import { dreamCategories, getDreamCategories } from "@/utils/dream-categories";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImageZoomModal } from "@/components/ImageZoomModal";
+import { DreamCardSkeleton } from "@/components/ui/dream-skeleton";
 
 const MyDreams = () => {
   const navigate = useNavigate();
@@ -137,11 +138,11 @@ const MyDreams = () => {
 
           {/* Lista sogni */}
           {loading ? (
-            <Card>
-              <CardContent className="py-12">
-                <p className="text-muted-foreground text-center">Caricamento...</p>
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(9)].map((_, i) => (
+                <DreamCardSkeleton key={i} />
+              ))}
+            </div>
           ) : filteredDreams.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">

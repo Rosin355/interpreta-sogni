@@ -10,7 +10,7 @@ const corsHeaders = {
 };
 
 interface EmailNotificationRequest {
-  type: "professional_approved" | "dream_shared" | "new_comment";
+  type: "professional_approved" | "dream_shared" | "new_comment" | "dream_shared_user_request";
   recipientEmail: string;
   recipientName?: string;
   data?: {
@@ -92,6 +92,22 @@ const handler = async (req: Request): Promise<Response> => {
           ${data?.commentContent ? `<p><strong>Feedback:</strong> ${data.commentContent.substring(0, 200)}${data.commentContent.length > 200 ? "..." : ""}</p>` : ""}
           <br>
           <p>Accedi alla pagina del sogno per leggere il feedback completo.</p>
+          <p>Il Team di Interpreta i tuoi Sogni</p>
+        `;
+        break;
+
+      case "dream_shared_user_request":
+        subject = `🌙 ${data?.userName || "Un utente"} vuole condividere un sogno con te`;
+        html = `
+          <h1>Richiesta di Condivisione Sogno</h1>
+          <p>Ciao ${recipientName || "Utente"},</p>
+          <p><strong>${data?.userName || "Un utente"}</strong> vorrebbe condividere un sogno con te!</p>
+          ${data?.dreamTitle ? `<p><strong>Titolo sogno:</strong> ${data.dreamTitle}</p>` : ""}
+          ${data?.message ? `<p><strong>Messaggio:</strong> ${data.message}</p>` : ""}
+          <br>
+          <p>Se sei registrato alla piattaforma, accedi per visualizzare e gestire la condivisione.</p>
+          <p>Se non sei ancora registrato, <a href="${Deno.env.get('SUPABASE_URL')}/auth?mode=signup">iscriviti ora</a> per iniziare a ricevere sogni condivisi!</p>
+          <br>
           <p>Il Team di Interpreta i tuoi Sogni</p>
         `;
         break;
