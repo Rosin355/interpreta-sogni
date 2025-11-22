@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Bell, BellOff, TestTube, Loader2, Info, Smartphone } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useWonderPush } from "@/hooks/useWonderPush";
 
 interface NotificationPreferences {
   enabled: boolean;
@@ -26,6 +27,7 @@ const NotificationManager = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const { isNative, isInitialized, installationId } = useWonderPush();
 
   useEffect(() => {
     loadPreferences();
@@ -133,7 +135,6 @@ const NotificationManager = () => {
 
       const updatedPrefs = { ...preferences, ...newPreferences };
       
-      // Ensure time format is HH:MM:SS
       let timeToSave = updatedPrefs.preferred_time;
       if (timeToSave && timeToSave.split(':').length === 2) {
         timeToSave = `${timeToSave}:00`;
@@ -161,7 +162,7 @@ const NotificationManager = () => {
           description: "Le tue preferenze sono state aggiornate",
         });
         
-        if (updatedPrefs.enabled) {
+        if (updatedPrefs.enabled && !isNative) {
           scheduleNotification(updatedPrefs.preferred_time);
         }
       }
@@ -178,7 +179,7 @@ const NotificationManager = () => {
   };
 
   const scheduleNotification = (time: string) => {
-    if (!preferences.enabled || permission !== "granted") return;
+    if (!preferences.enabled || permission !== "granted" || isNative) return;
 
     const [hours, minutes] = time.split(":").map(Number);
     const now = new Date();
@@ -191,10 +192,8 @@ const NotificationManager = () => {
 
     const timeUntilNotification = scheduledTime.getTime() - now.getTime();
 
-    // Store timeout ID in localStorage to persist across page reloads
     const timeoutId = setTimeout(() => {
       showNotification();
-      // Schedule next day
       scheduleNotification(time);
     }, timeUntilNotification);
 
@@ -211,7 +210,6 @@ const NotificationManager = () => {
         requireInteraction: false,
       });
 
-      // Update last notification sent
       saveLastNotificationTime();
     }
   };
@@ -227,7 +225,7 @@ const NotificationManager = () => {
   };
 
   const handleToggle = async (enabled: boolean) => {
-    if (enabled && permission !== "granted") {
+    if (enabled && permission !== "granted" && !isNative) {
       const granted = await requestPermission();
       if (!granted) return;
     }
@@ -239,7 +237,7 @@ const NotificationManager = () => {
   };
 
   const testNotification = () => {
-    if (permission !== "granted") {
+    if (permission !== "granted" && !isNative) {
       toast({
         title: "Permesso necessario",
         description: "Abilita prima le notifiche",
@@ -270,20 +268,39 @@ const NotificationManager = () => {
             )}
             <CardTitle>Notifiche Sogni</CardTitle>
           </div>
-          <Badge variant={permission === "granted" ? "default" : permission === "denied" ? "destructive" : "secondary"}>
-            {permission === "granted"
-              ? "✓ Abilitate"
-              : permission === "denied"
-              ? "✗ Negate"
-              : "⚠ Da configurare"}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {isNative && isInitialized && (
+              <Badge variant="secondary">
+                <Smartphone className="h-3 w-3 mr-1" />
+                Native
+              </Badge>
+            )}
+            <Badge variant={permission === "granted" || isInitialized ? "default" : permission === "denied" ? "destructive" : "secondary"}>
+              {permission === "granted" || isInitialized
+                ? "✓ Abilitate"
+                : permission === "denied"
+                ? "✗ Negate"
+                : "⚠ Da configurare"}
+            </Badge>
+          </div>
         </div>
         <CardDescription>
-          Ricevi promemoria quotidiani per registrare i tuoi sogni
+          {isNative 
+            ? "Ricevi notifiche push native sul tuo dispositivo mobile" 
+            : "Ricevi promemoria quotidiani per registrare i tuoi sogni"}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {isIOS && permission !== "granted" && (
+        {isNative && isInitialized && (
+          <Alert>
+            <Smartphone className="h-4 w-4" />
+            <AlertDescription>
+              ✅ Le notifiche push native sono attive su questo dispositivo!
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {isIOS && permission !== "granted" && !isNative && (
           <Alert>
             <Smartphone className="h-4 w-4" />
             <AlertDescription>
@@ -297,7 +314,7 @@ const NotificationManager = () => {
           </Alert>
         )}
 
-        {permission === "denied" && (
+        {permission === "denied" && !isNative && (
           <Alert variant="destructive">
             <Info className="h-4 w-4" />
             <AlertDescription>
@@ -321,7 +338,7 @@ const NotificationManager = () => {
           />
         </div>
 
-        {preferences.enabled && permission === "granted" && (
+        {preferences.enabled && (permission === "granted" || isInitialized) && (
           <>
             <div className="space-y-2">
               <Label htmlFor="time">Orario preferito per il promemoria</Label>
@@ -343,19 +360,21 @@ const NotificationManager = () => {
               </Select>
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={testNotification}
-              disabled={loading || saving}
-            >
-              <TestTube className="mr-2 h-4 w-4" />
-              Prova notifica
-            </Button>
+            {!isNative && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={testNotification}
+                disabled={loading || saving}
+              >
+                <TestTube className="mr-2 h-4 w-4" />
+                Prova notifica
+              </Button>
+            )}
           </>
         )}
 
-        {permission !== "granted" && !preferences.enabled && (
+        {permission !== "granted" && !preferences.enabled && !isNative && (
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription className="text-sm">
