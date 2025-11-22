@@ -17,6 +17,7 @@ import { TTSButton } from "@/components/TTSButton";
 import { ImageZoomModal } from "@/components/ImageZoomModal";
 import { ShareDreamDialog } from "@/components/ShareDreamDialog";
 import { ProfessionalCommentForm } from "@/components/ProfessionalCommentForm";
+import ShareDreamViaEmail from "@/components/ShareDreamViaEmail";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,6 +53,7 @@ const DreamDetail = () => {
   const [hasAstrologicalContext, setHasAstrologicalContext] = useState(false);
   const [natalChartData, setNatalChartData] = useState<any>(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareEmailDialogOpen, setShareEmailDialogOpen] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
   const [isUserOwner, setIsUserOwner] = useState(false);
   const [isProfessional, setIsProfessional] = useState(false);
@@ -379,14 +381,34 @@ const DreamDetail = () => {
                 <div className="flex gap-2">
                   {isUserOwner && (
                     <>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setShareDialogOpen(true)}
-                        title="Condividi con Professionista"
-                      >
-                        <Share2 className="h-4 w-4" />
-                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => setShareDialogOpen(true)}
+                            >
+                              <Share2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Condividi con Professionista</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => setShareEmailDialogOpen(true)}
+                            >
+                              <Share2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Condividi via Email</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                       <Button
                         variant="outline"
                         size="icon"
@@ -750,6 +772,14 @@ const DreamDetail = () => {
         dreamTitle={dream.title}
         open={shareDialogOpen}
         onOpenChange={setShareDialogOpen}
+      />
+      
+      {/* Share Dream via Email Dialog */}
+      <ShareDreamViaEmail
+        dreamId={id!}
+        dreamTitle={dream.title}
+        open={shareEmailDialogOpen}
+        onOpenChange={setShareEmailDialogOpen}
       />
     </>
   );

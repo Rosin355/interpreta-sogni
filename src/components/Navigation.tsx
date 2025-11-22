@@ -18,6 +18,7 @@ const Navigation = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -31,9 +32,14 @@ const Navigation = () => {
         const { data: isAdminData, error: isAdminError } = await supabase.rpc('is_admin', { _user_id: user.id });
         console.log("[Navigation] is_admin (init) result", { isAdminData, isAdminError });
         setIsAdmin(!!isAdminData);
+        
+        const { data: isSuperAdminData, error: isSuperAdminError } = await supabase.rpc('is_super_admin', { _user_id: user.id });
+        console.log("[Navigation] is_super_admin (init) result", { isSuperAdminData, isSuperAdminError });
+        setIsSuperAdmin(!!isSuperAdminData);
       } else {
         console.log("[Navigation] no user on init, setting isAdmin = false");
         setIsAdmin(false);
+        setIsSuperAdmin(false);
       }
     };
 
@@ -52,10 +58,15 @@ const Navigation = () => {
             const { data: isAdminData, error: isAdminError } = await supabase.rpc('is_admin', { _user_id: session.user.id });
             console.log("[Navigation] is_admin (auth event) result", { isAdminData, isAdminError });
             setIsAdmin(!!isAdminData);
+            
+            const { data: isSuperAdminData, error: isSuperAdminError } = await supabase.rpc('is_super_admin', { _user_id: session.user.id });
+            console.log("[Navigation] is_super_admin (auth event) result", { isSuperAdminData, isSuperAdminError });
+            setIsSuperAdmin(!!isSuperAdminData);
           }, 0);
         } else {
           console.log("[Navigation] no session, setting isAdmin = false");
           setIsAdmin(false);
+          setIsSuperAdmin(false);
         }
       }
     );
@@ -96,25 +107,23 @@ const Navigation = () => {
                 Astrologia
               </button>
               <button
+                onClick={() => navigate("/shared-with-me")}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Sogni Condivisi
+              </button>
+              <button
                 onClick={() => navigate("/about")}
                 className="text-muted-foreground hover:text-foreground transition-colors"
               >
                 Chi Siamo
               </button>
-              {isAdmin && (
-                <button
-                  onClick={() => navigate("/admin")}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Admin
-                </button>
-              )}
             </div>
 
             {isAdmin && (
               <div className="hidden md:flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 shadow-sm">
                 <span className="text-[11px] font-semibold tracking-wide uppercase text-primary">
-                  Modalità Admin
+                  {isSuperAdmin ? "👑 SUPER ADMIN" : "Modalità Admin"}
                 </span>
                 <Button
                   variant="outline"
@@ -155,10 +164,10 @@ const Navigation = () => {
                   <div className="mt-4 px-4 py-3 rounded-xl border border-primary/40 bg-primary/10 flex items-center justify-between">
                     <div className="flex flex-col">
                       <span className="text-xs font-semibold text-primary tracking-wide uppercase">
-                        Modalità Admin
+                        {isSuperAdmin ? "👑 SUPER ADMIN" : "Modalità Admin"}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        Stai usando l'app come amministratore.
+                        {isSuperAdmin ? "Accesso completo a tutti i dati" : "Stai usando l'app come amministratore."}
                       </span>
                     </div>
                     <Button
@@ -204,6 +213,15 @@ const Navigation = () => {
                   </button>
                   <button
                     onClick={() => {
+                      navigate("/shared-with-me");
+                      setMobileMenuOpen(false);
+                    }}
+                    className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+                  >
+                    Sogni Condivisi
+                  </button>
+                  <button
+                    onClick={() => {
                       navigate("/about");
                       setMobileMenuOpen(false);
                     }}
@@ -211,17 +229,6 @@ const Navigation = () => {
                   >
                     Chi Siamo
                   </button>
-                  {isAdmin && (
-                    <button
-                      onClick={() => {
-                        navigate("/admin");
-                        setMobileMenuOpen(false);
-                      }}
-                      className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-                    >
-                      Admin
-                    </button>
-                  )}
                   <div className="pt-4 border-t border-border">
                     <Button 
                       onClick={() => {

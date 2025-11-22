@@ -155,7 +155,8 @@ export type Database = {
           dream_id: string
           id: string
           message: string | null
-          professional_id: string
+          professional_id: string | null
+          shared_with_user_id: string | null
           status: string | null
           updated_at: string
           user_id: string
@@ -165,7 +166,8 @@ export type Database = {
           dream_id: string
           id?: string
           message?: string | null
-          professional_id: string
+          professional_id?: string | null
+          shared_with_user_id?: string | null
           status?: string | null
           updated_at?: string
           user_id: string
@@ -175,7 +177,8 @@ export type Database = {
           dream_id?: string
           id?: string
           message?: string | null
-          professional_id?: string
+          professional_id?: string | null
+          shared_with_user_id?: string | null
           status?: string | null
           updated_at?: string
           user_id?: string
@@ -579,6 +582,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       update_user_streak: {
         Args: { p_dream_date: string; p_user_id: string }
         Returns: undefined

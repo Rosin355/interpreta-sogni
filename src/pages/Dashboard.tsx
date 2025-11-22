@@ -14,6 +14,8 @@ import { calculateInsights, getTemporalData } from "@/utils/dream-insights";
 import { exportDashboardToPDF } from "@/utils/pdf-export";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { StatCardSkeleton, ChartSkeleton } from "@/components/ui/dream-skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -42,25 +44,18 @@ const Dashboard = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Fetch ultimi 5 sogni per la sezione recenti
-    const { data: recentData, error: recentError } = await supabase
+    // Unified query - fetch all dreams and slice for recent
+    const { data: allData, error } = await supabase
       .from("dreams")
       .select("*")
       .eq("user_id", user.id)
-      .order("dream_date", { ascending: false })
-      .limit(5);
+      .order("dream_date", { ascending: false });
 
-    // Fetch tutti i sogni per le statistiche
-    const { data: allData, error: allError } = await supabase
-      .from("dreams")
-      .select("*")
-      .eq("user_id", user.id);
-
-    if (recentError || allError) {
-      console.error("Errore nel caricamento dei sogni:", recentError || allError);
+    if (error) {
+      console.error("Errore nel caricamento dei sogni:", error);
     } else {
-      setDreams(recentData || []);
       setAllDreams(allData || []);
+      setDreams(allData?.slice(0, 5) || []);
       
       // Calcola statistiche
       const now = new Date();
@@ -124,33 +119,43 @@ const Dashboard = () => {
 
           {/* Statistiche */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Sogni Totali</CardTitle>
-                <BookOpen className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.total}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Questa Settimana</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.thisWeek}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Questo Mese</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.thisMonth}</div>
-              </CardContent>
-            </Card>
+            {loading ? (
+              <>
+                <StatCardSkeleton />
+                <StatCardSkeleton />
+                <StatCardSkeleton />
+              </>
+            ) : (
+              <>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Sogni Totali</CardTitle>
+                    <BookOpen className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.total}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Questa Settimana</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.thisWeek}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Questo Mese</CardTitle>
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.thisMonth}</div>
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </div>
 
           {/* Insights */}
@@ -196,7 +201,9 @@ const Dashboard = () => {
           </div>
 
           {/* Analisi Categorie Sogni */}
-          {!loading && allDreams.length > 0 && (
+          {loading ? (
+            <ChartSkeleton />
+          ) : allDreams.length > 0 && (
             <Card className="mb-8" id="category-chart">
               <CardHeader>
                 <CardTitle>Distribuzione Tipi di Sogni</CardTitle>
@@ -340,7 +347,11 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               {loading ? (
-                <p className="text-muted-foreground text-center py-8">Caricamento...</p>
+                <div className="space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-24 w-full" />
+                  ))}
+                </div>
               ) : dreams.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground mb-4">
