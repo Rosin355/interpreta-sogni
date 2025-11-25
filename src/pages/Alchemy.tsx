@@ -20,6 +20,8 @@ import { motion } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+import { useAlchemicalCelebration } from "@/hooks/useAlchemicalCelebration";
+import { AlchemicalTransitionCelebration } from "@/components/AlchemicalTransitionCelebration";
 
 const Alchemy = () => {
   const navigate = useNavigate();
@@ -27,10 +29,67 @@ const Alchemy = () => {
   const [dreams, setDreams] = useState<any[]>([]);
   const [journey, setJourney] = useState<UserJourney | null>(null);
   const [evolutionData, setEvolutionData] = useState<any[]>([]);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationTransition, setCelebrationTransition] = useState<{
+    from: AlchemicalPhase;
+    to: AlchemicalPhase;
+  } | null>(null);
+  
+  const { celebrate } = useAlchemicalCelebration();
 
   useEffect(() => {
     checkAuth();
-  }, []);
+    
+    // Controlla se c'è una transizione recente da celebrare
+    const checkForTransitions = async () => {
+      // Aspetta che i dati siano caricati
+      if (!journey || !journey.transitions || journey.transitions.length === 0) return;
+      
+      // Prendi l'ultima transizione
+      const lastTransition = journey.transitions[journey.transitions.length - 1];
+      
+      // Controlla se abbiamo già celebrato questa transizione
+      const celebratedTransitions = JSON.parse(
+        localStorage.getItem('celebratedAlchemicalTransitions') || '[]'
+      );
+      
+      // Crea un ID unico per questa transizione (data + from + to)
+      const transitionId = `${lastTransition.date}-${lastTransition.from}-${lastTransition.to}`;
+      
+      // Se non abbiamo celebrato questa transizione E è recente (ultimi 7 giorni)
+      if (!celebratedTransitions.includes(transitionId)) {
+        const transitionDate = new Date(lastTransition.date);
+        const now = new Date();
+        const daysDifference = (now.getTime() - transitionDate.getTime()) / (1000 * 3600 * 24);
+        
+        if (daysDifference <= 7) {
+          // Celebra la transizione!
+          setTimeout(() => {
+            setCelebrationTransition({
+              from: lastTransition.from,
+              to: lastTransition.to
+            });
+            setShowCelebration(true);
+            celebrate({ phase: lastTransition.to, fromPhase: lastTransition.from });
+            
+            // Segna questa transizione come celebrata
+            const updatedCelebrations = [...celebratedTransitions, transitionId];
+            localStorage.setItem('celebratedAlchemicalTransitions', JSON.stringify(updatedCelebrations));
+            
+            // Mantieni solo le ultime 10 celebrazioni per non riempire localStorage
+            if (updatedCelebrations.length > 10) {
+              localStorage.setItem(
+                'celebratedAlchemicalTransitions',
+                JSON.stringify(updatedCelebrations.slice(-10))
+              );
+            }
+          }, 800);
+        }
+      }
+    };
+    
+    checkForTransitions();
+  }, [celebrate, journey]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -161,6 +220,17 @@ const Alchemy = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
+      
+      {/* Componente di celebrazione */}
+      {celebrationTransition && (
+        <AlchemicalTransitionCelebration
+          show={showCelebration}
+          fromPhase={celebrationTransition.from}
+          toPhase={celebrationTransition.to}
+          onComplete={() => setShowCelebration(false)}
+        />
+      )}
+      
       <div className="container mx-auto px-4 pt-24 pb-12 space-y-8">
         {/* Header con fase corrente */}
         <motion.div
