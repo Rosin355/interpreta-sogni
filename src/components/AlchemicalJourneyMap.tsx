@@ -56,12 +56,19 @@ export const AlchemicalJourneyMap = ({
 
   const getPhaseSize = (phaseId: AlchemicalPhase) => {
     const percentage = distribution[phaseId];
-    const baseSize = compact ? 60 : 100;
-    const maxSize = compact ? 100 : 160;
-    const minSize = compact ? 50 : 80;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
     
-    // Scale between minSize and maxSize based on percentage
-    return minSize + (percentage / 100) * (maxSize - minSize);
+    if (compact) {
+      return 60 + (percentage / 100) * 40; // 60-100px for compact
+    }
+    
+    if (isMobile) {
+      // Mobile: dimensioni più ridotte e meno variazione
+      return 70 + (percentage / 100) * 30; // 70-100px
+    }
+    
+    // Desktop: dimensioni normali
+    return 80 + (percentage / 100) * 80; // 80-160px
   };
 
   const getPhaseOpacity = (phaseId: AlchemicalPhase) => {
@@ -70,11 +77,11 @@ export const AlchemicalJourneyMap = ({
 
   return (
     <TooltipProvider>
-      <div className="w-full overflow-x-auto">
+      <div className="w-full">
         {/* Horizontal Journey Map */}
-        <div className="relative flex items-center justify-between gap-2 sm:gap-4 md:gap-8 px-2 sm:px-4 py-6 sm:py-8 min-w-[320px]">
+        <div className="relative flex items-center justify-center gap-1 sm:gap-4 md:gap-8 px-1 sm:px-4 py-8 sm:py-10">
           {/* Connection Lines */}
-          <div className="absolute top-1/2 left-0 right-0 h-1 bg-gradient-to-r from-gray-900 via-gray-200 to-red-500 -translate-y-1/2 opacity-30 z-0" />
+          <div className="absolute top-1/2 left-[5%] right-[5%] h-0.5 sm:h-1 bg-gradient-to-r from-gray-900 via-gray-200 to-red-500 -translate-y-1/2 opacity-30 z-0" />
           
           {/* Phase Nodes */}
           {phases.map((phase, index) => {
@@ -86,40 +93,41 @@ export const AlchemicalJourneyMap = ({
               <Tooltip key={phase.id}>
                 <TooltipTrigger asChild>
                   <motion.div
-                    className="relative flex flex-col items-center z-10 flex-1"
+                    className="relative flex flex-col items-center z-10 flex-1 min-w-0"
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ 
                       opacity: getPhaseOpacity(phase.id), 
-                      scale: isActive ? 1.1 : 1 
+                      scale: isActive ? 1.05 : 1 
                     }}
                     transition={{ 
                       duration: 0.5, 
                       delay: index * 0.1,
                       scale: { duration: 0.3 }
                     }}
-                    whileHover={{ scale: isActive ? 1.15 : 1.05 }}
+                    whileHover={{ scale: isActive ? 1.1 : 1.05 }}
                   >
                     {/* Phase Circle */}
                     <motion.div
                       className={`
                         relative rounded-full bg-gradient-to-br ${phase.bgGradient}
-                        ${phase.borderColor ? `border-4 ${phase.borderColor}` : ''}
+                        ${phase.borderColor ? `border-2 sm:border-4 ${phase.borderColor}` : ''}
                         flex items-center justify-center cursor-pointer
-                        shadow-lg
+                        shadow-lg mx-auto
                       `}
                       style={{ 
                         width: size, 
                         height: size,
                         boxShadow: isActive 
-                          ? `0 0 30px ${phase.color}, 0 0 60px ${phase.color}40`
-                          : `0 4px 12px rgba(0,0,0,0.15)`
+                          ? `0 0 20px ${phase.color}, 0 0 40px ${phase.color}40`
+                          : `0 4px 12px rgba(0,0,0,0.15)`,
+                        flexShrink: 0
                       }}
                       animate={{
                         boxShadow: isActive
                           ? [
-                              `0 0 20px ${phase.color}, 0 0 40px ${phase.color}40`,
-                              `0 0 30px ${phase.color}, 0 0 60px ${phase.color}40`,
-                              `0 0 20px ${phase.color}, 0 0 40px ${phase.color}40`,
+                              `0 0 15px ${phase.color}, 0 0 30px ${phase.color}40`,
+                              `0 0 25px ${phase.color}, 0 0 50px ${phase.color}40`,
+                              `0 0 15px ${phase.color}, 0 0 30px ${phase.color}40`,
                             ]
                           : `0 4px 12px rgba(0,0,0,0.15)`,
                       }}
@@ -133,7 +141,7 @@ export const AlchemicalJourneyMap = ({
                     >
                       {/* Icon */}
                       <span 
-                        className="text-3xl md:text-4xl"
+                        className="text-2xl sm:text-3xl md:text-4xl"
                         style={{
                           filter: phase.id === 'albedo' ? 'drop-shadow(0 0 8px rgba(0,0,0,0.3))' : 'none'
                         }}
@@ -144,14 +152,14 @@ export const AlchemicalJourneyMap = ({
                       {/* Active Indicator */}
                       {isActive && (
                         <motion.div
-                          className="absolute -top-3 -right-3"
+                          className="absolute -top-2 sm:-top-3 -right-2 sm:-right-3"
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           transition={{ type: "spring", stiffness: 300, damping: 20 }}
                         >
                           <Badge 
                             variant="default" 
-                            className="bg-primary text-primary-foreground shadow-md"
+                            className="bg-primary text-primary-foreground shadow-md text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5"
                           >
                             Qui
                           </Badge>
@@ -160,14 +168,14 @@ export const AlchemicalJourneyMap = ({
                       
                       {/* Percentage Badge */}
                       <motion.div
-                        className="absolute -bottom-2 left-1/2 -translate-x-1/2"
+                        className="absolute -bottom-1.5 sm:-bottom-2 left-1/2 -translate-x-1/2"
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.1 + 0.3 }}
                       >
                         <Badge 
                           variant="secondary" 
-                          className="text-xs font-bold shadow-sm"
+                          className="text-[10px] sm:text-xs font-bold shadow-sm px-1.5 sm:px-2 py-0.5"
                         >
                           {percentage}%
                         </Badge>
@@ -177,22 +185,22 @@ export const AlchemicalJourneyMap = ({
                     {/* Phase Name */}
                     {!compact && (
                       <motion.div
-                        className="mt-3 sm:mt-4 text-center space-y-1"
+                        className="mt-3 sm:mt-5 text-center space-y-0.5 sm:space-y-1 w-full px-1"
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.1 + 0.4 }}
                       >
-                        <p className={`text-xs sm:text-sm font-bold ${isActive ? 'text-primary' : 'text-foreground'}`}>
+                        <p className={`text-[11px] sm:text-sm md:text-base font-bold truncate ${isActive ? 'text-primary' : 'text-foreground'}`}>
                           {phase.name}
                         </p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">
+                        <p className="text-[9px] sm:text-xs text-muted-foreground leading-tight hidden sm:block">
                           {phase.shortName}
                         </p>
                       </motion.div>
                     )}
                   </motion.div>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-xs">
+                <TooltipContent side="top" className="max-w-xs z-50">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <span className="text-xl">{phase.icon}</span>
@@ -221,13 +229,13 @@ export const AlchemicalJourneyMap = ({
         {/* Progress Indicator */}
         {!compact && (
           <motion.div
-            className="mt-6 sm:mt-8 flex items-center justify-center gap-2 text-xs sm:text-sm text-muted-foreground px-4"
+            className="mt-4 sm:mt-8 flex items-center justify-center gap-2 text-[10px] sm:text-sm text-muted-foreground px-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8 }}
           >
             <Info className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-            <p className="text-center">
+            <p className="text-center leading-tight sm:leading-normal">
               Il tuo percorso evolve con ogni sogno che registri
             </p>
           </motion.div>
@@ -235,10 +243,10 @@ export const AlchemicalJourneyMap = ({
         
         {/* Legend for Compact Mode */}
         {compact && (
-          <div className="flex items-center justify-center gap-4 mt-4 text-xs text-muted-foreground">
+          <div className="flex items-center justify-center gap-3 sm:gap-4 mt-4 text-[10px] sm:text-xs text-muted-foreground flex-wrap">
             {phases.map((phase) => (
               <div key={phase.id} className="flex items-center gap-1">
-                <span>{phase.icon}</span>
+                <span className="text-sm sm:text-base">{phase.icon}</span>
                 <span className={currentPhase === phase.id ? 'font-bold text-primary' : ''}>
                   {phase.name}
                 </span>
