@@ -13,6 +13,8 @@ import { dreamCategories, getDreamCategories } from "@/utils/dream-categories";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImageZoomModal } from "@/components/ImageZoomModal";
 import { DreamCardSkeleton } from "@/components/ui/dream-skeleton";
+import { AlchemicalBadge } from "@/components/AlchemicalBadge";
+import { AlchemicalPhase } from "@/utils/alchemical-phases";
 
 const MyDreams = () => {
   const navigate = useNavigate();
@@ -20,6 +22,7 @@ const MyDreams = () => {
   const [filteredDreams, setFilteredDreams] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedPhase, setSelectedPhase] = useState<string>("all");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,6 +44,11 @@ const MyDreams = () => {
       });
     }
 
+    // Filtro per fase alchemica
+    if (selectedPhase !== "all") {
+      filtered = filtered.filter(dream => dream.alchemical_phase === selectedPhase);
+    }
+
     // Filtro per ricerca
     if (searchQuery) {
       filtered = filtered.filter(
@@ -54,7 +62,7 @@ const MyDreams = () => {
     }
 
     setFilteredDreams(filtered);
-  }, [searchQuery, selectedCategory, dreams]);
+  }, [searchQuery, selectedCategory, selectedPhase, dreams]);
 
   const checkAuth = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -131,6 +139,17 @@ const MyDreams = () => {
                       </div>
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedPhase} onValueChange={setSelectedPhase}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Tutte le fasi" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tutte le fasi</SelectItem>
+                  <SelectItem value="nigredo">Nigredo</SelectItem>
+                  <SelectItem value="albedo">Albedo</SelectItem>
+                  <SelectItem value="rubedo">Rubedo</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -219,6 +238,9 @@ const MyDreams = () => {
                   <CardHeader onClick={() => navigate(`/dreams/${dream.id}`)} className="cursor-pointer">
                     <div className="flex items-start justify-between mb-2">
                       <CardTitle className="text-xl">{dream.title}</CardTitle>
+                      {dream.alchemical_phase && (
+                        <AlchemicalBadge phase={dream.alchemical_phase as AlchemicalPhase} size="sm" />
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground">
                       {format(new Date(dream.dream_date), "d MMMM yyyy", { locale: it })}

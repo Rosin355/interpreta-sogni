@@ -17,6 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AlchemicalBadge } from "@/components/AlchemicalBadge";
+import { AlchemicalPhase } from "@/utils/alchemical-phases";
 
 interface Dream {
   id: string;
@@ -26,6 +28,7 @@ interface Dream {
   mood: string | null;
   image_url: string | null;
   tags: string[] | null;
+  alchemical_phase: string | null;
 }
 
 type TimeFilter = "all" | "week" | "month" | "year";
@@ -35,6 +38,7 @@ const Timeline = () => {
   const [filteredDreams, setFilteredDreams] = useState<Dream[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
+  const [selectedPhase, setSelectedPhase] = useState<string>("all");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -44,7 +48,7 @@ const Timeline = () => {
 
   useEffect(() => {
     filterDreamsByTime();
-  }, [timeFilter, dreams]);
+  }, [timeFilter, selectedPhase, dreams]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -76,37 +80,43 @@ const Timeline = () => {
   };
 
   const filterDreamsByTime = () => {
-    if (timeFilter === "all") {
-      setFilteredDreams(dreams);
-      return;
+    let filtered = dreams;
+
+    // Filtro temporale
+    if (timeFilter !== "all") {
+      const now = new Date();
+      let start: Date;
+      let end: Date;
+
+      switch (timeFilter) {
+        case "week":
+          start = startOfWeek(now, { locale: it });
+          end = endOfWeek(now, { locale: it });
+          break;
+        case "month":
+          start = startOfMonth(now);
+          end = endOfMonth(now);
+          break;
+        case "year":
+          start = startOfYear(now);
+          end = endOfYear(now);
+          break;
+        default:
+          break;
+      }
+
+      if (start! && end!) {
+        filtered = filtered.filter((dream) => {
+          const dreamDate = new Date(dream.dream_date);
+          return isWithinInterval(dreamDate, { start, end });
+        });
+      }
     }
 
-    const now = new Date();
-    let start: Date;
-    let end: Date;
-
-    switch (timeFilter) {
-      case "week":
-        start = startOfWeek(now, { locale: it });
-        end = endOfWeek(now, { locale: it });
-        break;
-      case "month":
-        start = startOfMonth(now);
-        end = endOfMonth(now);
-        break;
-      case "year":
-        start = startOfYear(now);
-        end = endOfYear(now);
-        break;
-      default:
-        setFilteredDreams(dreams);
-        return;
+    // Filtro per fase alchemica
+    if (selectedPhase !== "all") {
+      filtered = filtered.filter(dream => dream.alchemical_phase === selectedPhase);
     }
-
-    const filtered = dreams.filter((dream) => {
-      const dreamDate = new Date(dream.dream_date);
-      return isWithinInterval(dreamDate, { start, end });
-    });
 
     setFilteredDreams(filtered);
   };
@@ -144,14 +154,14 @@ const Timeline = () => {
     <div className="min-h-screen bg-gradient-to-b from-background to-background/95">
       <Navigation />
       <div className="container mx-auto px-4 py-8" style={{ marginTop: 'calc(5rem + var(--safe-area-inset-top, 0px))' }}>
-        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
           <div>
             <h1 className="text-4xl font-bold text-foreground mb-2">Timeline dei Sogni</h1>
             <p className="text-muted-foreground">
               Esplora l'evoluzione dei tuoi sogni nel tempo
             </p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <Select value={timeFilter} onValueChange={(value: TimeFilter) => setTimeFilter(value)}>
@@ -166,6 +176,17 @@ const Timeline = () => {
                 </SelectContent>
               </Select>
             </div>
+            <Select value={selectedPhase} onValueChange={setSelectedPhase}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Tutte le fasi" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tutte le fasi</SelectItem>
+                <SelectItem value="nigredo">Nigredo</SelectItem>
+                <SelectItem value="albedo">Albedo</SelectItem>
+                <SelectItem value="rubedo">Rubedo</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -253,13 +274,22 @@ const Timeline = () => {
                                       </div>
                                     )}
                                     <CardContent className="p-4">
-                                      <div className="flex items-center justify-between mb-2">
+                                      <div className="flex items-center justify-between mb-2 gap-2">
                                         <h3 className="font-semibold text-lg line-clamp-1">
                                           {dream.title}
                                         </h3>
-                                        {dream.mood && (
-                                          <Badge variant="secondary">{dream.mood}</Badge>
-                                        )}
+                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                          {dream.alchemical_phase && (
+                                            <AlchemicalBadge 
+                                              phase={dream.alchemical_phase as AlchemicalPhase} 
+                                              size="sm" 
+                                              showIcon={false}
+                                            />
+                                          )}
+                                          {dream.mood && (
+                                            <Badge variant="secondary">{dream.mood}</Badge>
+                                          )}
+                                        </div>
                                       </div>
                                       <p className="text-xs text-muted-foreground mb-2">
                                         {format(new Date(dream.dream_date), "d MMMM yyyy", {
