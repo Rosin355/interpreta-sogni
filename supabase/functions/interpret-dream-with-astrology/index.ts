@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.75.1";
+import { calculateDreamPhase } from "../_shared/alchemical-calculator.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -531,6 +532,16 @@ Riassunto (max 500 caratteri):`;
       }
     }
 
+    // Calcola la fase alchemica
+    console.log('Calculating alchemical phase...');
+    const alchemicalPhase = calculateDreamPhase({
+      content: dreamContent,
+      mood: dreamMood,
+      tags: dreamTags,
+      interpretation: interpretation
+    });
+    console.log(`Alchemical phase calculated: ${alchemicalPhase}`);
+
     // Salva nel database
     console.log('Saving interpretation to database...');
 
@@ -538,7 +549,8 @@ Riassunto (max 500 caratteri):`;
       .from('dreams')
       .update({ 
         interpretation,
-        interpretation_summary: interpretationSummary 
+        interpretation_summary: interpretationSummary,
+        alchemical_phase: alchemicalPhase
       })
       .eq('id', dreamId);
 
@@ -615,6 +627,7 @@ Riassunto (max 500 caratteri):`;
       JSON.stringify({ 
         interpretation,
         interpretation_summary: interpretationSummary,
+        alchemical_phase: alchemicalPhase,
         hasAstrologicalContext: hasNatalChart,
         success: true 
       }),

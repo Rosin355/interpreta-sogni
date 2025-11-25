@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { RateLimiter, RATE_LIMITS } from "../_shared/rate-limiter.ts";
 import { interpretDreamSchema } from "../_shared/validation.ts";
+import { calculateDreamPhase } from "../_shared/alchemical-calculator.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -256,12 +257,23 @@ Fornisci un'interpretazione dettagliata e significativa.`;
       }
     }
 
-    // Salva l'interpretazione nel database
+    // Calcola la fase alchemica
+    console.log('Calcolo fase alchemica...');
+    const alchemicalPhase = calculateDreamPhase({
+      content: dream.content,
+      mood: dream.mood,
+      tags: dream.tags,
+      interpretation: interpretation
+    });
+    console.log(`Fase alchemica calcolata: ${alchemicalPhase}`);
+
+    // Salva l'interpretazione e la fase alchemica nel database
     const { error: updateError } = await supabase
       .from('dreams')
       .update({ 
         interpretation,
-        interpretation_summary: interpretationSummary
+        interpretation_summary: interpretationSummary,
+        alchemical_phase: alchemicalPhase
       })
       .eq('id', dreamId);
 
@@ -272,7 +284,8 @@ Fornisci un'interpretazione dettagliata e significativa.`;
     return new Response(
       JSON.stringify({ 
         interpretation,
-        interpretation_summary: interpretationSummary
+        interpretation_summary: interpretationSummary,
+        alchemical_phase: alchemicalPhase
       }),
       { 
         headers: { 
