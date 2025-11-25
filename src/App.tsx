@@ -17,6 +17,7 @@ import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import About from "./pages/About";
 import Astrology from "./pages/Astrology";
+import Alchemy from "./pages/Alchemy";
 import ProfessionalVerification from "./pages/ProfessionalVerification";
 import AdminDashboard from "./pages/AdminDashboard";
 import SharedDreams from "./pages/SharedDreams";
@@ -45,6 +46,7 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/astrology" element={<Astrology />} />
+          <Route path="/alchemy" element={<Alchemy />} />
           <Route path="/about" element={<About />} />
           <Route path="/professional-verification" element={<ProfessionalVerification />} />
           <Route path="/admin" element={<AdminDashboard />} />
