@@ -64,7 +64,7 @@ export default function ShareDreamViaEmail({ dreamId, dreamTitle, open, onOpenCh
 
       if (!recipientUserId) {
         // User not registered - send invitation email
-        const { error: inviteError } = await supabase.functions.invoke("send-email-notification", {
+        const { data: inviteData, error: inviteError } = await supabase.functions.invoke("send-email-notification", {
           body: {
             type: "user_invitation",
             recipientEmail: email,
@@ -87,8 +87,19 @@ export default function ShareDreamViaEmail({ dreamId, dreamTitle, open, onOpenCh
           return;
         }
 
+        // Check if Resend returned an error in the response
+        if (inviteData?.error) {
+          console.error("Resend error:", inviteData.error);
+          toast({
+            title: "Errore invio email",
+            description: `L'invito non è stato inviato: ${inviteData.error.message}`,
+            variant: "destructive",
+          });
+          return;
+        }
+
         toast({
-          title: "Invito inviato",
+          title: "Invito inviato con successo",
           description: "L'utente non è registrato. Gli è stato inviato un invito via email per registrarsi sulla piattaforma.",
         });
 
@@ -122,7 +133,7 @@ export default function ShareDreamViaEmail({ dreamId, dreamTitle, open, onOpenCh
       if (shareError) throw shareError;
 
       // Send email notification via edge function
-      const { error: emailError } = await supabase.functions.invoke("send-email-notification", {
+      const { data: emailData, error: emailError } = await supabase.functions.invoke("send-email-notification", {
         body: {
           type: "dream_shared_user_request",
           recipientEmail: email,
@@ -137,13 +148,27 @@ export default function ShareDreamViaEmail({ dreamId, dreamTitle, open, onOpenCh
 
       if (emailError) {
         console.error("Email error:", emailError);
-        // Continue anyway, share was created
+        toast({
+          title: "Condivisione creata",
+          description: "La condivisione è stata creata ma l'email di notifica non è stata inviata. Verifica la configurazione Resend.",
+          variant: "destructive",
+        });
+      } else {
+        // Check if Resend returned an error in the response
+        if (emailData?.error) {
+          console.error("Resend error:", emailData.error);
+          toast({
+            title: "Condivisione creata",
+            description: `La condivisione è stata creata ma l'email non è stata inviata: ${emailData.error.message}`,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Richiesta inviata con successo",
+            description: "La richiesta di condivisione è stata inviata e l'utente ha ricevuto un'email di notifica.",
+          });
+        }
       }
-
-      toast({
-        title: "Richiesta inviata",
-        description: "La richiesta di condivisione è stata inviata. L'utente riceverà un'email di notifica.",
-      });
 
       onOpenChange(false);
       setEmail("");
