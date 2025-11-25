@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { Check, X, Eye, Mail } from "lucide-react";
 import { DreamCardSkeleton } from "@/components/ui/dream-skeleton";
+import Navigation from "@/components/Navigation";
 
 interface DreamShare {
   id: string;
@@ -156,22 +157,27 @@ export default function SharedDreamsReceived() {
 
   if (loading) {
     return (
-      <div className="container max-w-6xl mx-auto py-8 px-4">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Sogni Condivisi con Te</h1>
-          <p className="text-muted-foreground">Visualizza e gestisci i sogni che altri utenti hanno condiviso con te</p>
+      <>
+        <Navigation />
+        <div className="container max-w-6xl mx-auto py-8 px-4 pt-24">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold mb-2">Sogni Condivisi con Te</h1>
+            <p className="text-muted-foreground">Visualizza e gestisci i sogni che altri utenti hanno condiviso con te</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <DreamCardSkeleton key={i} />
+            ))}
+          </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <DreamCardSkeleton key={i} />
-          ))}
-        </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="container max-w-6xl mx-auto py-8 px-4">
+    <>
+      <Navigation />
+      <div className="container max-w-6xl mx-auto py-8 px-4 pt-24">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
           <Mail className="h-8 w-8" />
@@ -285,5 +291,6 @@ export default function SharedDreamsReceived() {
         ))}
       </Tabs>
     </div>
+    </>
   );
 }

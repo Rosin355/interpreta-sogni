@@ -10,7 +10,7 @@ const corsHeaders = {
 };
 
 interface EmailNotificationRequest {
-  type: "professional_approved" | "dream_shared" | "new_comment" | "dream_shared_user_request";
+  type: "professional_approved" | "dream_shared" | "new_comment" | "dream_shared_user_request" | "user_invitation";
   recipientEmail: string;
   recipientName?: string;
   data?: {
@@ -20,6 +20,7 @@ interface EmailNotificationRequest {
     message?: string;
     commentContent?: string;
     professionalName?: string;
+    inviterName?: string;
   };
 }
 
@@ -108,6 +109,42 @@ const handler = async (req: Request): Promise<Response> => {
           <p>Se sei registrato alla piattaforma, accedi per visualizzare e gestire la condivisione.</p>
           <p>Se non sei ancora registrato, <a href="${Deno.env.get('SUPABASE_URL')}/auth?mode=signup">iscriviti ora</a> per iniziare a ricevere sogni condivisi!</p>
           <br>
+          <p>Il Team di Interpreta i tuoi Sogni</p>
+        `;
+        break;
+
+      case "user_invitation":
+        subject = `🌙 ${data?.inviterName || "Un utente"} ti invita a unirti a Interpreta i tuoi Sogni`;
+        html = `
+          <h1>Invito a Interpreta i tuoi Sogni</h1>
+          <p>Ciao,</p>
+          <p><strong>${data?.inviterName || "Un utente"}</strong> vorrebbe condividere un sogno con te su <strong>Interpreta i tuoi Sogni</strong>!</p>
+          ${data?.dreamTitle ? `<p><strong>Titolo del sogno:</strong> ${data.dreamTitle}</p>` : ""}
+          ${data?.message ? `
+            <div style="background-color: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0;">
+              <p style="margin: 0;"><strong>Messaggio personale:</strong></p>
+              <p style="margin: 8px 0 0 0;">${data.message}</p>
+            </div>
+          ` : ""}
+          <br>
+          <p>Per visualizzare questo sogno e connetterti con ${data?.inviterName || "altri utenti"}, devi prima registrarti sulla nostra piattaforma.</p>
+          <br>
+          <div style="text-align: center; margin: 24px 0;">
+            <a href="${Deno.env.get('SUPABASE_URL') || 'https://zufsbpcgcvlcdtksrzhu.supabase.co'}/auth/v1/verify?token=signup&type=signup&redirect_to=${encodeURIComponent(window?.location?.origin || 'https://interpreta-sogni.lovable.app')}/auth" 
+               style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
+              Registrati Ora
+            </a>
+          </div>
+          <br>
+          <p><strong>Interpreta i tuoi Sogni</strong> è una piattaforma dove puoi:</p>
+          <ul>
+            <li>✨ Registrare e interpretare i tuoi sogni con l'aiuto dell'intelligenza artificiale</li>
+            <li>🌙 Condividere sogni con amici e ricevere feedback</li>
+            <li>🔮 Ottenere interpretazioni astrologiche personalizzate</li>
+            <li>📊 Tenere traccia dei tuoi pattern onirici nel tempo</li>
+          </ul>
+          <br>
+          <p>Ti aspettiamo!</p>
           <p>Il Team di Interpreta i tuoi Sogni</p>
         `;
         break;
