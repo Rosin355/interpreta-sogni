@@ -107,6 +107,12 @@ const Navigation = () => {
                 Astrologia
               </button>
               <button
+                onClick={() => navigate("/alchemy")}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Alchimia
+              </button>
+              <button
                 onClick={() => navigate("/shared-with-me")}
                 className="text-muted-foreground hover:text-foreground transition-colors"
               >
@@ -210,6 +216,15 @@ const Navigation = () => {
                     className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
                   >
                     Astrologia
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate("/alchemy");
+                      setMobileMenuOpen(false);
+                    }}
+                    className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+                  >
+                    Alchimia
                   </button>
                   <button
                     onClick={() => {

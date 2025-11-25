@@ -70,9 +70,9 @@ export const AlchemicalJourneyMap = ({
 
   return (
     <TooltipProvider>
-      <div className="w-full">
+      <div className="w-full overflow-x-auto">
         {/* Horizontal Journey Map */}
-        <div className="relative flex items-center justify-between gap-4 md:gap-8 px-4 py-8">
+        <div className="relative flex items-center justify-between gap-2 sm:gap-4 md:gap-8 px-2 sm:px-4 py-6 sm:py-8 min-w-[320px]">
           {/* Connection Lines */}
           <div className="absolute top-1/2 left-0 right-0 h-1 bg-gradient-to-r from-gray-900 via-gray-200 to-red-500 -translate-y-1/2 opacity-30 z-0" />
           
@@ -177,15 +177,15 @@ export const AlchemicalJourneyMap = ({
                     {/* Phase Name */}
                     {!compact && (
                       <motion.div
-                        className="mt-4 text-center space-y-1"
+                        className="mt-3 sm:mt-4 text-center space-y-1"
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.1 + 0.4 }}
                       >
-                        <p className={`font-bold ${isActive ? 'text-primary' : 'text-foreground'}`}>
+                        <p className={`text-xs sm:text-sm font-bold ${isActive ? 'text-primary' : 'text-foreground'}`}>
                           {phase.name}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">
                           {phase.shortName}
                         </p>
                       </motion.div>
@@ -221,13 +221,13 @@ export const AlchemicalJourneyMap = ({
         {/* Progress Indicator */}
         {!compact && (
           <motion.div
-            className="mt-8 flex items-center justify-center gap-2 text-sm text-muted-foreground"
+            className="mt-6 sm:mt-8 flex items-center justify-center gap-2 text-xs sm:text-sm text-muted-foreground px-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8 }}
           >
-            <Info className="h-4 w-4" />
-            <p>
+            <Info className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+            <p className="text-center">
               Il tuo percorso evolve con ogni sogno che registri
             </p>
           </motion.div>

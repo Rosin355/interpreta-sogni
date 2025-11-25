@@ -17,12 +17,16 @@ import { AlchemicalJourneyMap } from "@/components/AlchemicalJourneyMap";
 import { Loader2, TrendingUp, TrendingDown, Minus, Info } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { format } from "date-fns";
+import { it } from "date-fns/locale";
 
 const Alchemy = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [dreams, setDreams] = useState<any[]>([]);
   const [journey, setJourney] = useState<UserJourney | null>(null);
+  const [evolutionData, setEvolutionData] = useState<any[]>([]);
 
   useEffect(() => {
     checkAuth();
@@ -54,6 +58,10 @@ const Alchemy = () => {
         setDreams(data);
         const userJourney = calculateUserJourney(data);
         setJourney(userJourney);
+        
+        // Calcola i dati di evoluzione temporale
+        const evolution = calculateEvolutionData(data);
+        setEvolutionData(evolution);
       }
     } catch (error) {
       console.error("Error fetching dreams:", error);
@@ -84,6 +92,39 @@ const Alchemy = () => {
       case "stable":
         return <Minus className="h-5 w-5 text-muted-foreground" />;
     }
+  };
+
+  const calculateEvolutionData = (dreamData: any[]) => {
+    // Raggruppa i sogni per mese
+    const monthlyData: { [key: string]: { nigredo: number, albedo: number, rubedo: number, total: number } } = {};
+    
+    dreamData.forEach(dream => {
+      const date = new Date(dream.dream_date);
+      const monthKey = format(date, 'MMM yyyy', { locale: it });
+      
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = { nigredo: 0, albedo: 0, rubedo: 0, total: 0 };
+      }
+      
+      if (dream.alchemical_phase) {
+        monthlyData[monthKey][dream.alchemical_phase as AlchemicalPhase]++;
+        monthlyData[monthKey].total++;
+      }
+    });
+    
+    // Converti in array e calcola percentuali
+    return Object.entries(monthlyData)
+      .sort((a, b) => {
+        const dateA = new Date(a[0]);
+        const dateB = new Date(b[0]);
+        return dateA.getTime() - dateB.getTime();
+      })
+      .map(([month, data]) => ({
+        month,
+        Nigredo: Math.round((data.nigredo / data.total) * 100) || 0,
+        Albedo: Math.round((data.albedo / data.total) * 100) || 0,
+        Rubedo: Math.round((data.rubedo / data.total) * 100) || 0,
+      }));
   };
 
   const allPhases = getAllPhases();
@@ -129,16 +170,16 @@ const Alchemy = () => {
         >
           <Card className="border-2">
             <CardHeader>
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div>
-                  <CardTitle className="text-3xl mb-2">Il Tuo Viaggio Alchemico</CardTitle>
-                  <CardDescription>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-2xl sm:text-3xl mb-2">Il Tuo Viaggio Alchemico</CardTitle>
+                  <CardDescription className="text-sm">
                     Mappa della tua trasformazione interiore attraverso i sogni
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-shrink-0">
                   {getTrendIcon()}
-                  <Badge variant="outline" className="text-sm">
+                  <Badge variant="outline" className="text-xs sm:text-sm">
                     {journey.trend === "progressing" && "In Progresso"}
                     {journey.trend === "regressing" && "In Regressione"}
                     {journey.trend === "stable" && "Stabile"}
@@ -146,7 +187,7 @@ const Alchemy = () => {
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-2 sm:px-6">
               <AlchemicalJourneyMap
                 currentPhase={journey.currentPhase}
                 distribution={journey.distribution}
@@ -182,9 +223,10 @@ const Alchemy = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <Tabs defaultValue="phases" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="phases">Le Tre Fasi</TabsTrigger>
-              <TabsTrigger value="evolution">Evoluzione Personale</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="phases" className="text-xs sm:text-sm">Le Tre Fasi</TabsTrigger>
+              <TabsTrigger value="chart" className="text-xs sm:text-sm">Grafici</TabsTrigger>
+              <TabsTrigger value="evolution" className="text-xs sm:text-sm">Transizioni</TabsTrigger>
             </TabsList>
 
             <TabsContent value="phases" className="space-y-4 mt-6">
@@ -246,6 +288,132 @@ const Alchemy = () => {
                   </Card>
                 </motion.div>
               ))}
+            </TabsContent>
+
+            <TabsContent value="chart" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Evoluzione Temporale</CardTitle>
+                  <CardDescription>
+                    Distribuzione delle fasi alchemiche nel tempo
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {evolutionData.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">
+                      Registra più sogni nel tempo per vedere l'evoluzione delle fasi
+                    </p>
+                  ) : (
+                    <div className="space-y-8">
+                      {/* Area Chart - Distribuzione percentuale */}
+                      <div>
+                        <h4 className="text-sm font-semibold mb-4">Distribuzione Percentuale nel Tempo</h4>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <AreaChart data={evolutionData}>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                            <XAxis 
+                              dataKey="month" 
+                              tick={{ fontSize: 12 }}
+                              angle={-45}
+                              textAnchor="end"
+                              height={80}
+                            />
+                            <YAxis 
+                              tick={{ fontSize: 12 }}
+                              label={{ value: 'Percentuale (%)', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                            />
+                            <RechartsTooltip 
+                              contentStyle={{ 
+                                backgroundColor: 'hsl(var(--card))', 
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: '8px'
+                              }}
+                            />
+                            <Legend />
+                            <Area 
+                              type="monotone" 
+                              dataKey="Nigredo" 
+                              stackId="1"
+                              stroke="hsl(0, 0%, 15%)" 
+                              fill="hsl(0, 0%, 15%)"
+                              fillOpacity={0.8}
+                            />
+                            <Area 
+                              type="monotone" 
+                              dataKey="Albedo" 
+                              stackId="1"
+                              stroke="hsl(0, 0%, 70%)" 
+                              fill="hsl(0, 0%, 90%)"
+                              fillOpacity={0.8}
+                            />
+                            <Area 
+                              type="monotone" 
+                              dataKey="Rubedo" 
+                              stackId="1"
+                              stroke="hsl(0, 70%, 50%)" 
+                              fill="hsl(0, 70%, 50%)"
+                              fillOpacity={0.8}
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      {/* Line Chart - Trend delle fasi */}
+                      <div>
+                        <h4 className="text-sm font-semibold mb-4">Trend delle Fasi Alchemiche</h4>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <LineChart data={evolutionData}>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                            <XAxis 
+                              dataKey="month" 
+                              tick={{ fontSize: 12 }}
+                              angle={-45}
+                              textAnchor="end"
+                              height={80}
+                            />
+                            <YAxis 
+                              tick={{ fontSize: 12 }}
+                              label={{ value: 'Percentuale (%)', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                            />
+                            <RechartsTooltip 
+                              contentStyle={{ 
+                                backgroundColor: 'hsl(var(--card))', 
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: '8px'
+                              }}
+                            />
+                            <Legend />
+                            <Line 
+                              type="monotone" 
+                              dataKey="Nigredo" 
+                              stroke="hsl(0, 0%, 15%)" 
+                              strokeWidth={3}
+                              dot={{ fill: 'hsl(0, 0%, 15%)', r: 4 }}
+                              activeDot={{ r: 6 }}
+                            />
+                            <Line 
+                              type="monotone" 
+                              dataKey="Albedo" 
+                              stroke="hsl(0, 0%, 50%)" 
+                              strokeWidth={3}
+                              dot={{ fill: 'hsl(0, 0%, 70%)', r: 4 }}
+                              activeDot={{ r: 6 }}
+                            />
+                            <Line 
+                              type="monotone" 
+                              dataKey="Rubedo" 
+                              stroke="hsl(0, 70%, 50%)" 
+                              strokeWidth={3}
+                              dot={{ fill: 'hsl(0, 70%, 50%)', r: 4 }}
+                              activeDot={{ r: 6 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="evolution" className="mt-6">
