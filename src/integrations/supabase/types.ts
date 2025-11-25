@@ -195,6 +195,7 @@ export type Database = {
       }
       dreams: {
         Row: {
+          alchemical_phase: string | null
           auto_style: boolean | null
           content: string
           created_at: string | null
@@ -214,6 +215,7 @@ export type Database = {
           visibility: string | null
         }
         Insert: {
+          alchemical_phase?: string | null
           auto_style?: boolean | null
           content: string
           created_at?: string | null
@@ -233,6 +235,7 @@ export type Database = {
           visibility?: string | null
         }
         Update: {
+          alchemical_phase?: string | null
           auto_style?: boolean | null
           content?: string
           created_at?: string | null
