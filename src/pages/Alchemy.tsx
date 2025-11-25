@@ -13,6 +13,7 @@ import {
   type UserJourney,
   type AlchemicalPhase 
 } from "@/utils/alchemical-phases";
+import { AlchemicalJourneyMap } from "@/components/AlchemicalJourneyMap";
 import { Loader2, TrendingUp, TrendingDown, Minus, Info } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -146,56 +147,11 @@ const Alchemy = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">Fase Attuale</p>
-                  <Badge className={`text-lg px-4 py-2 ${getPhaseColor(journey.currentPhase)}`}>
-                    {journey.currentPhase.toUpperCase()}
-                  </Badge>
-                </div>
-                <Separator />
-                <div>
-                  <p className="text-sm text-muted-foreground mb-3">Distribuzione delle Fasi</p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Nigredo</span>
-                        <span className="text-sm text-muted-foreground">{journey.distribution.nigredo}%</span>
-                      </div>
-                      <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-black transition-all duration-500" 
-                          style={{ width: `${journey.distribution.nigredo}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Albedo</span>
-                        <span className="text-sm text-muted-foreground">{journey.distribution.albedo}%</span>
-                      </div>
-                      <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-gray-300 to-white border border-border transition-all duration-500" 
-                          style={{ width: `${journey.distribution.albedo}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Rubedo</span>
-                        <span className="text-sm text-muted-foreground">{journey.distribution.rubedo}%</span>
-                      </div>
-                      <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-red-500 to-amber-500 transition-all duration-500" 
-                          style={{ width: `${journey.distribution.rubedo}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <AlchemicalJourneyMap
+                currentPhase={journey.currentPhase}
+                distribution={journey.distribution}
+                compact={false}
+              />
             </CardContent>
           </Card>
         </motion.div>

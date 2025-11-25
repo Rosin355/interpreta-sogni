@@ -16,6 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { StatCardSkeleton, ChartSkeleton } from "@/components/ui/dream-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AlchemicalJourneyMap } from "@/components/AlchemicalJourneyMap";
+import { calculateUserJourney, type UserJourney } from "@/utils/alchemical-phases";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -27,6 +29,7 @@ const Dashboard = () => {
   const [temporalPeriod, setTemporalPeriod] = useState<'30d' | '3m' | '6m' | '1y'>('30d');
   const [insights, setInsights] = useState<any[]>([]);
   const [exporting, setExporting] = useState(false);
+  const [journey, setJourney] = useState<UserJourney | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -70,6 +73,12 @@ const Dashboard = () => {
       
       // Calcola insights
       setInsights(calculateInsights(allData || []));
+      
+      // Calcola percorso alchemico
+      if (allData && allData.length > 0) {
+        const userJourney = calculateUserJourney(allData);
+        setJourney(userJourney);
+      }
     }
     setLoading(false);
   };
@@ -157,6 +166,34 @@ const Dashboard = () => {
               </>
             )}
           </div>
+
+          {/* Percorso Alchemico */}
+          {!loading && journey && allDreams.length > 0 && (
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Il Tuo Percorso Alchemico</CardTitle>
+                <CardDescription>
+                  Scopri la fase della tua trasformazione interiore
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AlchemicalJourneyMap
+                  currentPhase={journey.currentPhase}
+                  distribution={journey.distribution}
+                  compact={true}
+                />
+                <div className="mt-6 text-center">
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate("/alchemy")}
+                    className="gap-2"
+                  >
+                    Esplora il Tuo Viaggio Completo
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Insights */}
           {!loading && insights.length > 0 && (
