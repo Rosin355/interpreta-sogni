@@ -63,11 +63,38 @@ export default function ShareDreamViaEmail({ dreamId, dreamTitle, open, onOpenCh
       }
 
       if (!recipientUserId) {
-        toast({
-          title: "Utente non trovato",
-          description: "L'email inserita non corrisponde a nessun utente registrato. L'utente deve prima registrarsi sulla piattaforma.",
-          variant: "destructive",
+        // User not registered - send invitation email
+        const { error: inviteError } = await supabase.functions.invoke("send-email-notification", {
+          body: {
+            type: "user_invitation",
+            recipientEmail: email,
+            data: {
+              dreamTitle,
+              userName: currentProfile?.username || "Un utente",
+              message: message || "",
+              inviterName: currentProfile?.username || "Un utente",
+            },
+          },
         });
+
+        if (inviteError) {
+          console.error("Invitation email error:", inviteError);
+          toast({
+            title: "Errore",
+            description: "Impossibile inviare l'invito via email",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        toast({
+          title: "Invito inviato",
+          description: "L'utente non è registrato. Gli è stato inviato un invito via email per registrarsi sulla piattaforma.",
+        });
+
+        onOpenChange(false);
+        setEmail("");
+        setMessage("");
         return;
       }
 
