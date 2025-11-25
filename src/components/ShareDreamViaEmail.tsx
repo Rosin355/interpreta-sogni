@@ -53,23 +53,41 @@ export default function ShareDreamViaEmail({ dreamId, dreamTitle, open, onOpenCh
         .eq("id", user.id)
         .single();
 
-      // Check if email exists in the system
-      const { data: authUser, error: authError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("id", user.id)
-        .single();
+      // Find recipient user by email
+      const { data: recipientUserId, error: lookupError } = await supabase
+        .rpc("find_user_by_email", { user_email: email });
 
-      // For now, we need to query auth.users indirectly through RPC or edge function
-      // Since we can't directly query auth.users, we'll create the share and let the edge function handle validation
-      
+      if (lookupError) {
+        console.error("Error looking up user:", lookupError);
+        throw new Error("Errore durante la ricerca dell'utente");
+      }
+
+      if (!recipientUserId) {
+        toast({
+          title: "Utente non trovato",
+          description: "L'email inserita non corrisponde a nessun utente registrato. L'utente deve prima registrarsi sulla piattaforma.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Prevent sharing with yourself
+      if (recipientUserId === user.id) {
+        toast({
+          title: "Errore",
+          description: "Non puoi condividere un sogno con te stesso.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Insert share with pending status
       const { error: shareError } = await supabase
         .from("dream_shares")
         .insert({
           dream_id: dreamId,
           user_id: user.id,
-          shared_with_user_id: null, // Will be set by edge function after validation
+          shared_with_user_id: recipientUserId,
           message: message || null,
           status: "pending",
         });

@@ -285,11 +285,6 @@ const Astrology = () => {
             ascendant={natalChartData?.ascendant}
           />
 
-          {/* Chart Wheel */}
-          {natalChartData && (
-            <AstroChartWheel natalChartData={natalChartData} />
-          )}
-
           {/* Aspect Grid */}
           {natalChartData.aspects && natalChartData.aspects.length > 0 && (
             <AspectGrid aspects={natalChartData.aspects} />
