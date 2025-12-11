@@ -101,9 +101,12 @@ serve(async (req) => {
 
     // Input Validation
     const requestBody = await req.json();
+    console.log('[STT] Request received, audio data length:', requestBody.audio?.length || 0);
+    
     const validation = speechToTextSchema.safeParse(requestBody);
     
     if (!validation.success) {
+      console.error('[STT] Validation failed:', JSON.stringify(validation.error.issues, null, 2));
       return new Response(
         JSON.stringify({ 
           error: 'Dati non validi', 
@@ -116,13 +119,14 @@ serve(async (req) => {
     const { audio } = validation.data;
     
     if (!audio) {
+      console.error('[STT] No audio data provided');
       throw new Error('No audio data provided');
     }
 
-    console.log('Received audio data for transcription (ElevenLabs STT)');
+    console.log('[STT] Processing audio for transcription...');
 
     const binaryAudio = processBase64Chunks(audio);
-    console.log(`Audio size: ${binaryAudio.length} bytes`);
+    console.log('[STT] Audio size:', binaryAudio.length, 'bytes');
 
     const formData = new FormData();
     const blob = new Blob([binaryAudio], { type: 'audio/webm' });
@@ -135,7 +139,7 @@ serve(async (req) => {
       throw new Error('ELEVENLABS_API_KEY is not configured');
     }
 
-    console.log('Sending to ElevenLabs STT API...');
+    console.log('[STT] Calling ElevenLabs STT API...');
 
     const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text/convert', {
       method: 'POST',
@@ -147,14 +151,16 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('ElevenLabs STT API error:', response.status, errorText);
+      console.error('[STT] ElevenLabs STT API error:', response.status, errorText);
+      console.error('[STT] Response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
       throw new Error(`ElevenLabs STT API error: ${errorText}`);
     }
 
     const result = await response.json();
     const text = result.text;
 
-    console.log('Transcription successful:', text?.substring(0, 100));
+    console.log('[STT] Transcription successful, length:', text?.length || 0);
+    console.log('[STT] Preview:', text?.substring(0, 100));
 
     return new Response(
       JSON.stringify({ text }),
@@ -168,7 +174,8 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in speech-to-text-elevenlabs:', error);
+    console.error('[STT] FATAL ERROR:', error);
+    console.error('[STT] Error stack:', error.stack);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

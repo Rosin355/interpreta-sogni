@@ -51,7 +51,15 @@ serve(async (req) => {
 
     const { professionalId, action, rejectionReason } = await req.json();
 
+    console.log('[approve-professional] Request:', { 
+      professionalId, 
+      action, 
+      hasRejectionReason: !!rejectionReason,
+      adminUserId: user.id
+    });
+
     if (!professionalId || !action || !['approve', 'reject'].includes(action)) {
+      console.error('[approve-professional] Invalid parameters:', { professionalId, action });
       return new Response(JSON.stringify({ error: 'Parametri non validi' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -144,7 +152,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`Professional ${professionalId} ${action === 'approve' ? 'approved' : 'rejected'} by admin ${user.id}`);
+    console.log(`[approve-professional] SUCCESS: Professional ${professionalId} ${action === 'approve' ? 'approved' : 'rejected'} by admin ${user.id}`);
 
     return new Response(JSON.stringify({ 
       success: true, 
@@ -154,7 +162,8 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error in approve-professional:', error);
+    console.error('[approve-professional] FATAL ERROR:', error);
+    console.error('[approve-professional] Error stack:', error.stack);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

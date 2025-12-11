@@ -77,9 +77,12 @@ serve(async (req) => {
 
     // 3. Input Validation
     const requestBody = await req.json();
+    console.log('[interpret-dream] Request body:', JSON.stringify(requestBody, null, 2));
+    
     const validation = interpretDreamSchema.safeParse(requestBody);
     
     if (!validation.success) {
+      console.error('[interpret-dream] Validation failed:', JSON.stringify(validation.error.issues, null, 2));
       return new Response(
         JSON.stringify({ 
           error: 'Dati non validi', 
@@ -90,6 +93,7 @@ serve(async (req) => {
     }
 
     const { dreamId } = validation.data;
+    console.log('[interpret-dream] Processing dreamId:', dreamId);
 
     // Use service role to fetch dream
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -174,7 +178,9 @@ ${dream.content}
 
 Fornisci un'interpretazione dettagliata e significativa.`;
 
-    console.log('Chiamata a Lovable AI per interpretazione...');
+    console.log('[interpret-dream] Calling Lovable AI for interpretation...');
+    console.log('[interpret-dream] System prompt length:', systemPrompt.length);
+    console.log('[interpret-dream] User prompt length:', userPrompt.length);
 
     // Chiama Lovable AI
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -297,7 +303,8 @@ Fornisci un'interpretazione dettagliata e significativa.`;
     );
 
   } catch (error) {
-    console.error('Error in interpret-dream function:', error);
+    console.error('[interpret-dream] FATAL ERROR:', error);
+    console.error('[interpret-dream] Error stack:', error.stack);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
