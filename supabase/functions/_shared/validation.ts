@@ -31,14 +31,16 @@ export const interpretDreamSchema = z.object({
 export const generateDreamImageSchema = z.object({
   dreamId: uuidSchema,
   content: z.string().min(1).max(10000),
-  mood: z.string().optional(),
-  imageStyle: z.enum(['realistico', 'onirico', 'artistico', 'minimalista', 'fantastico']).optional(),
+  mood: z.string().optional().transform(val => val === '' ? undefined : val),
+  imageStyle: z.enum(['realistico', 'onirico', 'artistico', 'minimalista', 'fantastico'])
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
   autoStyle: z.boolean().optional(),
   customPrompt: z.string()
     .max(500, 'Il prompt personalizzato deve essere massimo 500 caratteri')
     .regex(/^[a-zA-Z0-9\s,\.;:!?àèéìòùÀÈÉÌÒÙ\-'"()]*$/, 'Il prompt contiene caratteri non consentiti')
     .optional()
-    .transform(val => val ? sanitizeText(val, 500) : undefined),
+    .transform(val => val && val.trim() !== '' ? sanitizeText(val, 500) : undefined),
 });
 
 export const suggestTagsSchema = z.object({
