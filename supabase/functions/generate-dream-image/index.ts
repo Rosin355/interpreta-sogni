@@ -32,17 +32,17 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY non configurata');
     }
 
-    // Authenticate user
-    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } }
-    });
+    // Extract JWT token from Authorization header
+    const token = authHeader.replace('Bearer ', '');
+    
+    console.log('Attempting authentication with token...');
 
-    console.log('Attempting authentication with header:', authHeader.substring(0, 50) + '...');
-
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    // Create client and verify user with the token
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
     
     if (authError) {
-      console.error('Auth error details:', authError.message, authError.status);
+      console.error('Auth error details:', authError.message);
       return new Response(
         JSON.stringify({ error: 'Autenticazione non valida', details: authError.message }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
