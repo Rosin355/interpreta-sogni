@@ -37,10 +37,22 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } }
     });
 
+    console.log('Attempting authentication with header:', authHeader.substring(0, 50) + '...');
+
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
+    
+    if (authError) {
+      console.error('Auth error details:', authError.message, authError.status);
       return new Response(
-        JSON.stringify({ error: 'Autenticazione non valida' }),
+        JSON.stringify({ error: 'Autenticazione non valida', details: authError.message }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    if (!user) {
+      console.error('No user returned from auth');
+      return new Response(
+        JSON.stringify({ error: 'Utente non trovato' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -250,8 +262,10 @@ Aspect ratio 16:9, alta qualità, composizione bilanciata.`;
 
     return new Response(
       JSON.stringify({ 
-        imageUrl,
-        style: finalStyle
+        image_url: imageUrl,
+        imageUrl: imageUrl, // backward compatibility
+        image_style: finalStyle,
+        style: finalStyle // backward compatibility
       }),
       { 
         headers: { 
