@@ -91,6 +91,8 @@ serve(async (req) => {
     const validation = generateDreamImageSchema.safeParse(requestBody);
     
     if (!validation.success) {
+      console.error('Validation failed:', JSON.stringify(validation.error.issues, null, 2));
+      console.error('Request body was:', JSON.stringify(requestBody, null, 2));
       return new Response(
         JSON.stringify({ 
           error: 'Dati non validi', 

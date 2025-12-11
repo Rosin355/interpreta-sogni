@@ -38,7 +38,6 @@ export const generateDreamImageSchema = z.object({
   autoStyle: z.boolean().optional(),
   customPrompt: z.string()
     .max(500, 'Il prompt personalizzato deve essere massimo 500 caratteri')
-    .regex(/^[a-zA-Z0-9\s,\.;:!?àèéìòùÀÈÉÌÒÙ\-'"()]*$/, 'Il prompt contiene caratteri non consentiti')
     .optional()
     .transform(val => val && val.trim() !== '' ? sanitizeText(val, 500) : undefined),
 });
