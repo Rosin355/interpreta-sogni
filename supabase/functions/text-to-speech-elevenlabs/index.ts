@@ -71,9 +71,16 @@ serve(async (req) => {
 
     // Input Validation
     const requestBody = await req.json();
+    console.log('[TTS] Request received:', { 
+      textLength: requestBody.text?.length || 0, 
+      voiceId: requestBody.voiceId,
+      textPreview: requestBody.text?.substring(0, 50) 
+    });
+    
     const validation = textToSpeechSchema.safeParse(requestBody);
     
     if (!validation.success) {
+      console.error('[TTS] Validation failed:', JSON.stringify(validation.error.issues, null, 2));
       return new Response(
         JSON.stringify({ 
           error: 'Dati non validi', 
@@ -99,6 +106,7 @@ serve(async (req) => {
 
     console.log(`TTS request: ${text.length} characters, voice: ${voiceId}`);
 
+    console.log('[TTS] Calling ElevenLabs API...');
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
       headers: {
@@ -119,7 +127,8 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('ElevenLabs API error:', response.status, errorText);
+      console.error('[TTS] ElevenLabs API error:', response.status, errorText);
+      console.error('[TTS] Response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
       
       if (response.status === 401) {
         throw new Error('API key non valida');
@@ -131,13 +140,15 @@ serve(async (req) => {
     }
 
     const audioBuffer = await response.arrayBuffer();
+    console.log('[TTS] Audio received, size:', audioBuffer.byteLength, 'bytes');
+    
     const base64Audio = btoa(
       Array.from(new Uint8Array(audioBuffer))
         .map(b => String.fromCharCode(b))
         .join('')
     );
 
-    console.log('TTS generated successfully');
+    console.log('[TTS] Audio converted to base64, length:', base64Audio.length);
 
     return new Response(
       JSON.stringify({ audioContent: base64Audio }),
@@ -151,7 +162,8 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in text-to-speech-elevenlabs:', error);
+    console.error('[TTS] FATAL ERROR:', error);
+    console.error('[TTS] Error stack:', error.stack);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

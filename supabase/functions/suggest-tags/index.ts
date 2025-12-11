@@ -109,9 +109,12 @@ serve(async (req) => {
 
     // 3. Input Validation
     const requestBody = await req.json();
+    console.log('[suggest-tags] Request received, content length:', requestBody.content?.length || 0);
+    
     const validation = suggestTagsSchema.safeParse(requestBody);
     
     if (!validation.success) {
+      console.error('[suggest-tags] Validation failed:', JSON.stringify(validation.error.issues, null, 2));
       return new Response(
         JSON.stringify({ 
           error: 'Dati non validi', 
@@ -123,6 +126,7 @@ serve(async (req) => {
     }
 
     const { content } = validation.data;
+    console.log('[suggest-tags] Processing content preview:', content.substring(0, 100));
 
     const systemPrompt = `Sei un esperto analista di sogni. Analizza il testo del sogno e suggerisci tag appropriati basandoti sulle seguenti categorie:
 
@@ -188,12 +192,13 @@ Ogni tag dovrebbe essere breve (1-3 parole) e pertinente al contenuto del sogno.
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('AI API error:', response.status, errorText);
+      console.error('[suggest-tags] AI API error:', response.status, errorText);
+      console.error('[suggest-tags] Response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
       throw new Error(`AI API error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('AI response received');
+    console.log('[suggest-tags] AI response received, processing tool calls...');
 
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
@@ -223,7 +228,8 @@ Ogni tag dovrebbe essere breve (1-3 parole) e pertinente al contenuto del sogno.
     );
 
   } catch (error) {
-    console.error('Error in suggest-tags function:', error);
+    console.error('[suggest-tags] FATAL ERROR:', error);
+    console.error('[suggest-tags] Error stack:', error.stack);
     return new Response(
       JSON.stringify({ error: error.message, tags: [] }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

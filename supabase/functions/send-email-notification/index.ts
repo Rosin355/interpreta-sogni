@@ -49,7 +49,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     const { type, recipientEmail, recipientName, data }: EmailNotificationRequest = await req.json();
 
-    console.log("[send-email-notification] Request received", { type, recipientEmail });
+    console.log('[send-email] Request received:', { 
+      type, 
+      recipientEmail, 
+      recipientName,
+      dataKeys: data ? Object.keys(data) : []
+    });
 
     let subject = "";
     let html = "";
@@ -153,6 +158,9 @@ const handler = async (req: Request): Promise<Response> => {
         throw new Error("Invalid notification type");
     }
 
+    console.log('[send-email] Sending email via Resend...');
+    console.log('[send-email] Subject:', subject);
+    
     const emailResponse = await resend.emails.send({
       from: "Interpreta i tuoi Sogni <onboarding@resend.dev>",
       to: [recipientEmail],
@@ -160,7 +168,7 @@ const handler = async (req: Request): Promise<Response> => {
       html: html,
     });
 
-    console.log("[send-email-notification] Email sent successfully", emailResponse);
+    console.log('[send-email] Email sent successfully:', JSON.stringify(emailResponse));
 
     return new Response(
       JSON.stringify({ success: true, data: emailResponse }),
@@ -170,7 +178,8 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: any) {
-    console.error("[send-email-notification] Error:", error);
+    console.error('[send-email] FATAL ERROR:', error);
+    console.error('[send-email] Error stack:', error.stack);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
