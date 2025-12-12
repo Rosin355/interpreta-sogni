@@ -18,6 +18,7 @@ import { ImageZoomModal } from "@/components/ImageZoomModal";
 import { ShareDreamDialog } from "@/components/ShareDreamDialog";
 import { ProfessionalCommentForm } from "@/components/ProfessionalCommentForm";
 import ShareDreamViaEmail from "@/components/ShareDreamViaEmail";
+import { CustomPromptInput, isCustomPromptValid } from "@/components/CustomPromptInput";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,7 +40,6 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 
 const DreamDetail = () => {
   const { id } = useParams();
@@ -58,6 +58,8 @@ const DreamDetail = () => {
   const [isUserOwner, setIsUserOwner] = useState(false);
   const [isProfessional, setIsProfessional] = useState(false);
   const [canComment, setCanComment] = useState(false);
+  const [customPrompt, setCustomPrompt] = useState("");
+  const [useAiAutoPrompt, setUseAiAutoPrompt] = useState(true);
 
   useEffect(() => {
     checkAuth();
@@ -296,8 +298,6 @@ const DreamDetail = () => {
     setDialogOpen(false);
 
     try {
-      const customPromptValue = (document.getElementById('customPrompt') as HTMLTextAreaElement)?.value || '';
-      
       const { data, error } = await supabase.functions.invoke('generate-dream-image', {
         body: {
           dreamId: id,
@@ -305,7 +305,7 @@ const DreamDetail = () => {
           mood: dream.mood,
           imageStyle: style || regenerateStyle,
           autoStyle: !style && !regenerateStyle,
-          customPrompt: customPromptValue || undefined
+          customPrompt: useAiAutoPrompt ? undefined : (customPrompt || undefined)
         }
       });
 
@@ -510,20 +510,16 @@ const DreamDetail = () => {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="customPrompt">Suggerimenti Personalizzati (opzionale)</Label>
-                          <Textarea
-                            id="customPrompt"
-                            placeholder="es: ambiente più scuro, scena più semplice, focus su un particolare elemento..."
-                            rows={3}
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Descrivi come vorresti che fosse l'immagine
-                          </p>
-                        </div>
+                        <CustomPromptInput
+                          value={customPrompt}
+                          onChange={setCustomPrompt}
+                          disabled={imageGenerating}
+                          useAiAuto={useAiAutoPrompt}
+                          onAiAutoChange={setUseAiAutoPrompt}
+                        />
                         <Button
                           onClick={() => handleGenerateImage()}
-                          disabled={imageGenerating}
+                          disabled={imageGenerating || !isCustomPromptValid(customPrompt, useAiAutoPrompt)}
                           className="w-full"
                         >
                           {imageGenerating ? "Generazione..." : "Rigenera"}

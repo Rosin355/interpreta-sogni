@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { getCategoryFromTag } from "@/utils/dream-categories";
+import { CustomPromptInput, isCustomPromptValid } from "@/components/CustomPromptInput";
 
 const EditDream = () => {
   const { id } = useParams();
@@ -36,6 +37,7 @@ const EditDream = () => {
   const [tagsList, setTagsList] = useState<string[]>([]);
   const [imageStyle, setImageStyle] = useState("");
   const [customPrompt, setCustomPrompt] = useState("");
+  const [useAiAutoPrompt, setUseAiAutoPrompt] = useState(true);
   const [imageGenerating, setImageGenerating] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
 
@@ -202,7 +204,7 @@ const EditDream = () => {
           mood: formData.mood,
           imageStyle: imageStyle && imageStyle !== 'auto' ? imageStyle : undefined,
           autoStyle: !imageStyle || imageStyle === 'auto',
-          customPrompt: customPrompt || undefined
+          customPrompt: useAiAutoPrompt ? undefined : (customPrompt || undefined)
         }
       });
 
@@ -404,24 +406,18 @@ const EditDream = () => {
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="customPrompt">Suggerimenti Personalizzati (opzionale)</Label>
-                      <Textarea
-                        id="customPrompt"
-                        value={customPrompt}
-                        onChange={(e) => setCustomPrompt(e.target.value)}
-                        placeholder="es: ambiente più scuro, scena più semplice, focus su un particolare elemento..."
-                        rows={3}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Descrivi come vorresti che fosse l'immagine
-                      </p>
-                    </div>
+                    <CustomPromptInput
+                      value={customPrompt}
+                      onChange={setCustomPrompt}
+                      disabled={imageGenerating}
+                      useAiAuto={useAiAutoPrompt}
+                      onAiAutoChange={setUseAiAutoPrompt}
+                    />
 
                     <Button
                       type="button"
                       onClick={handleRegenerateImage}
-                      disabled={imageGenerating}
+                      disabled={imageGenerating || !isCustomPromptValid(customPrompt, useAiAutoPrompt)}
                       variant="outline"
                       className="w-full"
                     >
