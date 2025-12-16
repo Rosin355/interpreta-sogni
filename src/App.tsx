@@ -1,29 +1,43 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "next-themes";
 import { GlobalNotificationManager } from "@/components/GlobalNotificationManager";
-
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import MyDreams from "./pages/MyDreams";
-import NewDream from "./pages/NewDream";
-import EditDream from "./pages/EditDream";
-import DreamDetail from "./pages/DreamDetail";
-import Explore from "./pages/Explore";
-import Profile from "./pages/Profile";
-import Settings from "./pages/Settings";
-import About from "./pages/About";
-import Astrology from "./pages/Astrology";
-import Alchemy from "./pages/Alchemy";
-import ProfessionalVerification from "./pages/ProfessionalVerification";
-import AdminDashboard from "./pages/AdminDashboard";
-import SharedDreams from "./pages/SharedDreams";
-import SharedDreamsReceived from "./pages/SharedDreamsReceived";
-import NotFound from "./pages/NotFound";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+
+// Eager load - Landing page
+import Index from "./pages/Index";
+
+// Lazy load - All other pages
+const Auth = lazy(() => import("./pages/Auth"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const MyDreams = lazy(() => import("./pages/MyDreams"));
+const NewDream = lazy(() => import("./pages/NewDream"));
+const EditDream = lazy(() => import("./pages/EditDream"));
+const DreamDetail = lazy(() => import("./pages/DreamDetail"));
+const Explore = lazy(() => import("./pages/Explore"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Settings = lazy(() => import("./pages/Settings"));
+const About = lazy(() => import("./pages/About"));
+const Astrology = lazy(() => import("./pages/Astrology"));
+const Alchemy = lazy(() => import("./pages/Alchemy"));
+const ProfessionalVerification = lazy(() => import("./pages/ProfessionalVerification"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const SharedDreams = lazy(() => import("./pages/SharedDreams"));
+const SharedDreamsReceived = lazy(() => import("./pages/SharedDreamsReceived"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="flex flex-col items-center gap-4">
+      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <p className="text-muted-foreground text-sm">Caricamento...</p>
+    </div>
+  </div>
+);
 
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
@@ -33,29 +47,31 @@ const App = () => (
         <Sonner />
         <PWAInstallPrompt />
         <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/my-dreams" element={<MyDreams />} />
-          <Route path="/dreams/new" element={<NewDream />} />
-          <Route path="/dreams/:id/edit" element={<EditDream />} />
-          <Route path="/dreams/:id" element={<DreamDetail />} />
-          <Route path="/dream/:id" element={<DreamDetail />} />
-          <Route path="/explore" element={<Explore />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/astrology" element={<Astrology />} />
-          <Route path="/alchemy" element={<Alchemy />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/professional-verification" element={<ProfessionalVerification />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/shared-dreams" element={<SharedDreams />} />
-          <Route path="/shared-with-me" element={<SharedDreamsReceived />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/my-dreams" element={<MyDreams />} />
+              <Route path="/dreams/new" element={<NewDream />} />
+              <Route path="/dreams/:id/edit" element={<EditDream />} />
+              <Route path="/dreams/:id" element={<DreamDetail />} />
+              <Route path="/dream/:id" element={<DreamDetail />} />
+              <Route path="/explore" element={<Explore />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/astrology" element={<Astrology />} />
+              <Route path="/alchemy" element={<Alchemy />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/professional-verification" element={<ProfessionalVerification />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/shared-dreams" element={<SharedDreams />} />
+              <Route path="/shared-with-me" element={<SharedDreamsReceived />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
       </GlobalNotificationManager>
     </TooltipProvider>
   </ThemeProvider>
