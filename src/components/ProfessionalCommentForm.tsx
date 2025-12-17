@@ -47,15 +47,12 @@ export function ProfessionalCommentForm({ dreamId, dreamOwnerId, onCommentAdded 
 
       if (commentError) throw commentError;
 
-      // Get dream and user info for email notification
+      // Get dream info and professional profile for email notification
       const { data: dreamData } = await supabase
         .from("dreams")
         .select("title")
         .eq("id", dreamId)
         .single();
-
-      const { data: authData } = await supabase.auth.admin.getUserById(dreamOwnerId);
-      const userEmail = authData?.user?.email;
 
       const { data: profileData } = await supabase
         .from("profiles")
@@ -63,22 +60,19 @@ export function ProfessionalCommentForm({ dreamId, dreamOwnerId, onCommentAdded 
         .eq("id", user.id)
         .single();
 
-      if (userEmail) {
-        // Send email notification
-        await supabase.functions.invoke("send-email-notification", {
-          body: {
-            type: "new_comment",
-            recipientEmail: userEmail,
-            recipientName: authData?.user?.user_metadata?.username || "Utente",
-            data: {
-              dreamTitle: dreamData?.title,
-              dreamId,
-              professionalName: profileData?.username || "Professionista",
-              commentContent: content.trim(),
-            },
+      // Send email notification - edge function will look up recipient email server-side
+      await supabase.functions.invoke("send-email-notification", {
+        body: {
+          type: "new_comment",
+          recipientUserId: dreamOwnerId,
+          data: {
+            dreamTitle: dreamData?.title,
+            dreamId,
+            professionalName: profileData?.username || "Professionista",
+            commentContent: content.trim(),
           },
-        });
-      }
+        },
+      });
 
       toast({
         title: "✅ Feedback inviato!",

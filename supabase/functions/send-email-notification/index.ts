@@ -11,7 +11,8 @@ const corsHeaders = {
 
 interface EmailNotificationRequest {
   type: "professional_approved" | "dream_shared" | "new_comment" | "dream_shared_user_request" | "user_invitation";
-  recipientEmail: string;
+  recipientEmail?: string;
+  recipientUserId?: string;
   recipientName?: string;
   data?: {
     dreamTitle?: string;
@@ -47,12 +48,35 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Unauthorized");
     }
 
-    const { type, recipientEmail, recipientName, data }: EmailNotificationRequest = await req.json();
+    const { type, recipientEmail, recipientUserId, recipientName, data }: EmailNotificationRequest = await req.json();
+
+    // Resolve recipient email - either provided directly or looked up from user ID
+    let finalRecipientEmail = recipientEmail;
+    let finalRecipientName = recipientName;
+
+    if (!finalRecipientEmail && recipientUserId) {
+      // Look up user email using admin API (server-side only)
+      const { data: userData, error: userError } = await supabase.auth.admin.getUserById(recipientUserId);
+      if (userError || !userData?.user?.email) {
+        console.error('[send-email] Failed to lookup user email:', userError);
+        throw new Error("Could not find recipient email");
+      }
+      finalRecipientEmail = userData.user.email;
+      // Use username from metadata if not provided
+      if (!finalRecipientName) {
+        finalRecipientName = userData.user.user_metadata?.username || userData.user.email.split('@')[0];
+      }
+    }
+
+    if (!finalRecipientEmail) {
+      throw new Error("Recipient email is required (either directly or via recipientUserId)");
+    }
 
     console.log('[send-email] Request received:', { 
       type, 
-      recipientEmail, 
-      recipientName,
+      recipientEmail: finalRecipientEmail, 
+      recipientUserId,
+      recipientName: finalRecipientName,
       dataKeys: data ? Object.keys(data) : []
     });
 
@@ -64,7 +88,7 @@ const handler = async (req: Request): Promise<Response> => {
         subject = "✅ Congratulazioni! Il tuo account professionale è stato approvato";
         html = `
           <h1>Benvenuto in Interpreta i tuoi Sogni!</h1>
-          <p>Ciao ${recipientName || "Professionista"},</p>
+          <p>Ciao ${finalRecipientName || "Professionista"},</p>
           <p>Siamo lieti di informarti che il tuo account professionale è stato <strong>approvato</strong>!</p>
           <p>Ora puoi ricevere sogni condivisi dagli utenti e fornire feedback professionali.</p>
           <p>Accedi alla tua dashboard per iniziare.</p>
@@ -78,7 +102,7 @@ const handler = async (req: Request): Promise<Response> => {
         subject = `🌙 Nuovo sogno condiviso con te${data?.dreamTitle ? `: "${data.dreamTitle}"` : ""}`;
         html = `
           <h1>Nuovo Sogno Condiviso</h1>
-          <p>Ciao ${recipientName || "Professionista"},</p>
+          <p>Ciao ${finalRecipientName || "Professionista"},</p>
           <p><strong>${data?.userName || "Un utente"}</strong> ha condiviso un sogno con te!</p>
           ${data?.dreamTitle ? `<p><strong>Titolo:</strong> ${data.dreamTitle}</p>` : ""}
           ${data?.message ? `<p><strong>Messaggio:</strong> ${data.message}</p>` : ""}
@@ -92,7 +116,7 @@ const handler = async (req: Request): Promise<Response> => {
         subject = `💬 Nuovo feedback sul tuo sogno${data?.dreamTitle ? `: "${data.dreamTitle}"` : ""}`;
         html = `
           <h1>Nuovo Feedback Ricevuto</h1>
-          <p>Ciao ${recipientName || "Utente"},</p>
+          <p>Ciao ${finalRecipientName || "Utente"},</p>
           <p><strong>${data?.professionalName || "Un professionista"}</strong> ha lasciato un feedback sul tuo sogno!</p>
           ${data?.dreamTitle ? `<p><strong>Sogno:</strong> ${data.dreamTitle}</p>` : ""}
           ${data?.commentContent ? `<p><strong>Feedback:</strong> ${data.commentContent.substring(0, 200)}${data.commentContent.length > 200 ? "..." : ""}</p>` : ""}
@@ -106,7 +130,7 @@ const handler = async (req: Request): Promise<Response> => {
         subject = `🌙 ${data?.userName || "Un utente"} vuole condividere un sogno con te`;
         html = `
           <h1>Richiesta di Condivisione Sogno</h1>
-          <p>Ciao ${recipientName || "Utente"},</p>
+          <p>Ciao ${finalRecipientName || "Utente"},</p>
           <p><strong>${data?.userName || "Un utente"}</strong> vorrebbe condividere un sogno con te!</p>
           ${data?.dreamTitle ? `<p><strong>Titolo sogno:</strong> ${data.dreamTitle}</p>` : ""}
           ${data?.message ? `<p><strong>Messaggio:</strong> ${data.message}</p>` : ""}
@@ -163,7 +187,7 @@ const handler = async (req: Request): Promise<Response> => {
     
     const emailResponse = await resend.emails.send({
       from: "Interpreta i tuoi Sogni <onboarding@resend.dev>",
-      to: [recipientEmail],
+      to: [finalRecipientEmail],
       subject: subject,
       html: html,
     });
