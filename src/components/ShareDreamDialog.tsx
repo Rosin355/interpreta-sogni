@@ -111,29 +111,23 @@ export function ShareDreamDialog({ dreamId, dreamTitle, open, onOpenChange }: Sh
         throw shareError;
       }
 
-      // Get professional email for notification
+      // Get professional info for notification
       const professional = professionals.find(p => p.user_id === selectedProfessional);
-      if (professional) {
-        const { data: authData } = await supabase.auth.admin.getUserById(selectedProfessional);
-        const professionalEmail = authData?.user?.email;
-
-        if (professionalEmail) {
-          // Send email notification
-          await supabase.functions.invoke("send-email-notification", {
-            body: {
-              type: "dream_shared",
-              recipientEmail: professionalEmail,
-              recipientName: professional.profiles?.username || "Professionista",
-              data: {
-                dreamTitle,
-                dreamId,
-                userName: user.user_metadata?.username || user.email,
-                message: message.trim() || undefined,
-              },
-            },
-          });
-        }
-      }
+      
+      // Send email notification - edge function will look up recipient email server-side
+      await supabase.functions.invoke("send-email-notification", {
+        body: {
+          type: "dream_shared",
+          recipientUserId: selectedProfessional,
+          recipientName: professional?.profiles?.username,
+          data: {
+            dreamTitle,
+            dreamId,
+            userName: user.user_metadata?.username || user.email,
+            message: message.trim() || undefined,
+          },
+        },
+      });
 
       toast({
         title: "✅ Sogno condiviso!",
