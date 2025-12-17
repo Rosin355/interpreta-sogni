@@ -311,9 +311,43 @@ const DreamDetail = () => {
 
       if (error) {
         console.error('Errore generazione immagine:', error);
+        
+        // Parse error for better messages
+        let errorMessage = "Impossibile generare l'immagine";
+        const errorCode = data?.errorCode || error?.message;
+        
+        if (errorCode?.includes('RATE_LIMIT') || errorCode?.includes('AI_RATE_LIMIT')) {
+          errorMessage = "Limite richieste raggiunto. Attendi qualche minuto e riprova.";
+        } else if (errorCode?.includes('AI_CREDITS_EXHAUSTED') || error?.message?.includes('402')) {
+          errorMessage = "Crediti AI esauriti. Contatta il supporto per assistenza.";
+        } else if (errorCode?.includes('VALIDATION_ERROR')) {
+          errorMessage = `Dati non validi: ${data?.details || 'Verifica il contenuto del sogno'}`;
+        } else if (errorCode?.includes('FORBIDDEN')) {
+          errorMessage = "Non sei autorizzato a generare immagini per questo sogno.";
+        } else if (errorCode?.includes('DREAM_NOT_FOUND')) {
+          errorMessage = "Sogno non trovato. Ricarica la pagina.";
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+        
+        toast({
+          title: "Errore Generazione Immagine",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      } else if (data?.error) {
+        // Handle error returned in data (non-throwing errors)
+        let errorMessage = data.error;
+        
+        if (data.errorCode === 'AI_RATE_LIMIT') {
+          errorMessage = "Limite richieste AI raggiunto. Attendi qualche minuto.";
+        } else if (data.errorCode === 'AI_CREDITS_EXHAUSTED') {
+          errorMessage = "Crediti AI esauriti. Contatta il supporto.";
+        }
+        
         toast({
           title: "Errore",
-          description: error.message || "Impossibile generare l'immagine",
+          description: errorMessage,
           variant: "destructive",
         });
       } else if (data?.image_url) {
@@ -326,12 +360,18 @@ const DreamDetail = () => {
           title: "Successo",
           description: "Immagine generata con successo!",
         });
+      } else {
+        toast({
+          title: "Errore",
+          description: "Risposta non valida dal server. Riprova.",
+          variant: "destructive",
+        });
       }
-    } catch (error) {
-      console.error('Errore:', error);
+    } catch (error: any) {
+      console.error('Errore inaspettato:', error);
       toast({
         title: "Errore",
-        description: "Si è verificato un errore durante la generazione",
+        description: error?.message || "Si è verificato un errore imprevisto durante la generazione",
         variant: "destructive",
       });
     } finally {
