@@ -24,6 +24,12 @@ export default {
 				'color-3': 'hsl(var(--color-3))',
 				'color-4': 'hsl(var(--color-4))',
 				'color-5': 'hsl(var(--color-5))',
+				// Mystic color palette
+				'mystic-violet': 'hsl(var(--mystic-violet))',
+				'mystic-magenta': 'hsl(var(--mystic-magenta))',
+				'mystic-pink': 'hsl(var(--mystic-pink))',
+				'mystic-glow': 'hsl(var(--mystic-glow))',
+				'mystic-deep': 'hsl(var(--mystic-deep))',
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
@@ -113,6 +119,40 @@ export default {
 				'rainbow': {
 					'0%': { backgroundPosition: '0%' },
 					'100%': { backgroundPosition: '200%' }
+				},
+				'mystic-float': {
+					'0%, 100%': { transform: 'translateY(0) rotate(0deg)' },
+					'25%': { transform: 'translateY(-10px) rotate(1deg)' },
+					'75%': { transform: 'translateY(5px) rotate(-1deg)' }
+				},
+				'star-fall': {
+					'0%': { transform: 'translateY(-100vh) translateX(-50px)', opacity: '0' },
+					'10%': { opacity: '1' },
+					'100%': { transform: 'translateY(100vh) translateX(50px)', opacity: '0' }
+				},
+				'aurora': {
+					'0%, 100%': { 
+						backgroundPosition: '0% 50%',
+						filter: 'hue-rotate(0deg)'
+					},
+					'50%': { 
+						backgroundPosition: '100% 50%',
+						filter: 'hue-rotate(30deg)'
+					}
+				},
+				'glow-pulse': {
+					'0%, 100%': { 
+						boxShadow: '0 0 20px hsl(var(--mystic-glow) / 0.3), 0 0 40px hsl(var(--mystic-glow) / 0.2)',
+						borderColor: 'hsl(var(--mystic-violet) / 0.5)'
+					},
+					'50%': { 
+						boxShadow: '0 0 30px hsl(var(--mystic-glow) / 0.5), 0 0 60px hsl(var(--mystic-glow) / 0.3)',
+						borderColor: 'hsl(var(--mystic-magenta) / 0.7)'
+					}
+				},
+				'nebula-drift': {
+					'0%, 100%': { transform: 'scale(1) translateX(0)' },
+					'50%': { transform: 'scale(1.1) translateX(20px)' }
 				}
 			},
 			animation: {
@@ -123,7 +163,12 @@ export default {
 				'pulse-glow': 'pulse-glow 3s ease-in-out infinite',
 				'gradient-shift': 'gradient-shift 4s ease infinite',
 				'twinkle': 'twinkle 3s ease-in-out infinite',
-				'rainbow': 'rainbow var(--speed, 2s) infinite linear'
+				'rainbow': 'rainbow var(--speed, 2s) infinite linear',
+				'mystic-float': 'mystic-float 8s ease-in-out infinite',
+				'star-fall': 'star-fall 4s linear infinite',
+				'aurora': 'aurora 6s ease-in-out infinite',
+				'glow-pulse': 'glow-pulse 4s ease-in-out infinite',
+				'nebula-drift': 'nebula-drift 15s ease-in-out infinite'
 			}
 		}
 	},
