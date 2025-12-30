@@ -71,6 +71,13 @@ All colors MUST be HSL.
     --dream-star-blue: 210 100% 85%;
     --dream-star-pink: 330 100% 90%;
     
+    /* Mystic color tokens */
+    --mystic-violet: 280 70% 45%;
+    --mystic-magenta: 320 80% 50%;
+    --mystic-pink: 330 70% 65%;
+    --mystic-glow: 300 100% 70%;
+    --mystic-deep: 270 60% 10%;
+    
     /* Gradients */
     --hero-gradient: linear-gradient(135deg, hsl(232 71% 8%) 0%, hsl(235 45% 20%) 50%, hsl(232 71% 8%) 100%);
     --primary-gradient: linear-gradient(135deg, hsl(245 58% 51%) 0%, hsl(270 50% 50%) 100%);
@@ -143,5 +150,47 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Mystic utility classes */
+@layer utilities {
+  .mystic-glow {
+    box-shadow: 0 0 30px hsl(var(--mystic-glow) / 0.4), 
+                0 0 60px hsl(var(--mystic-violet) / 0.2);
+  }
+  
+  .mystic-text {
+    text-shadow: 0 0 20px hsl(var(--mystic-glow) / 0.5),
+                 0 0 40px hsl(var(--mystic-magenta) / 0.3);
+  }
+  
+  .mystic-border {
+    border: 1px solid hsl(var(--mystic-violet) / 0.3);
+    animation: glow-pulse 4s ease-in-out infinite;
+  }
+  
+  .mystic-gradient-bg {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--mystic-deep)) 0%,
+      hsl(var(--mystic-violet) / 0.3) 50%,
+      hsl(var(--mystic-deep)) 100%
+    );
+  }
+  
+  .mystic-card {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--card) / 0.9) 0%,
+      hsl(var(--mystic-violet) / 0.1) 100%
+    );
+    border: 1px solid hsl(var(--mystic-violet) / 0.2);
+    backdrop-filter: blur(10px);
+  }
+  
+  .mystic-card:hover {
+    border-color: hsl(var(--mystic-magenta) / 0.4);
+    box-shadow: 0 0 30px hsl(var(--mystic-glow) / 0.2);
   }
 }
