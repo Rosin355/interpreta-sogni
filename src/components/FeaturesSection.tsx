@@ -24,7 +24,7 @@ const features = [{
 const FeaturesSection = () => {
   return (
     <section id="features" className="py-24 features-section relative overflow-hidden">
-      <NebulaOverlay intensity="light" />
+      <NebulaOverlay intensity="light" className="nebula-overlay" />
       
       {/* Decorative glowing stars */}
       <GlowingStar 
@@ -51,7 +51,7 @@ const FeaturesSection = () => {
           transition={{ duration: 0.8 }}
           viewport={{ once: true }}
         >
-          <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-foreground mystic-text">
+          <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-foreground mystic-text section-title">
             Sblocca il Potere dei Tuoi Sogni
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
@@ -80,7 +80,7 @@ const FeaturesSection = () => {
           {features.map((feature, index) => (
             <motion.div
               key={feature.title}
-              className="mystic-card p-6 rounded-2xl transition-all duration-500"
+              className="mystic-card p-6 rounded-2xl transition-all duration-500 feature-card"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}

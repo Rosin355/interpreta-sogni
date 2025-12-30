@@ -1,11 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { motion, useMotionValue, useSpring } from 'framer-motion';
-
-interface TrailPoint {
-  x: number;
-  y: number;
-  id: number;
-}
+import React, { useEffect, useRef, useCallback } from 'react';
 
 interface MysticCursorProps {
   trailLength?: number;
@@ -13,18 +6,115 @@ interface MysticCursorProps {
 }
 
 const MysticCursor: React.FC<MysticCursorProps> = ({ 
-  trailLength = 12,
+  trailLength = 8,
   enabled = true 
 }) => {
-  const [trail, setTrail] = useState<TrailPoint[]>([]);
-  const [isVisible, setIsVisible] = useState(false);
-  const idCounter = useRef(0);
-  
-  const cursorX = useMotionValue(0);
-  const cursorY = useMotionValue(0);
-  
-  const springX = useSpring(cursorX, { stiffness: 500, damping: 28 });
-  const springY = useSpring(cursorY, { stiffness: 500, damping: 28 });
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mousePos = useRef({ x: 0, y: 0 });
+  const trailPoints = useRef<{ x: number; y: number; age: number }[]>([]);
+  const animationRef = useRef<number>();
+  const isVisible = useRef(false);
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (!isVisible.current) {
+      animationRef.current = requestAnimationFrame(draw);
+      return;
+    }
+
+    // Update trail points - add new point and age existing ones
+    trailPoints.current.unshift({ 
+      x: mousePos.current.x, 
+      y: mousePos.current.y, 
+      age: 0 
+    });
+
+    // Age and filter trail points
+    trailPoints.current = trailPoints.current
+      .map(p => ({ ...p, age: p.age + 1 }))
+      .filter(p => p.age < trailLength * 3)
+      .slice(0, trailLength * 2);
+
+    // Draw trail with smooth interpolation
+    for (let i = trailPoints.current.length - 1; i >= 0; i--) {
+      const point = trailPoints.current[i];
+      const progress = i / (trailLength * 2);
+      const opacity = Math.max(0, 1 - progress) * 0.5;
+      const size = 4 + (1 - progress) * 10;
+
+      if (opacity <= 0) continue;
+
+      // Outer glow
+      const gradient = ctx.createRadialGradient(
+        point.x, point.y, 0,
+        point.x, point.y, size * 2
+      );
+      gradient.addColorStop(0, `hsla(300, 100%, 70%, ${opacity * 0.6})`);
+      gradient.addColorStop(0.4, `hsla(320, 80%, 50%, ${opacity * 0.3})`);
+      gradient.addColorStop(0.7, `hsla(280, 70%, 45%, ${opacity * 0.15})`);
+      gradient.addColorStop(1, 'transparent');
+
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, size * 2, 0, Math.PI * 2);
+      ctx.fillStyle = gradient;
+      ctx.fill();
+    }
+
+    // Draw main cursor
+    const { x, y } = mousePos.current;
+
+    // Outer soft glow
+    const outerGlow = ctx.createRadialGradient(x, y, 0, x, y, 40);
+    outerGlow.addColorStop(0, 'hsla(300, 100%, 70%, 0.15)');
+    outerGlow.addColorStop(0.5, 'hsla(320, 80%, 50%, 0.08)');
+    outerGlow.addColorStop(1, 'transparent');
+    ctx.beginPath();
+    ctx.arc(x, y, 40, 0, Math.PI * 2);
+    ctx.fillStyle = outerGlow;
+    ctx.fill();
+
+    // Inner core
+    const coreGradient = ctx.createRadialGradient(x, y, 0, x, y, 8);
+    coreGradient.addColorStop(0, 'hsla(300, 100%, 80%, 0.9)');
+    coreGradient.addColorStop(0.5, 'hsla(320, 80%, 60%, 0.7)');
+    coreGradient.addColorStop(1, 'hsla(280, 70%, 50%, 0.4)');
+    ctx.beginPath();
+    ctx.arc(x, y, 8, 0, Math.PI * 2);
+    ctx.fillStyle = coreGradient;
+    ctx.fill();
+
+    // Cross rays
+    ctx.save();
+    ctx.globalAlpha = 0.4;
+    
+    // Vertical ray
+    const vGradient = ctx.createLinearGradient(x, y - 20, x, y + 20);
+    vGradient.addColorStop(0, 'transparent');
+    vGradient.addColorStop(0.5, 'hsla(300, 100%, 70%, 0.8)');
+    vGradient.addColorStop(1, 'transparent');
+    ctx.fillStyle = vGradient;
+    ctx.fillRect(x - 1, y - 20, 2, 40);
+
+    // Horizontal ray
+    const hGradient = ctx.createLinearGradient(x - 20, y, x + 20, y);
+    hGradient.addColorStop(0, 'transparent');
+    hGradient.addColorStop(0.5, 'hsla(300, 100%, 70%, 0.8)');
+    hGradient.addColorStop(1, 'transparent');
+    ctx.fillStyle = hGradient;
+    ctx.fillRect(x - 20, y - 1, 40, 2);
+
+    ctx.restore();
+
+    animationRef.current = requestAnimationFrame(draw);
+  }, [trailLength]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -33,158 +123,57 @@ const MysticCursor: React.FC<MysticCursorProps> = ({
     const hasMouse = window.matchMedia('(pointer: fine)').matches;
     if (!hasMouse) return;
 
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Set canvas size
+    const updateSize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+
     const handleMouseMove = (e: MouseEvent) => {
-      cursorX.set(e.clientX);
-      cursorY.set(e.clientY);
-      setIsVisible(true);
-      
-      setTrail(prev => {
-        const newPoint = { x: e.clientX, y: e.clientY, id: idCounter.current++ };
-        const newTrail = [newPoint, ...prev].slice(0, trailLength);
-        return newTrail;
-      });
+      mousePos.current = { x: e.clientX, y: e.clientY };
+      isVisible.current = true;
     };
 
     const handleMouseLeave = () => {
-      setIsVisible(false);
-      setTrail([]);
+      isVisible.current = false;
+      trailPoints.current = [];
     };
 
     const handleMouseEnter = () => {
-      setIsVisible(true);
+      isVisible.current = true;
     };
 
     window.addEventListener('mousemove', handleMouseMove);
     document.documentElement.addEventListener('mouseleave', handleMouseLeave);
     document.documentElement.addEventListener('mouseenter', handleMouseEnter);
 
+    // Start animation loop
+    animationRef.current = requestAnimationFrame(draw);
+
     return () => {
+      window.removeEventListener('resize', updateSize);
       window.removeEventListener('mousemove', handleMouseMove);
       document.documentElement.removeEventListener('mouseleave', handleMouseLeave);
       document.documentElement.removeEventListener('mouseenter', handleMouseEnter);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
     };
-  }, [enabled, trailLength, cursorX, cursorY]);
+  }, [enabled, draw]);
 
   if (!enabled) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-[9999] overflow-hidden">
-      {/* Trail particles */}
-      {trail.map((point, index) => {
-        const opacity = 1 - (index / trailLength);
-        const scale = 1 - (index / trailLength) * 0.7;
-        const size = 8 + (1 - index / trailLength) * 12;
-        
-        return (
-          <motion.div
-            key={point.id}
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ 
-              opacity: opacity * 0.6,
-              scale,
-              x: point.x - size / 2,
-              y: point.y - size / 2
-            }}
-            exit={{ opacity: 0, scale: 0 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute rounded-full"
-            style={{
-              width: size,
-              height: size,
-              background: `radial-gradient(circle, 
-                hsl(var(--mystic-glow) / ${opacity * 0.8}) 0%, 
-                hsl(var(--mystic-magenta) / ${opacity * 0.5}) 40%, 
-                hsl(var(--mystic-violet) / ${opacity * 0.3}) 70%, 
-                transparent 100%)`,
-              boxShadow: `
-                0 0 ${size * 2}px hsl(var(--mystic-glow) / ${opacity * 0.4}),
-                0 0 ${size * 3}px hsl(var(--mystic-magenta) / ${opacity * 0.3})
-              `,
-              filter: `blur(${index * 0.3}px)`,
-            }}
-          />
-        );
-      })}
-
-      {/* Main cursor glow */}
-      {isVisible && (
-        <motion.div
-          className="absolute"
-          style={{
-            x: springX,
-            y: springY,
-            translateX: '-50%',
-            translateY: '-50%',
-          }}
-        >
-          {/* Outer glow */}
-          <div 
-            className="absolute rounded-full animate-glow-pulse"
-            style={{
-              width: 60,
-              height: 60,
-              left: -30,
-              top: -30,
-              background: `radial-gradient(circle, 
-                hsl(var(--mystic-glow) / 0.15) 0%, 
-                hsl(var(--mystic-magenta) / 0.1) 40%, 
-                transparent 70%)`,
-              filter: 'blur(8px)',
-            }}
-          />
-          
-          {/* Inner core */}
-          <div 
-            className="absolute rounded-full"
-            style={{
-              width: 12,
-              height: 12,
-              left: -6,
-              top: -6,
-              background: `radial-gradient(circle, 
-                hsl(var(--mystic-glow)) 0%, 
-                hsl(var(--mystic-magenta)) 50%, 
-                hsl(var(--mystic-violet)) 100%)`,
-              boxShadow: `
-                0 0 10px hsl(var(--mystic-glow) / 0.8),
-                0 0 20px hsl(var(--mystic-magenta) / 0.6),
-                0 0 40px hsl(var(--mystic-violet) / 0.4)
-              `,
-            }}
-          />
-          
-          {/* Cross rays */}
-          <div 
-            className="absolute"
-            style={{
-              width: 2,
-              height: 30,
-              left: -1,
-              top: -15,
-              background: `linear-gradient(to bottom, 
-                transparent 0%, 
-                hsl(var(--mystic-glow) / 0.6) 50%, 
-                transparent 100%)`,
-              filter: 'blur(1px)',
-            }}
-          />
-          <div 
-            className="absolute"
-            style={{
-              width: 30,
-              height: 2,
-              left: -15,
-              top: -1,
-              background: `linear-gradient(to right, 
-                transparent 0%, 
-                hsl(var(--mystic-glow) / 0.6) 50%, 
-                transparent 100%)`,
-              filter: 'blur(1px)',
-            }}
-          />
-        </motion.div>
-      )}
-    </div>
+    <canvas
+      ref={canvasRef}
+      className="pointer-events-none fixed inset-0 z-[9999]"
+      style={{ mixBlendMode: 'screen' }}
+    />
   );
 };
 

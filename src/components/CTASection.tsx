@@ -78,7 +78,7 @@ const CTASection = () => {
           transition={{ duration: 0.8 }}
           viewport={{ once: true }}
         >
-          <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-foreground mystic-text">
+          <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-foreground mystic-text section-title">
             Esplora l'Universo Onirico
           </h2>
           <p className="text-xl text-muted-foreground leading-relaxed mb-8">
