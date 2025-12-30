@@ -1,5 +1,3 @@
-import { motion } from 'framer-motion';
-
 interface NebulaOverlayProps {
   className?: string;
   intensity?: 'light' | 'medium' | 'strong';
@@ -21,48 +19,36 @@ export function NebulaOverlay({
 
   return (
     <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
-      {/* Main nebula gradient */}
-      <motion.div
-        className="absolute inset-0"
+      {/* Main nebula gradient - CSS animation instead of framer-motion */}
+      <div
+        className={animated ? 'nebula-drift-1' : ''}
         style={{
+          position: 'absolute',
+          inset: 0,
           background: `
             radial-gradient(ellipse 80% 50% at 20% 30%, hsl(280 70% 30% / ${opacity}) 0%, transparent 50%),
             radial-gradient(ellipse 60% 40% at 80% 20%, hsl(320 80% 40% / ${opacity * 0.8}) 0%, transparent 50%),
             radial-gradient(ellipse 70% 60% at 50% 80%, hsl(260 60% 25% / ${opacity * 0.6}) 0%, transparent 50%)
           `,
-        }}
-        animate={animated ? {
-          scale: [1, 1.05, 1],
-          opacity: [1, 0.8, 1],
-        } : undefined}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: "easeInOut",
+          willChange: animated ? 'transform, opacity' : 'auto',
         }}
       />
 
-      {/* Secondary floating nebula */}
-      <motion.div
-        className="absolute inset-0"
+      {/* Secondary floating nebula - CSS animation */}
+      <div
+        className={animated ? 'nebula-drift-2' : ''}
         style={{
+          position: 'absolute',
+          inset: 0,
           background: `
             radial-gradient(ellipse 50% 30% at 70% 60%, hsl(300 70% 50% / ${opacity * 0.5}) 0%, transparent 50%),
             radial-gradient(ellipse 40% 40% at 30% 70%, hsl(270 60% 40% / ${opacity * 0.4}) 0%, transparent 50%)
           `,
-        }}
-        animate={animated ? {
-          x: [0, 20, 0],
-          y: [0, -15, 0],
-        } : undefined}
-        transition={{
-          duration: 12,
-          repeat: Infinity,
-          ease: "easeInOut",
+          willChange: animated ? 'transform' : 'auto',
         }}
       />
 
-      {/* Cosmic dust particles effect */}
+      {/* Cosmic dust particles effect - static, no animation needed */}
       <div 
         className="absolute inset-0 opacity-30"
         style={{

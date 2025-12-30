@@ -1,11 +1,10 @@
-import { motion } from 'framer-motion';
-
 interface GlowingStarProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   color?: 'white' | 'pink' | 'purple' | 'gold';
   animated?: boolean;
   style?: React.CSSProperties;
+  delay?: number;
 }
 
 export function GlowingStar({ 
@@ -14,6 +13,7 @@ export function GlowingStar({
   color = 'white',
   animated = true,
   style,
+  delay = 0,
 }: GlowingStarProps) {
   const sizeMap = {
     sm: { star: 8, glow: 20, rays: 15 },
@@ -33,18 +33,15 @@ export function GlowingStar({
   const c = colorMap[color];
 
   return (
-    <motion.div
-      className={`relative ${className}`}
-      style={{ width: s.glow * 2, height: s.glow * 2, ...style }}
-      animate={animated ? {
-        scale: [1, 1.2, 1],
-        opacity: [0.8, 1, 0.8],
-      } : undefined}
-      transition={{
-        duration: 2 + Math.random() * 2,
-        repeat: Infinity,
-        ease: "easeInOut",
-      }}
+    <div
+      className={`relative ${animated ? 'star-glow-animation' : ''} ${className}`}
+      style={{ 
+        width: s.glow * 2, 
+        height: s.glow * 2,
+        '--star-delay': `${delay}s`,
+        willChange: animated ? 'transform, opacity' : 'auto',
+        ...style 
+      } as React.CSSProperties}
     >
       {/* Outer glow */}
       <div
@@ -126,6 +123,6 @@ export function GlowingStar({
           boxShadow: `0 0 ${s.star}px ${c.core}`,
         }}
       />
-    </motion.div>
+    </div>
   );
 }
