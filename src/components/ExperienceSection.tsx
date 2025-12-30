@@ -29,7 +29,7 @@ const ExperienceSection = () => {
           transition={{ duration: 0.8 }}
           viewport={{ once: true }}
         >
-          <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-foreground mystic-text">
+          <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-foreground mystic-text section-title">
             Prova Dream's Alchemist
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
@@ -112,7 +112,7 @@ const ExperienceSection = () => {
           
           {/* Right side - Features */}
           <motion.div 
-            className="space-y-8"
+            className="space-y-8 experience-content"
             initial={{ opacity: 0, x: 50 }}
             whileInView={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}

@@ -35,7 +35,7 @@ const ResearchSection = () => {
           transition={{ duration: 0.8 }}
           viewport={{ once: true }}
         >
-          <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-foreground mystic-text">
+          <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-foreground mystic-text section-title">
             Mappare l'Universo Onirico Insieme
           </h2>
           <p className="text-xl text-muted-foreground max-w-4xl mx-auto leading-relaxed mb-8">
@@ -55,7 +55,7 @@ const ResearchSection = () => {
             {dreamPatterns.map((pattern, index) => (
               <motion.span
                 key={pattern}
-                className="px-4 py-2 rounded-full text-sm font-medium bg-mystic-violet/20 border border-mystic-violet/30 text-foreground hover:bg-mystic-magenta/30 hover:border-mystic-magenta/50 transition-all duration-300 cursor-default"
+                className="px-4 py-2 rounded-full text-sm font-medium bg-mystic-violet/20 border border-mystic-violet/30 text-foreground hover:bg-mystic-magenta/30 hover:border-mystic-magenta/50 transition-all duration-300 cursor-default research-pattern"
                 initial={{ opacity: 0, scale: 0.8 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3, delay: 0.4 + index * 0.05 }}
