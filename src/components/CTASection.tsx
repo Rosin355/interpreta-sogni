@@ -8,6 +8,7 @@ import ctaDreamsImage from "@/assets/cta-dreams-universe.jpg";
 import { FallingStars } from "@/components/ui/FallingStars";
 import { NebulaOverlay } from "@/components/ui/NebulaOverlay";
 import { GlowingStar } from "@/components/ui/GlowingStar";
+import { MorphingImage } from "@/components/ui/MorphingImage";
 import { motion } from "framer-motion";
 
 const CTASection = () => {
@@ -35,10 +36,12 @@ const CTASection = () => {
     <section className="cta-section py-24 relative overflow-hidden min-h-[700px]">
       {/* Background image with enhanced overlay */}
       <div className="absolute inset-0">
-        <img 
+        <MorphingImage 
           src={ctaDreamsImage} 
           alt="Universo onirico" 
           className="w-full h-full object-cover"
+          morphType="blur"
+          duration={1.8}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-mystic-deep/60 to-background/90" />
       </div>

@@ -1,6 +1,7 @@
 import dreamsHero from "@/assets/dreams-hero.jpg";
 import { NebulaOverlay } from "@/components/ui/NebulaOverlay";
 import { GlowingStar } from "@/components/ui/GlowingStar";
+import { MorphingImage } from "@/components/ui/MorphingImage";
 import { motion } from "framer-motion";
 
 const features = [{
@@ -59,20 +60,16 @@ const FeaturesSection = () => {
             partecipi a ricerche rivoluzionarie sui sogni.
           </p>
           
-          <motion.div 
-            className="mt-12 mb-8 relative"
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1, delay: 0.2 }}
-            viewport={{ once: true }}
-          >
+          <div className="mt-12 mb-8 relative">
             <div className="absolute inset-0 bg-gradient-to-r from-mystic-violet/20 via-mystic-magenta/20 to-mystic-violet/20 rounded-2xl blur-xl" />
-            <img 
+            <MorphingImage 
               src={dreamsHero} 
               alt="Una persona che dorme serenamente sotto un cielo stellato onirico" 
-              className="rounded-2xl shadow-2xl w-full max-w-4xl mx-auto relative mystic-glow" 
+              className="rounded-2xl shadow-2xl w-full max-w-4xl mx-auto relative mystic-glow"
+              morphType="glow"
+              duration={1.4}
             />
-          </motion.div>
+          </div>
         </motion.div>
         
         {/* Feature cards */}
