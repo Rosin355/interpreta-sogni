@@ -10,6 +10,7 @@ interface StarsCanvasProps {
   twinkleIntensity?: number;
   className?: string;
   paused?: boolean;
+  parallaxStrength?: number;
 }
 
 export function StarsCanvas({
@@ -21,9 +22,11 @@ export function StarsCanvas({
   twinkleIntensity = 20,
   className = '',
   paused = false,
+  parallaxStrength = 0.3,
 }: StarsCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
+  const scrollOffsetRef = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -77,6 +80,7 @@ export function StarsCanvas({
       timePassed: number;
       speed: number;
       alpha: number;
+      parallaxFactor: number;
 
       constructor() {
         this.orbitRadius = random(maxOrbit(w, h));
@@ -86,13 +90,16 @@ export function StarsCanvas({
         this.timePassed = random(0, maxStars);
         this.speed = (random(this.orbitRadius) / 50000) * speedMultiplier;
         this.alpha = (random(2, 10) / 10) * brightness;
+        // Parallax factor based on orbit radius (bigger orbit = slower parallax)
+        this.parallaxFactor = (1 - this.orbitRadius / maxOrbit(w, h)) * parallaxStrength + 0.1;
         count++;
         stars[count] = this;
       }
 
       draw() {
+        const parallaxOffset = scrollOffsetRef.current * this.parallaxFactor;
         const x = Math.sin(this.timePassed) * this.orbitRadius + this.orbitX;
-        const y = Math.cos(this.timePassed) * this.orbitRadius + this.orbitY;
+        const y = Math.cos(this.timePassed) * this.orbitRadius + this.orbitY - parallaxOffset;
         const twinkle = random(twinkleIntensity);
 
         if (twinkle === 1 && this.alpha > 0) {
@@ -134,12 +141,20 @@ export function StarsCanvas({
       h = canvas.height = window.innerHeight;
     };
 
+    // --- Scroll handling for parallax ---
+    const handleScroll = () => {
+      scrollOffsetRef.current = window.scrollY;
+    };
+
     window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
     return () => {
       cancelAnimationFrame(animationRef.current!);
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleScroll);
     };
-  }, [transparent, maxStars, hue, brightness, speedMultiplier, twinkleIntensity, paused]);
+  }, [transparent, maxStars, hue, brightness, speedMultiplier, twinkleIntensity, paused, parallaxStrength]);
 
   return (
     <canvas
