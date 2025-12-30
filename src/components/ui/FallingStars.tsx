@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface FallingStarsProps {
   className?: string;
@@ -22,7 +22,7 @@ interface FallingStar {
 
 export function FallingStars({
   className = '',
-  starCount = 20,
+  starCount = 8, // Reduced from 20
   colors = ['#a855f7', '#ec4899', '#f472b6', '#c084fc', '#e879f9'],
   speed = 1,
   paused = false,
@@ -30,10 +30,41 @@ export function FallingStars({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
   const starsRef = useRef<FallingStar[]>([]);
+  const [isVisible, setIsVisible] = useState(true);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  // FPS throttling
+  const fps = 30;
+  const fpsInterval = 1000 / fps;
+  const lastFrameTime = useRef(performance.now());
+
+  useEffect(() => {
+    // Check for reduced motion preference
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+    
+    const handleChange = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    // Visibility detection
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsVisible(entry.isIntersecting),
+      { threshold: 0.1 }
+    );
+    observer.observe(canvas);
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || prefersReducedMotion) return;
 
     const ctx = canvas.getContext('2d')!;
     let w = (canvas.width = window.innerWidth);
@@ -42,9 +73,9 @@ export function FallingStars({
     const createStar = (): FallingStar => ({
       x: Math.random() * w * 1.5 - w * 0.25,
       y: -50 - Math.random() * 200,
-      length: 30 + Math.random() * 80,
-      speed: (2 + Math.random() * 3) * speed,
-      opacity: 0.3 + Math.random() * 0.7,
+      length: 30 + Math.random() * 60,
+      speed: (2 + Math.random() * 2) * speed,
+      opacity: 0.3 + Math.random() * 0.5,
       color: colors[Math.floor(Math.random() * colors.length)],
       delay: Math.random() * 5000,
       active: false,
@@ -55,19 +86,27 @@ export function FallingStars({
 
     let startTime = Date.now();
 
-    const animate = () => {
-      if (paused) {
+    const animate = (currentTime: number) => {
+      if (paused || !isVisible) {
         animationRef.current = requestAnimationFrame(animate);
         return;
       }
 
-      const currentTime = Date.now() - startTime;
+      // FPS throttling
+      const elapsed = currentTime - lastFrameTime.current;
+      if (elapsed < fpsInterval) {
+        animationRef.current = requestAnimationFrame(animate);
+        return;
+      }
+      lastFrameTime.current = currentTime - (elapsed % fpsInterval);
+
+      const timeSinceStart = Date.now() - startTime;
 
       ctx.clearRect(0, 0, w, h);
 
       starsRef.current.forEach((star, index) => {
         // Check if star should become active
-        if (!star.active && currentTime > star.delay) {
+        if (!star.active && timeSinceStart > star.delay) {
           star.active = true;
         }
 
@@ -85,29 +124,29 @@ export function FallingStars({
           star.y
         );
         gradient.addColorStop(0, 'transparent');
-        gradient.addColorStop(0.5, star.color + '40');
+        gradient.addColorStop(0.5, star.color + '30');
         gradient.addColorStop(1, star.color);
 
         ctx.beginPath();
         ctx.moveTo(star.x - star.length * 0.3, star.y - star.length * 0.6);
         ctx.lineTo(star.x, star.y);
         ctx.strokeStyle = gradient;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
         ctx.lineCap = 'round';
         ctx.globalAlpha = star.opacity;
         ctx.stroke();
 
-        // Draw glow at the head
+        // Draw glow at the head (smaller)
         const glowGradient = ctx.createRadialGradient(
           star.x, star.y, 0,
-          star.x, star.y, 8
+          star.x, star.y, 5
         );
         glowGradient.addColorStop(0, star.color);
-        glowGradient.addColorStop(0.5, star.color + '60');
+        glowGradient.addColorStop(0.5, star.color + '40');
         glowGradient.addColorStop(1, 'transparent');
 
         ctx.beginPath();
-        ctx.arc(star.x, star.y, 8, 0, Math.PI * 2);
+        ctx.arc(star.x, star.y, 5, 0, Math.PI * 2);
         ctx.fillStyle = glowGradient;
         ctx.globalAlpha = star.opacity;
         ctx.fill();
@@ -134,19 +173,23 @@ export function FallingStars({
       h = canvas.height = window.innerHeight;
     };
 
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize, { passive: true });
 
     return () => {
       cancelAnimationFrame(animationRef.current!);
       window.removeEventListener('resize', handleResize);
     };
-  }, [starCount, colors, speed, paused]);
+  }, [starCount, colors, speed, paused, isVisible, prefersReducedMotion, fpsInterval]);
+
+  if (prefersReducedMotion) {
+    return null;
+  }
 
   return (
     <canvas
       ref={canvasRef}
       className={`pointer-events-none ${className}`}
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', willChange: 'transform' }}
     />
   );
 }

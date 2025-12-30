@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface StarsCanvasProps {
   transparent?: boolean;
@@ -15,7 +15,7 @@ interface StarsCanvasProps {
 
 export function StarsCanvas({
   transparent = false,
-  maxStars = 1200,
+  maxStars = 400, // Reduced from 1200
   hue = 217,
   brightness = 10,
   speedMultiplier = 1,
@@ -27,10 +27,36 @@ export function StarsCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
   const scrollOffsetRef = useRef(0);
+  const [isVisible, setIsVisible] = useState(true);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    // Check for reduced motion preference
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+    
+    const handleChange = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    // Visibility detection - pause when off viewport
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsVisible(entry.isIntersecting),
+      { threshold: 0.1 }
+    );
+    observer.observe(canvas);
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || prefersReducedMotion) return;
 
     const ctx = canvas.getContext('2d')!;
     let w = (canvas.width = window.innerWidth);
@@ -38,6 +64,11 @@ export function StarsCanvas({
 
     let stars: Star[] = [];
     let count = 0;
+
+    // FPS throttling - target 30fps
+    const fps = 30;
+    const fpsInterval = 1000 / fps;
+    let lastFrameTime = performance.now();
 
     // --- Cached gradient texture ---
     const canvas2 = document.createElement('canvas');
@@ -116,18 +147,27 @@ export function StarsCanvas({
 
     for (let i = 0; i < maxStars; i++) new Star();
 
-    // --- Animation loop ---
-    const animate = () => {
-      if (paused) return;
+    // --- Animation loop with FPS throttling ---
+    const animate = (currentTime: number) => {
+      if (paused || !isVisible) {
+        animationRef.current = requestAnimationFrame(animate);
+        return;
+      }
 
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.globalAlpha = 0.8;
-      ctx.fillStyle = transparent ? 'hsla(217, 64%, 6%, 0)' : 'hsla(217, 64%, 6%, 1)';
-      ctx.fillRect(0, 0, w, h);
+      const elapsed = currentTime - lastFrameTime;
 
-      ctx.globalCompositeOperation = 'lighter';
-      for (let i = 1; i < stars.length; i++) {
-        stars[i].draw();
+      if (elapsed >= fpsInterval) {
+        lastFrameTime = currentTime - (elapsed % fpsInterval);
+
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 0.8;
+        ctx.fillStyle = transparent ? 'hsla(217, 64%, 6%, 0)' : 'hsla(217, 64%, 6%, 1)';
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.globalCompositeOperation = 'lighter';
+        for (let i = 1; i < stars.length; i++) {
+          stars[i].draw();
+        }
       }
 
       animationRef.current = requestAnimationFrame(animate);
@@ -141,7 +181,7 @@ export function StarsCanvas({
       h = canvas.height = window.innerHeight;
     };
 
-    // --- Scroll handling for parallax ---
+    // --- Scroll handling for parallax (passive) ---
     const handleScroll = () => {
       scrollOffsetRef.current = window.scrollY;
     };
@@ -154,12 +194,25 @@ export function StarsCanvas({
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [transparent, maxStars, hue, brightness, speedMultiplier, twinkleIntensity, paused, parallaxStrength]);
+  }, [transparent, maxStars, hue, brightness, speedMultiplier, twinkleIntensity, paused, parallaxStrength, isVisible, prefersReducedMotion]);
+
+  // Static fallback for reduced motion
+  if (prefersReducedMotion) {
+    return (
+      <div 
+        className={`absolute inset-0 w-full h-full ${className}`}
+        style={{
+          background: transparent ? 'transparent' : 'hsl(217, 64%, 6%)',
+        }}
+      />
+    );
+  }
 
   return (
     <canvas
       ref={canvasRef}
       className={`absolute inset-0 w-full h-full ${className}`}
+      style={{ willChange: 'transform' }}
     />
   );
 }
