@@ -6,6 +6,7 @@ import { ThemeProvider } from "next-themes";
 import { GlobalNotificationManager } from "@/components/GlobalNotificationManager";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import MysticCursor from "@/components/ui/MysticCursor";
 
 // Eager load - Landing page
 import Index from "./pages/Index";
@@ -46,6 +47,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <PWAInstallPrompt />
+        <MysticCursor />
         <BrowserRouter>
           <Suspense fallback={<PageLoader />}>
             <Routes>
