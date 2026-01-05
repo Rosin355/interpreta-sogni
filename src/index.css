@@ -448,3 +448,30 @@ All colors MUST be HSL.
     0 0 60px hsl(var(--mystic-violet) / 0.15);
   border-color: hsl(var(--mystic-magenta) / 0.4);
 }
+
+/* Pulsing Circle Animation */
+@keyframes pulsing-border-glow {
+  0%, 100% { 
+    box-shadow: 
+      0 0 20px hsl(var(--mystic-magenta) / 0.4),
+      0 0 40px hsl(var(--mystic-violet) / 0.3),
+      inset 0 0 20px hsl(var(--mystic-pink) / 0.2);
+    border-color: hsl(var(--mystic-magenta) / 0.6);
+  }
+  50% { 
+    box-shadow: 
+      0 0 40px hsl(var(--mystic-magenta) / 0.6),
+      0 0 80px hsl(var(--mystic-violet) / 0.4),
+      inset 0 0 30px hsl(var(--mystic-pink) / 0.3);
+    border-color: hsl(var(--mystic-pink) / 0.8);
+  }
+}
+
+.animate-pulsing-border {
+  animation: pulsing-border-glow 3s ease-in-out infinite;
+}
+
+/* Radial gradient utility */
+.bg-gradient-radial {
+  background: radial-gradient(circle at center, var(--tw-gradient-stops));
+}
