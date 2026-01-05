@@ -247,8 +247,106 @@ All colors MUST be HSL.
   @media (prefers-reduced-motion: reduce) {
     .nebula-drift-1,
     .nebula-drift-2,
-    .star-glow-animation {
+    .star-glow-animation,
+    .mystic-loader-orbit,
+    .mystic-loader-core,
+    .mystic-loader-pulse,
+    .mystic-loader-ring,
+    .mystic-loader-rays,
+    .mystic-loader-text {
       animation: none;
     }
+  }
+
+  /* Mystic Loader Animations */
+  @keyframes mystic-orbit {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes mystic-core-pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.15);
+      opacity: 0.85;
+    }
+  }
+
+  @keyframes mystic-glow-pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.6;
+    }
+    50% {
+      transform: scale(1.2);
+      opacity: 1;
+    }
+  }
+
+  @keyframes mystic-ring-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(-360deg);
+    }
+  }
+
+  @keyframes mystic-rays-rotate {
+    from {
+      transform: rotate(0deg);
+      opacity: 0.4;
+    }
+    50% {
+      opacity: 0.8;
+    }
+    to {
+      transform: rotate(180deg);
+      opacity: 0.4;
+    }
+  }
+
+  @keyframes mystic-text-fade {
+    0%, 100% {
+      opacity: 0.6;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  .mystic-loader-orbit {
+    animation: mystic-orbit 2s linear infinite;
+  }
+
+  .mystic-loader-core {
+    animation: mystic-core-pulse 2s ease-in-out infinite;
+  }
+
+  .mystic-loader-pulse {
+    animation: mystic-glow-pulse 2.5s ease-in-out infinite;
+  }
+
+  .mystic-loader-ring {
+    animation: mystic-ring-spin 4s linear infinite;
+  }
+
+  .mystic-loader-rays {
+    animation: mystic-rays-rotate 3s ease-in-out infinite;
+  }
+
+  .mystic-loader-text {
+    animation: mystic-text-fade 2s ease-in-out infinite;
+  }
+
+  .mystic-loader-star {
+    will-change: transform;
   }
 }

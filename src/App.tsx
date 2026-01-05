@@ -7,6 +7,7 @@ import { GlobalNotificationManager } from "@/components/GlobalNotificationManage
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import MysticCursor from "@/components/ui/MysticCursor";
+import { MysticLoader } from "@/components/ui/MysticLoader";
 
 // Eager load - Landing page
 import Index from "./pages/Index";
@@ -30,14 +31,9 @@ const SharedDreams = lazy(() => import("./pages/SharedDreams"));
 const SharedDreamsReceived = lazy(() => import("./pages/SharedDreamsReceived"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-// Loading fallback component
+// Mystic loading fallback component
 const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-background">
-    <div className="flex flex-col items-center gap-4">
-      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-      <p className="text-muted-foreground text-sm">Caricamento...</p>
-    </div>
-  </div>
+  <MysticLoader fullScreen size="lg" text="Entrando nel mondo dei sogni..." />
 );
 
 const App = () => (
