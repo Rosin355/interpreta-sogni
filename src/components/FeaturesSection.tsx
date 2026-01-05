@@ -1,6 +1,6 @@
 import dreamsHero from "@/assets/dreams-hero.jpg";
-import { NebulaOverlay } from "@/components/ui/NebulaOverlay";
-import { GlowingStar } from "@/components/ui/GlowingStar";
+import { DramaticSky } from "@/components/ui/DramaticSky";
+import { MysticGlowOrb } from "@/components/ui/MysticGlowOrb";
 import { MorphingImage } from "@/components/ui/MorphingImage";
 import { motion } from "framer-motion";
 
@@ -25,23 +25,14 @@ const features = [{
 const FeaturesSection = () => {
   return (
     <section id="features" className="py-24 features-section relative overflow-hidden">
-      <NebulaOverlay intensity="light" className="nebula-overlay" />
+      {/* Dramatic sky background */}
+      <DramaticSky />
       
-      {/* Decorative glowing stars */}
-      <GlowingStar 
+      {/* Mystic glow orb decoration */}
+      <MysticGlowOrb 
         size="lg" 
-        color="pink" 
-        className="absolute top-20 left-[10%] opacity-60 hidden md:block" 
-      />
-      <GlowingStar 
-        size="md" 
-        color="purple" 
-        className="absolute top-40 right-[15%] opacity-50 hidden md:block" 
-      />
-      <GlowingStar 
-        size="sm" 
-        color="white" 
-        className="absolute bottom-32 left-[20%] opacity-40 hidden lg:block" 
+        intensity="low" 
+        className="top-10 right-[5%] hidden lg:block" 
       />
       
       <div className="container mx-auto px-6 relative z-10">
@@ -65,7 +56,7 @@ const FeaturesSection = () => {
             <MorphingImage 
               src={dreamsHero} 
               alt="Una persona che dorme serenamente sotto un cielo stellato onirico" 
-              className="rounded-2xl shadow-2xl w-full max-w-4xl mx-auto relative mystic-glow"
+              className="rounded-2xl shadow-2xl w-full max-w-4xl mx-auto relative dramatic-glow"
               morphType="glow"
               duration={1.4}
             />
@@ -77,7 +68,7 @@ const FeaturesSection = () => {
           {features.map((feature, index) => (
             <motion.div
               key={feature.title}
-              className="mystic-card p-6 rounded-2xl transition-all duration-500 feature-card"
+              className="mystic-card p-6 rounded-2xl transition-all duration-500 feature-card hover:dramatic-card-glow"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}

@@ -322,6 +322,38 @@ All colors MUST be HSL.
     }
   }
 
+  /* Mystic Glow Orb Animations */
+  @keyframes orb-pulse {
+    0%, 100% { 
+      opacity: 0.6; 
+      transform: scale(1); 
+    }
+    50% { 
+      opacity: 0.9; 
+      transform: scale(1.05); 
+    }
+  }
+
+  @keyframes orb-pulse-delayed {
+    0%, 100% { 
+      opacity: 0.4; 
+      transform: scale(1); 
+    }
+    50% { 
+      opacity: 0.7; 
+      transform: scale(1.08); 
+    }
+  }
+
+  .animate-orb-pulse {
+    animation: orb-pulse 4s ease-in-out infinite;
+  }
+
+  .animate-orb-pulse-delayed {
+    animation: orb-pulse-delayed 4s ease-in-out infinite;
+    animation-delay: 2s;
+  }
+
   .mystic-loader-orbit {
     animation: mystic-orbit 2s linear infinite;
   }
@@ -349,4 +381,70 @@ All colors MUST be HSL.
   .mystic-loader-star {
     will-change: transform;
   }
+}
+
+/* Mystic Glow Orb Styles */
+.mystic-orb-outer {
+  background: radial-gradient(circle at center, transparent 40%, hsl(var(--mystic-violet) / 0.3) 60%, hsl(var(--mystic-magenta) / 0.5) 80%, transparent 100%);
+  box-shadow: 
+    0 0 60px hsl(var(--mystic-magenta) / 0.3),
+    0 0 120px hsl(var(--mystic-violet) / 0.2),
+    inset 0 0 60px hsl(var(--mystic-magenta) / 0.1);
+}
+
+.mystic-orb-middle {
+  background: radial-gradient(circle at center, transparent 30%, hsl(var(--mystic-magenta) / 0.2) 70%, transparent 100%);
+  box-shadow: 0 0 40px hsl(var(--mystic-magenta) / 0.4);
+}
+
+.mystic-orb-core {
+  background: radial-gradient(circle at center, hsl(var(--mystic-pink) / 0.3) 0%, hsl(var(--mystic-magenta) / 0.1) 60%, transparent 100%);
+  box-shadow: 0 0 30px hsl(var(--mystic-pink) / 0.5);
+}
+
+/* Light Ray Effects */
+.light-ray {
+  background: linear-gradient(
+    180deg,
+    hsl(var(--mystic-magenta) / 0.4) 0%,
+    hsl(var(--mystic-magenta) / 0.2) 30%,
+    hsl(var(--mystic-violet) / 0.1) 60%,
+    transparent 100%
+  );
+  filter: blur(2px);
+}
+
+.light-ray-intense {
+  background: linear-gradient(
+    180deg,
+    hsl(var(--mystic-magenta) / 0.6) 0%,
+    hsl(var(--mystic-magenta) / 0.3) 40%,
+    hsl(var(--mystic-violet) / 0.15) 70%,
+    transparent 100%
+  );
+  filter: blur(3px);
+}
+
+.light-ray-subtle {
+  background: linear-gradient(
+    180deg,
+    hsl(var(--mystic-violet) / 0.2) 0%,
+    hsl(var(--mystic-violet) / 0.1) 50%,
+    transparent 100%
+  );
+  filter: blur(1px);
+}
+
+/* Dramatic Glow Effects */
+.dramatic-glow {
+  box-shadow: 
+    0 0 40px hsl(var(--mystic-magenta) / 0.3),
+    0 0 80px hsl(var(--mystic-violet) / 0.2);
+}
+
+.dramatic-card-glow {
+  box-shadow: 
+    0 0 30px hsl(var(--mystic-magenta) / 0.25),
+    0 0 60px hsl(var(--mystic-violet) / 0.15);
+  border-color: hsl(var(--mystic-magenta) / 0.4);
 }

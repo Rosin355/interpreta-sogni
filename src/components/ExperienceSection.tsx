@@ -1,24 +1,32 @@
-import { NebulaOverlay } from "@/components/ui/NebulaOverlay";
-import { GlowingStar } from "@/components/ui/GlowingStar";
 import { motion } from "framer-motion";
 
 const ExperienceSection = () => {
   return (
     <section className="py-24 relative overflow-hidden experience-section">
-      {/* Mystic gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-mystic-deep/30 to-background" />
-      <NebulaOverlay intensity="light" />
+      {/* Dramatic gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-mystic-deep/40 to-background" />
       
-      {/* Decorative stars */}
-      <GlowingStar 
-        size="md" 
-        color="purple" 
-        className="absolute top-24 right-[25%] opacity-40 hidden lg:block" 
-      />
-      <GlowingStar 
-        size="sm" 
-        color="pink" 
-        className="absolute bottom-32 left-[10%] opacity-30 hidden md:block" 
+      {/* Light rays from top center */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+        <div 
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[2px] h-[50%] light-ray-subtle"
+        />
+        <div 
+          className="absolute top-0 left-[35%] w-px h-[40%] light-ray-subtle opacity-50"
+          style={{ transform: "rotate(-10deg)", transformOrigin: "top" }}
+        />
+        <div 
+          className="absolute top-0 right-[35%] w-px h-[40%] light-ray-subtle opacity-50"
+          style={{ transform: "rotate(10deg)", transformOrigin: "top" }}
+        />
+      </div>
+      
+      {/* Bottom radial glow */}
+      <div 
+        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[100%] h-[50%] opacity-20"
+        style={{
+          background: "radial-gradient(ellipse at center bottom, hsl(var(--mystic-violet) / 0.3) 0%, transparent 70%)",
+        }}
       />
       
       <div className="container mx-auto px-6 relative z-10">
@@ -46,7 +54,7 @@ const ExperienceSection = () => {
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
           >
-            <div className="mystic-card rounded-3xl p-8 shadow-2xl">
+            <div className="mystic-card rounded-3xl p-8 shadow-2xl dramatic-glow">
               <div className="bg-mystic-deep/50 rounded-2xl p-6 mb-6 backdrop-blur-sm">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-foreground">Dream's Alchemist - I Miei Sogni</h3>
@@ -59,8 +67,8 @@ const ExperienceSection = () => {
                 
                 <div className="space-y-4">
                   <motion.div 
-                    className="bg-gradient-to-r from-mystic-violet/30 to-mystic-magenta/20 rounded-xl p-4 border border-mystic-violet/20"
-                    whileHover={{ scale: 1.02, borderColor: 'hsl(var(--mystic-magenta) / 0.4)' }}
+                    className="bg-gradient-to-r from-mystic-violet/30 to-mystic-magenta/20 rounded-xl p-4 border border-mystic-violet/30 hover:border-mystic-magenta/50 transition-colors"
+                    whileHover={{ scale: 1.02 }}
                     transition={{ duration: 0.3 }}
                   >
                     <div className="flex items-center space-x-3">
@@ -75,8 +83,8 @@ const ExperienceSection = () => {
                   </motion.div>
                   
                   <motion.div 
-                    className="bg-gradient-to-r from-mystic-pink/20 to-mystic-violet/20 rounded-xl p-4 border border-mystic-pink/20"
-                    whileHover={{ scale: 1.02, borderColor: 'hsl(var(--mystic-pink) / 0.4)' }}
+                    className="bg-gradient-to-r from-mystic-pink/20 to-mystic-violet/20 rounded-xl p-4 border border-mystic-pink/30 hover:border-mystic-magenta/50 transition-colors"
+                    whileHover={{ scale: 1.02 }}
                     transition={{ duration: 0.3 }}
                   >
                     <div className="flex items-center space-x-3">
@@ -91,8 +99,8 @@ const ExperienceSection = () => {
                   </motion.div>
                   
                   <motion.div 
-                    className="bg-gradient-to-r from-mystic-magenta/25 to-mystic-glow/15 rounded-xl p-4 border border-mystic-magenta/20"
-                    whileHover={{ scale: 1.02, borderColor: 'hsl(var(--mystic-glow) / 0.4)' }}
+                    className="bg-gradient-to-r from-mystic-magenta/25 to-mystic-glow/15 rounded-xl p-4 border border-mystic-magenta/30 hover:border-mystic-glow/50 transition-colors"
+                    whileHover={{ scale: 1.02 }}
                     transition={{ duration: 0.3 }}
                   >
                     <div className="flex items-center space-x-3">

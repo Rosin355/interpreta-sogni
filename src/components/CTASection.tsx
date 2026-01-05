@@ -5,9 +5,8 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import ctaDreamsImage from "@/assets/cta-dreams-universe.jpg";
-import { FallingStars } from "@/components/ui/FallingStars";
-import { NebulaOverlay } from "@/components/ui/NebulaOverlay";
-import { GlowingStar } from "@/components/ui/GlowingStar";
+import { DramaticSky } from "@/components/ui/DramaticSky";
+import { MysticGlowOrb } from "@/components/ui/MysticGlowOrb";
 import { MorphingImage } from "@/components/ui/MorphingImage";
 import { motion } from "framer-motion";
 
@@ -34,43 +33,33 @@ const CTASection = () => {
 
   return (
     <section className="cta-section py-24 relative overflow-hidden min-h-[700px]">
+      {/* Dramatic sky background */}
+      <DramaticSky variant="intense" />
+      
       {/* Background image with enhanced overlay */}
       <div className="absolute inset-0">
         <MorphingImage 
           src={ctaDreamsImage} 
           alt="Universo onirico" 
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover opacity-40"
           morphType="blur"
           duration={1.8}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-mystic-deep/60 to-background/90" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-mystic-deep/50 to-background/80" />
       </div>
       
-      {/* Nebula overlay */}
-      <NebulaOverlay intensity="medium" />
-      
-      {/* Falling stars effect */}
-      <FallingStars 
-        starCount={15} 
-        speed={0.8}
-        colors={['#a855f7', '#ec4899', '#f472b6', '#c084fc', '#e879f9']}
-      />
-      
-      {/* Decorative glowing stars */}
-      <GlowingStar 
+      {/* Large central orb */}
+      <MysticGlowOrb 
         size="xl" 
-        color="white" 
-        className="absolute top-16 right-[20%] opacity-70" 
+        intensity="medium" 
+        className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" 
       />
-      <GlowingStar 
+      
+      {/* Secondary decorative orb */}
+      <MysticGlowOrb 
         size="lg" 
-        color="pink" 
-        className="absolute top-32 left-[15%] opacity-60" 
-      />
-      <GlowingStar 
-        size="md" 
-        color="purple" 
-        className="absolute bottom-40 right-[10%] opacity-50" 
+        intensity="low" 
+        className="top-[15%] right-[10%] hidden lg:block" 
       />
       
       <div className="container mx-auto px-6 relative z-10">
