@@ -78,7 +78,7 @@ const Hero: React.FC<HeroProps> = ({
       `}</style>
       
       <StarsCanvas 
-        maxStars={1200}
+        maxStars={400}
         hue={260}
         brightness={0.8}
         speedMultiplier={0.5}
