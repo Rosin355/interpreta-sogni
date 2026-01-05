@@ -1,24 +1,18 @@
 import { motion } from "framer-motion";
-import AuroraFlux from "./ui/aurora-flux";
 
 const ExperienceSection = () => {
   return (
     <section className="py-24 relative overflow-hidden experience-section">
-      {/* Aurora Flux shader background with fade-in */}
-      <motion.div 
-        className="absolute inset-0"
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        transition={{ duration: 1.5, ease: "easeOut" }}
-        viewport={{ once: true, margin: "-100px" }}
-      >
-        <AuroraFlux
-          fullScreen={false}
-          pauseWhenHidden={true}
-          className="opacity-30"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-transparent to-transparent" />
-      </motion.div>
+      {/* Seamless gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-mystic-deep/30 to-transparent" />
+      
+      {/* Soft radial glow */}
+      <div 
+        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[100%] h-[60%] opacity-15"
+        style={{
+          background: "radial-gradient(ellipse at center bottom, hsl(var(--mystic-violet) / 0.3) 0%, transparent 70%)",
+        }}
+      />
       
       <div className="container mx-auto px-6 relative z-10">
         <motion.div 
