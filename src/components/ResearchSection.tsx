@@ -1,7 +1,6 @@
 import { RainbowButton } from "@/components/ui/rainbow-button";
 import { useNavigate } from "react-router-dom";
-import { NebulaOverlay } from "@/components/ui/NebulaOverlay";
-import { GlowingStar } from "@/components/ui/GlowingStar";
+import { MysticGlowOrb } from "@/components/ui/MysticGlowOrb";
 import { motion } from "framer-motion";
 
 const dreamPatterns = ["Volare", "Cadere", "Inseguimento", "Perso", "Acqua", "Famiglia", "Infanzia", "Esame", "In Ritardo", "Denti"];
@@ -11,20 +10,22 @@ const ResearchSection = () => {
   
   return (
     <section id="research" className="research-section relative overflow-hidden px-0 py-[61px]">
-      {/* Mystic gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-mystic-deep/20 via-background to-mystic-deep/30" />
-      <NebulaOverlay intensity="light" />
+      {/* Intense gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-mystic-deep/50 to-background" />
       
-      {/* Decorative stars */}
-      <GlowingStar 
-        size="lg" 
-        color="purple" 
-        className="absolute top-20 left-[8%] opacity-50 hidden lg:block" 
+      {/* Radial glow from center */}
+      <div 
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] opacity-20"
+        style={{
+          background: "radial-gradient(ellipse at center, hsl(var(--mystic-magenta) / 0.4) 0%, transparent 60%)",
+        }}
       />
-      <GlowingStar 
-        size="md" 
-        color="pink" 
-        className="absolute bottom-24 right-[12%] opacity-40 hidden md:block" 
+      
+      {/* Central decorative orb */}
+      <MysticGlowOrb 
+        size="xl" 
+        intensity="low" 
+        className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" 
       />
       
       <div className="container mx-auto px-6 relative z-10">
@@ -44,7 +45,7 @@ const ResearchSection = () => {
             su come sogniamo.
           </p>
           
-          {/* Dream pattern tags */}
+          {/* Dream pattern tags with enhanced glow */}
           <motion.div 
             className="flex flex-wrap justify-center gap-3 mb-10 max-w-3xl mx-auto"
             initial={{ opacity: 0 }}
@@ -55,12 +56,12 @@ const ResearchSection = () => {
             {dreamPatterns.map((pattern, index) => (
               <motion.span
                 key={pattern}
-                className="px-4 py-2 rounded-full text-sm font-medium bg-mystic-violet/20 border border-mystic-violet/30 text-foreground hover:bg-mystic-magenta/30 hover:border-mystic-magenta/50 transition-all duration-300 cursor-default research-pattern"
+                className="px-4 py-2 rounded-full text-sm font-medium bg-mystic-violet/20 border border-mystic-violet/40 text-foreground transition-all duration-300 cursor-default research-pattern hover:bg-mystic-magenta/30 hover:border-mystic-magenta/60 hover:shadow-[0_0_20px_hsl(var(--mystic-magenta)/0.4)]"
                 initial={{ opacity: 0, scale: 0.8 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3, delay: 0.4 + index * 0.05 }}
                 viewport={{ once: true }}
-                whileHover={{ scale: 1.05, boxShadow: '0 0 20px hsl(var(--mystic-glow) / 0.3)' }}
+                whileHover={{ scale: 1.05 }}
               >
                 {pattern}
               </motion.span>
