@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, CheckCircle, XCircle, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
+import { logAuditEvent } from "@/utils/audit-logger";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,6 +68,14 @@ const AdminDashboard = () => {
       }
 
       setIsAdmin(true);
+      
+      // Log admin dashboard access
+      await logAuditEvent({
+        action: 'admin_action',
+        tableName: 'professional_profiles',
+        details: { specificAction: 'accessed_admin_dashboard' }
+      });
+      
       await fetchProfessionals();
       setLoading(false);
     };
@@ -113,11 +122,23 @@ const AdminDashboard = () => {
   const handleApprove = async (professionalId: string) => {
     setProcessing(true);
     try {
+      // Find the professional to get their user_id for audit
+      const professional = professionals.find(p => p.id === professionalId);
+      
       const { error } = await supabase.functions.invoke('approve-professional', {
         body: { professionalId, action: 'approve' }
       });
 
       if (error) throw error;
+
+      // Log the approval action
+      await logAuditEvent({
+        action: 'admin_action',
+        tableName: 'professional_profiles',
+        recordId: professionalId,
+        targetUserId: professional?.user_id,
+        details: { specificAction: 'approved_professional' }
+      });
 
       toast({
         title: "Successo",
@@ -149,6 +170,9 @@ const AdminDashboard = () => {
 
     setProcessing(true);
     try {
+      // Find the professional to get their user_id for audit
+      const professional = professionals.find(p => p.id === selectedProfessional);
+      
       const { error } = await supabase.functions.invoke('approve-professional', {
         body: { 
           professionalId: selectedProfessional, 
@@ -158,6 +182,18 @@ const AdminDashboard = () => {
       });
 
       if (error) throw error;
+
+      // Log the rejection action
+      await logAuditEvent({
+        action: 'admin_action',
+        tableName: 'professional_profiles',
+        recordId: selectedProfessional,
+        targetUserId: professional?.user_id,
+        details: { 
+          specificAction: 'rejected_professional',
+          rejectionReason: rejectionReason.trim()
+        }
+      });
 
       toast({
         title: "Successo",
