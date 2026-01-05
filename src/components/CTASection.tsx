@@ -30,6 +30,14 @@ const CTASection = () => {
 
   return (
     <section className="cta-section pt-8 pb-24 relative overflow-hidden min-h-[700px]">
+      {/* Fog transition from Experience */}
+      <div 
+        className="absolute top-0 left-0 right-0 h-40 pointer-events-none z-[2]"
+        style={{
+          background: "linear-gradient(to bottom, hsl(280 60% 10% / 0.95) 0%, hsl(280 50% 12% / 0.5) 50%, transparent 100%)",
+        }}
+      />
+      
       {/* Aurora Flux shader background with fade-in */}
       <motion.div 
         className="absolute inset-0"
@@ -41,7 +49,7 @@ const CTASection = () => {
         <AuroraFlux
           fullScreen={false}
           pauseWhenHidden={true}
-          className="opacity-50"
+          className="opacity-40"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/80" />
       </motion.div>
