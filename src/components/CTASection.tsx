@@ -4,9 +4,7 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import ctaDreamsImage from "@/assets/dramatic-sky-cta.jpg";
-import { MysticGlowOrb } from "@/components/ui/MysticGlowOrb";
-import { MorphingImage } from "@/components/ui/MorphingImage";
+import { AuroraFlux } from "@/components/ui/aurora-flux";
 import { motion } from "framer-motion";
 
 const CTASection = () => {
@@ -32,36 +30,15 @@ const CTASection = () => {
 
   return (
     <section className="cta-section py-24 relative overflow-hidden min-h-[700px]">
-      {/* Seamless gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-mystic-deep/50 to-background" />
-      
-      {/* Background image with enhanced overlay */}
+      {/* Aurora Flux shader background */}
       <div className="absolute inset-0">
-        <MorphingImage 
-          src={ctaDreamsImage} 
-          alt="Universo onirico" 
-          className="w-full h-full object-cover opacity-30"
-          morphType="blur"
-          duration={1.8}
+        <AuroraFlux
+          fullScreen={false}
+          pauseWhenHidden={true}
+          className="opacity-60"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-mystic-deep/40 to-background/70" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-transparent to-background/50" />
       </div>
-      
-      {/* Large central orb with parallax */}
-      <MysticGlowOrb 
-        size="xl" 
-        intensity="medium" 
-        className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-        parallaxSpeed={0.15}
-      />
-      
-      {/* Secondary decorative orb with parallax */}
-      <MysticGlowOrb 
-        size="lg" 
-        intensity="low" 
-        className="top-[15%] right-[10%] hidden lg:block"
-        parallaxSpeed={0.25}
-      />
       
       <div className="container mx-auto px-6 relative z-10">
         <motion.div 
