@@ -1,5 +1,4 @@
-import dreamsHero from "@/assets/dreams-hero.jpg";
-import { DramaticSky } from "@/components/ui/DramaticSky";
+import mysticPortal from "@/assets/mystic-portal.jpg";
 import { MysticGlowOrb } from "@/components/ui/MysticGlowOrb";
 import { MorphingImage } from "@/components/ui/MorphingImage";
 import { motion } from "framer-motion";
@@ -25,14 +24,23 @@ const features = [{
 const FeaturesSection = () => {
   return (
     <section id="features" className="py-24 features-section relative overflow-hidden">
-      {/* Dramatic sky background */}
-      <DramaticSky />
+      {/* Seamless gradient background - no hard edges */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-mystic-deep/30 to-background" />
       
-      {/* Mystic glow orb decoration */}
+      {/* Soft radial glow from center */}
+      <div 
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[60%] opacity-20"
+        style={{
+          background: "radial-gradient(ellipse at center, hsl(var(--mystic-magenta) / 0.3) 0%, transparent 70%)",
+        }}
+      />
+      
+      {/* Mystic glow orb decoration with parallax */}
       <MysticGlowOrb 
         size="lg" 
         intensity="low" 
-        className="top-10 right-[5%] hidden lg:block" 
+        className="top-10 right-[5%] hidden lg:block"
+        parallaxSpeed={0.2}
       />
       
       <div className="container mx-auto px-6 relative z-10">
@@ -54,7 +62,7 @@ const FeaturesSection = () => {
           <div className="mt-12 mb-8 relative">
             <div className="absolute inset-0 bg-gradient-to-r from-mystic-violet/20 via-mystic-magenta/20 to-mystic-violet/20 rounded-2xl blur-xl" />
             <MorphingImage 
-              src={dreamsHero} 
+              src={mysticPortal} 
               alt="Una persona che dorme serenamente sotto un cielo stellato onirico" 
               className="rounded-2xl shadow-2xl w-full max-w-4xl mx-auto relative dramatic-glow"
               morphType="glow"

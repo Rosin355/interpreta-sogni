@@ -3,27 +3,12 @@ import { motion } from "framer-motion";
 const ExperienceSection = () => {
   return (
     <section className="py-24 relative overflow-hidden experience-section">
-      {/* Dramatic gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-mystic-deep/40 to-background" />
+      {/* Seamless gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-mystic-deep/30 to-background" />
       
-      {/* Light rays from top center */}
-      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-        <div 
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[2px] h-[50%] light-ray-subtle"
-        />
-        <div 
-          className="absolute top-0 left-[35%] w-px h-[40%] light-ray-subtle opacity-50"
-          style={{ transform: "rotate(-10deg)", transformOrigin: "top" }}
-        />
-        <div 
-          className="absolute top-0 right-[35%] w-px h-[40%] light-ray-subtle opacity-50"
-          style={{ transform: "rotate(10deg)", transformOrigin: "top" }}
-        />
-      </div>
-      
-      {/* Bottom radial glow */}
+      {/* Soft radial glow */}
       <div 
-        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[100%] h-[50%] opacity-20"
+        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[100%] h-[60%] opacity-15"
         style={{
           background: "radial-gradient(ellipse at center bottom, hsl(var(--mystic-violet) / 0.3) 0%, transparent 70%)",
         }}

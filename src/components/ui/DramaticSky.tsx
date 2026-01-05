@@ -10,73 +10,32 @@ export const DramaticSky = ({ className, variant = "default" }: DramaticSkyProps
   
   return (
     <div className={cn("absolute inset-0 overflow-hidden pointer-events-none", className)} aria-hidden="true">
-      {/* Base gradient - deep black to dark magenta */}
+      {/* Base gradient - deep black to dark magenta - seamless blend */}
       <div 
         className={cn(
           "absolute inset-0",
           isIntense 
-            ? "bg-gradient-to-b from-black via-mystic-deep/80 to-black"
-            : "bg-gradient-to-b from-background via-mystic-deep/40 to-background"
+            ? "bg-gradient-to-b from-transparent via-mystic-deep/60 to-transparent"
+            : "bg-gradient-to-b from-transparent via-mystic-deep/30 to-transparent"
         )}
       />
       
-      {/* Radial glow from center-top */}
+      {/* Radial glow from center */}
       <div 
         className={cn(
-          "absolute top-0 left-1/2 -translate-x-1/2 w-[120%] h-[60%]",
-          isIntense ? "opacity-40" : "opacity-25"
-        )}
-        style={{
-          background: "radial-gradient(ellipse at center top, hsl(var(--mystic-magenta) / 0.3) 0%, transparent 70%)",
-        }}
-      />
-      
-      {/* Light rays */}
-      <div className="absolute inset-0">
-        {/* Left ray */}
-        <div 
-          className="absolute top-0 left-[20%] w-px h-[60%] light-ray"
-          style={{ transform: "rotate(-15deg)", transformOrigin: "top" }}
-        />
-        {/* Center-left ray */}
-        <div 
-          className="absolute top-0 left-[40%] w-[2px] h-[70%] light-ray opacity-60"
-          style={{ transform: "rotate(-5deg)", transformOrigin: "top" }}
-        />
-        {/* Center ray */}
-        <div 
-          className="absolute top-0 left-1/2 w-[3px] h-[80%] light-ray-intense"
-          style={{ transform: "translateX(-50%)" }}
-        />
-        {/* Center-right ray */}
-        <div 
-          className="absolute top-0 right-[40%] w-[2px] h-[70%] light-ray opacity-60"
-          style={{ transform: "rotate(5deg)", transformOrigin: "top" }}
-        />
-        {/* Right ray */}
-        <div 
-          className="absolute top-0 right-[20%] w-px h-[60%] light-ray"
-          style={{ transform: "rotate(15deg)", transformOrigin: "top" }}
-        />
-      </div>
-      
-      {/* Fog/cloud layers */}
-      <div 
-        className={cn(
-          "absolute bottom-0 left-0 right-0 h-[40%]",
+          "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100%] h-[80%]",
           isIntense ? "opacity-30" : "opacity-20"
         )}
         style={{
-          background: "linear-gradient(to top, hsl(var(--mystic-violet) / 0.2) 0%, transparent 100%)",
+          background: "radial-gradient(ellipse at center, hsl(var(--mystic-magenta) / 0.25) 0%, transparent 60%)",
         }}
       />
       
-      {/* Horizontal mist band */}
+      {/* Subtle vertical gradient overlay for depth */}
       <div 
-        className="absolute top-[30%] left-0 right-0 h-[20%] opacity-15"
+        className="absolute inset-0 opacity-40"
         style={{
-          background: "linear-gradient(to bottom, transparent 0%, hsl(var(--mystic-magenta) / 0.15) 50%, transparent 100%)",
-          filter: "blur(40px)",
+          background: "linear-gradient(180deg, transparent 0%, hsl(var(--mystic-violet) / 0.1) 50%, transparent 100%)",
         }}
       />
     </div>

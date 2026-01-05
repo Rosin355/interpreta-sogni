@@ -1,5 +1,4 @@
 import React from 'react';
-import CloudDivider from './cloud-divider';
 import { StarsCanvas } from './stars-canvas';
 
 // Types for component props
@@ -85,8 +84,13 @@ const Hero: React.FC<HeroProps> = ({
         twinkleIntensity={30}
       />
       
-      {/* Cloud divider at the top */}
-      <CloudDivider flip={true} />
+      {/* Gradient fade at the bottom for seamless transition */}
+      <div 
+        className="absolute bottom-0 left-0 right-0 h-48 pointer-events-none z-[5]"
+        style={{
+          background: "linear-gradient(to bottom, transparent 0%, hsl(var(--background)) 100%)",
+        }}
+      />
       
       {/* Hero Content Overlay */}
       <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-foreground">
@@ -137,9 +141,6 @@ const Hero: React.FC<HeroProps> = ({
           )}
         </div>
       </div>
-      
-      {/* Cloud divider at the bottom */}
-      <CloudDivider />
     </div>
   );
 };

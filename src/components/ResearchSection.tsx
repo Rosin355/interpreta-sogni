@@ -9,23 +9,24 @@ const ResearchSection = () => {
   const navigate = useNavigate();
   
   return (
-    <section id="research" className="research-section relative overflow-hidden px-0 py-[61px]">
-      {/* Intense gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-mystic-deep/50 to-background" />
+    <section id="research" className="research-section relative overflow-hidden px-0 py-24">
+      {/* Seamless gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-mystic-deep/40 to-background" />
       
-      {/* Radial glow from center */}
+      {/* Radial glow from center - softer */}
       <div 
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] opacity-20"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] opacity-15"
         style={{
           background: "radial-gradient(ellipse at center, hsl(var(--mystic-magenta) / 0.4) 0%, transparent 60%)",
         }}
       />
       
-      {/* Central decorative orb */}
+      {/* Central decorative orb with parallax */}
       <MysticGlowOrb 
         size="xl" 
         intensity="low" 
-        className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" 
+        className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+        parallaxSpeed={0.1}
       />
       
       <div className="container mx-auto px-6 relative z-10">

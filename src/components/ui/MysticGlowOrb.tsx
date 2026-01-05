@@ -1,9 +1,11 @@
 import { cn } from "@/lib/utils";
+import { useEffect, useState, useRef } from "react";
 
 interface MysticGlowOrbProps {
   size?: "sm" | "md" | "lg" | "xl";
   intensity?: "low" | "medium" | "high";
   className?: string;
+  parallaxSpeed?: number; // 0 = no parallax, 1 = full parallax
 }
 
 const sizeClasses = {
@@ -23,15 +25,53 @@ export const MysticGlowOrb = ({
   size = "md",
   intensity = "medium",
   className,
+  parallaxSpeed = 0.15,
 }: MysticGlowOrbProps) => {
+  const [parallaxY, setParallaxY] = useState(0);
+  const orbRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    if (parallaxSpeed === 0) return;
+    
+    let ticking = false;
+    
+    const handleScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          if (orbRef.current) {
+            const rect = orbRef.current.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            // Calculate position relative to viewport center
+            const elementCenter = rect.top + rect.height / 2;
+            const viewportCenter = viewportHeight / 2;
+            const distanceFromCenter = elementCenter - viewportCenter;
+            // Apply parallax only when element is in view
+            if (rect.top < viewportHeight && rect.bottom > 0) {
+              setParallaxY(distanceFromCenter * parallaxSpeed);
+            }
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Initial calculation
+    
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [parallaxSpeed]);
+
   return (
     <div
+      ref={orbRef}
       className={cn(
-        "absolute pointer-events-none",
+        "absolute pointer-events-none transition-transform duration-100 ease-out",
         sizeClasses[size],
         intensityOpacity[intensity],
         className
       )}
+      style={{ transform: `translateY(${parallaxY}px)` }}
       aria-hidden="true"
     >
       {/* Outer glow ring */}
