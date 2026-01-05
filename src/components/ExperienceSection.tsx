@@ -4,7 +4,7 @@ const ExperienceSection = () => {
   return (
     <section className="py-24 relative overflow-hidden experience-section">
       {/* Seamless gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-mystic-deep/30 to-background" />
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-mystic-deep/30 to-transparent" />
       
       {/* Soft radial glow */}
       <div 
