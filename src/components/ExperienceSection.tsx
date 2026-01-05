@@ -3,8 +3,16 @@ import { motion } from "framer-motion";
 const ExperienceSection = () => {
   return (
     <section className="py-24 relative overflow-hidden experience-section">
+      {/* Fog transition from Research */}
+      <div 
+        className="absolute top-0 left-0 right-0 h-40 pointer-events-none z-[2]"
+        style={{
+          background: "linear-gradient(to bottom, hsl(280 60% 10% / 0.95) 0%, hsl(280 50% 12% / 0.5) 50%, transparent 100%)",
+        }}
+      />
+      
       {/* Seamless gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-mystic-deep/30 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-mystic-deep/30 to-transparent" />
       
       {/* Soft radial glow */}
       <div 
