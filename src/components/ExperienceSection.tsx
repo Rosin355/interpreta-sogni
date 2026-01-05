@@ -14,6 +14,14 @@ const ExperienceSection = () => {
         }}
       />
       
+      {/* Fog transition to CTA */}
+      <div 
+        className="absolute bottom-0 left-0 right-0 h-48 pointer-events-none z-[1]"
+        style={{
+          background: "linear-gradient(to bottom, transparent 0%, hsl(270 50% 8% / 0.6) 40%, hsl(280 60% 12% / 0.9) 100%)",
+        }}
+      />
+      
       <div className="container mx-auto px-6 relative z-10">
         <motion.div 
           className="text-center mb-16"
