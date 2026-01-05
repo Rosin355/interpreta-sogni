@@ -72,7 +72,7 @@ const FeaturesSection = () => {
             <MorphingImage 
               src={mysticPortal} 
               alt="Una persona che dorme serenamente sotto un cielo stellato onirico" 
-              className="rounded-2xl shadow-2xl w-full max-w-4xl mx-auto relative dramatic-glow"
+              className="rounded-2xl shadow-2xl w-full max-w-3xl mx-auto relative dramatic-glow"
               morphType="glow"
               duration={1.4}
             />
