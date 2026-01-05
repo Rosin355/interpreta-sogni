@@ -67,7 +67,7 @@ const FeaturesSection = () => {
             partecipi a ricerche rivoluzionarie sui sogni.
           </p>
           
-          <div className="mt-16 mb-12 px-4 lg:px-8 relative">
+          <div className="mt-20 mb-20 px-4 lg:px-8 relative">
             <div className="absolute inset-0 bg-gradient-to-r from-mystic-violet/20 via-mystic-magenta/20 to-mystic-violet/20 rounded-2xl blur-xl" />
             <MorphingImage 
               src={mysticPortal} 
