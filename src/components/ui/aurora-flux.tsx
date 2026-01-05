@@ -51,13 +51,19 @@ void main() {
   O = tanh(5.0 * exp(z.x - 4.0 - p.y * vec4(-1.0, 1.0, 2.0, 0.0)) / O);
 
   float mixPhase = dot(p, p) + z.x + u_time + sin(p.x * 1.5 + p.y * 2.5 + u_time * 0.5);
-  float channel = cos(mixPhase * 4.0);
-  vec3 glow = vec3(
-    0.6 + 0.4 * sin(channel + 1.0),
-    0.6 + 0.4 * sin(channel + 0.0),
-    0.6 + 0.4 * sin(channel + 2.0)
+  float channel = cos(mixPhase * 3.0);
+  
+  // Mystic palette: violet (270°), magenta (300°), pink (330°)
+  vec3 mysticViolet = vec3(0.29, 0.0, 0.51);   // hsl(270, 100%, 25%)
+  vec3 mysticMagenta = vec3(0.55, 0.0, 0.55);  // hsl(300, 100%, 27%)
+  vec3 mysticPink = vec3(0.93, 0.51, 0.93);    // hsl(300, 76%, 72%)
+  
+  vec3 glow = mix(
+    mix(mysticViolet, mysticMagenta, 0.5 + 0.5 * sin(channel)),
+    mysticPink,
+    0.3 + 0.2 * cos(channel * 1.5)
   );
-  O.rgb *= glow * 1.0;
+  O.rgb *= glow * 1.8;
 
   fragColor = O;
 }
