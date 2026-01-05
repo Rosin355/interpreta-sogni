@@ -29,7 +29,7 @@ const CTASection = () => {
   };
 
   return (
-    <section className="cta-section pt-8 pb-24 relative overflow-hidden min-h-[700px]">
+    <section className="cta-section pt-8 pb-24 relative overflow-hidden min-h-[700px] flex items-center">
       {/* Fog transition from Experience */}
       <div 
         className="absolute top-0 left-0 right-0 h-40 pointer-events-none z-[2]"
@@ -54,7 +54,7 @@ const CTASection = () => {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/80" />
       </motion.div>
       
-      <div className="container mx-auto px-6 relative z-10">
+      <div className="container mx-auto px-6 relative z-10 flex items-center justify-center">
         <motion.div 
           className="text-center max-w-4xl mx-auto cta-content"
           initial={{ opacity: 0, y: 30 }}
