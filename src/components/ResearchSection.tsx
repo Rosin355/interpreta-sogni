@@ -10,14 +10,30 @@ const ResearchSection = () => {
   
   return (
     <section id="research" className="research-section relative overflow-hidden px-0 py-24">
+      {/* Fog transition from Features */}
+      <div 
+        className="absolute top-0 left-0 right-0 h-40 pointer-events-none z-[2]"
+        style={{
+          background: "linear-gradient(to bottom, hsl(280 60% 10% / 0.95) 0%, hsl(280 50% 12% / 0.5) 50%, transparent 100%)",
+        }}
+      />
+      
       {/* Seamless gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-mystic-deep/40 to-background" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-mystic-deep/40 to-transparent" />
       
       {/* Radial glow from center - softer */}
       <div 
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] opacity-15"
         style={{
           background: "radial-gradient(ellipse at center, hsl(var(--mystic-magenta) / 0.4) 0%, transparent 60%)",
+        }}
+      />
+      
+      {/* Fog transition to Experience */}
+      <div 
+        className="absolute bottom-0 left-0 right-0 h-48 pointer-events-none z-[1]"
+        style={{
+          background: "linear-gradient(to bottom, transparent 0%, hsl(270 50% 8% / 0.6) 40%, hsl(280 60% 12% / 0.9) 100%)",
         }}
       />
       

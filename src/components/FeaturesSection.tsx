@@ -25,13 +25,21 @@ const FeaturesSection = () => {
   return (
     <section id="features" className="py-24 features-section relative overflow-hidden">
       {/* Seamless gradient background - no hard edges */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-mystic-deep/30 to-background" />
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-mystic-deep/30 to-transparent" />
       
       {/* Soft radial glow from center */}
       <div 
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[60%] opacity-20"
         style={{
           background: "radial-gradient(ellipse at center, hsl(var(--mystic-magenta) / 0.3) 0%, transparent 70%)",
+        }}
+      />
+      
+      {/* Fog transition to Research */}
+      <div 
+        className="absolute bottom-0 left-0 right-0 h-48 pointer-events-none z-[1]"
+        style={{
+          background: "linear-gradient(to bottom, transparent 0%, hsl(270 50% 8% / 0.6) 40%, hsl(280 60% 12% / 0.9) 100%)",
         }}
       />
       
