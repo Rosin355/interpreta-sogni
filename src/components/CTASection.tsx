@@ -29,7 +29,7 @@ const CTASection = () => {
   };
 
   return (
-    <section className="cta-section py-24 relative overflow-hidden min-h-[700px]">
+    <section className="cta-section pt-8 pb-24 relative overflow-hidden min-h-[700px]">
       {/* Aurora Flux shader background with fade-in */}
       <motion.div 
         className="absolute inset-0"
@@ -43,7 +43,7 @@ const CTASection = () => {
           pauseWhenHidden={true}
           className="opacity-50"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-transparent to-background/60" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/80" />
       </motion.div>
       
       <div className="container mx-auto px-6 relative z-10">
