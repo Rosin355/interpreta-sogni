@@ -44,7 +44,17 @@ const Dashboard = () => {
   };
 
   const fetchDreams = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    // DEBUG: Log autenticazione
+    console.log('[Dashboard] DEBUG Auth:', {
+      hasUser: !!user,
+      userId: user?.id,
+      expectedUserId: 'c4547d62-ee36-463d-8ce3-077310e2c6ac',
+      isMatch: user?.id === 'c4547d62-ee36-463d-8ce3-077310e2c6ac',
+      authError: authError?.message
+    });
+    
     if (!user) return;
 
     // Unified query - fetch all dreams and slice for recent
@@ -53,6 +63,16 @@ const Dashboard = () => {
       .select("*")
       .eq("user_id", user.id)
       .order("dream_date", { ascending: false });
+
+    // DEBUG: Log query risultati
+    console.log('[Dashboard] DEBUG Dreams Query:', {
+      dreamsCount: allData?.length || 0,
+      error: error?.message,
+      errorCode: (error as any)?.code,
+      errorDetails: (error as any)?.details,
+      firstDreamTitle: allData?.[0]?.title,
+      queryUserId: user.id
+    });
 
     if (error) {
       console.error("Errore nel caricamento dei sogni:", error);
