@@ -31,7 +31,7 @@ export const interpretDreamSchema = z.object({
 export const generateDreamImageSchema = z.object({
   dreamId: uuidSchema,
   content: z.string().min(1).max(10000),
-  mood: z.string().optional().transform(val => val === '' ? undefined : val),
+  mood: z.string().nullable().optional().transform(val => val === '' || val === null ? undefined : val),
   imageStyle: z.enum(['realistico', 'onirico', 'artistico', 'minimalista', 'fantastico'])
     .optional()
     .or(z.literal('').transform(() => undefined)),
