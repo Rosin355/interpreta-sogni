@@ -87,13 +87,32 @@ export default function Profile() {
   
   const loadDreamStats = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      // DEBUG: Log autenticazione
+      console.log('[Profile] DEBUG Auth:', {
+        hasUser: !!user,
+        userId: user?.id,
+        expectedUserId: 'c4547d62-ee36-463d-8ce3-077310e2c6ac',
+        isMatch: user?.id === 'c4547d62-ee36-463d-8ce3-077310e2c6ac',
+        authError: authError?.message
+      });
+      
       if (!user) return;
 
       const { data: dreams, error } = await supabase
         .from('dreams')
         .select('*')
         .eq('user_id', user.id);
+
+      // DEBUG: Log query risultati
+      console.log('[Profile] DEBUG Dreams Query:', {
+        dreamsCount: dreams?.length || 0,
+        error: error?.message,
+        errorCode: (error as any)?.code,
+        firstDream: dreams?.[0]?.title,
+        queryUserId: user.id
+      });
 
       if (error) throw error;
 
