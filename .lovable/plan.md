@@ -1,94 +1,59 @@
 
 
-# Piano: Sistema di Reset Password con Codice OTP e Email Onirica
+## Piano: Dialog di condivisione unificato + Condivisione tramite Link Pubblico
 
-## Panoramica
+### Panoramica
+Unificare le due icone di condivisione in un unico dialog a tabs (Professionista / Email / Link) e aggiungere la possibilita di generare un link pubblico per condividere il sogno con chiunque, anche senza account.
 
-Attualmente il reset password usa un link magico di Supabase. Vuoi un sistema piu sicuro con un **codice numerico a 6 cifre** (OTP) che l'utente deve inserire manualmente, con un'email dal design onirico ispirata all'immagine del portale magico.
+### Cosa cambia per l'utente
+- **Un solo pulsante "Condividi"** nella pagina del sogno invece di due icone identiche
+- Il dialog si apre con **3 tabs**: Professionista, Email, Link
+- Nel tab **Link** si puo generare un link pubblico unico, copiarlo con un click, e revocarlo quando si vuole
 
-## Architettura del Flusso
+---
 
-Il flusso sara:
-1. L'utente inserisce la sua email nella pagina "Password dimenticata"
-2. Una edge function genera un codice OTP a 6 cifre, lo salva nel database con scadenza (15 minuti), e invia un'email bellissima con il codice
-3. L'utente inserisce il codice OTP nell'app
-4. L'app verifica il codice tramite edge function
-5. Se valido, l'utente puo impostare la nuova password
+### Dettaglio Tecnico
 
-## Modifiche Necessarie
+#### 1. Database: aggiungere colonna `share_token` alla tabella `dreams`
 
-### 1. Nuova tabella `password_reset_tokens`
+Nuova migrazione SQL:
+- Aggiungere `share_token TEXT UNIQUE DEFAULT NULL` alla tabella `dreams`
+- Aggiungere una RLS policy che permetta a chiunque (anche anonimi) di leggere un sogno se forniscono il `share_token` corretto via query
+- Creare una funzione RPC `get_dream_by_share_token(token TEXT)` con `SECURITY DEFINER` che restituisce i dati del sogno (titolo, contenuto, mood, tags, immagine, data) senza esporre user_id o dati sensibili
 
-Campi:
-- `id` (uuid, primary key)
-- `user_id` (uuid, riferimento all'utente)
-- `email` (text)
-- `token` (text, il codice a 6 cifre, hashato)
-- `expires_at` (timestamptz, scadenza 15 minuti)
-- `used` (boolean, default false)
-- `attempts` (integer, default 0, max 5 tentativi)
-- `created_at` (timestamptz)
+#### 2. Nuova pagina: `src/pages/SharedDreamPublic.tsx`
 
-RLS: nessun accesso diretto dal client. Solo le edge functions (con service role key) possono leggere/scrivere questa tabella.
+- Route: `/dream/shared/:token`
+- Pagina pubblica (no auth richiesta) che chiama la RPC `get_dream_by_share_token`
+- Mostra il sogno in modalita read-only con design "onirico"
+- Se il token non esiste o e stato revocato, mostra un messaggio "Sogno non disponibile"
 
-### 2. Nuova edge function `request-password-reset`
+#### 3. Nuovo componente: `src/components/ShareDreamUnified.tsx`
 
-- Riceve l'email dell'utente
-- Verifica che l'utente esista (senza rivelare se esiste o no all'esterno)
-- Genera un codice casuale a 6 cifre
-- Salva l'hash del codice nella tabella `password_reset_tokens`
-- Invalida eventuali token precedenti per lo stesso utente
-- Invia l'email con il codice tramite Resend con template onirico
-- Non richiede autenticazione (l'utente non e loggato)
+Dialog unificato con Tabs (Radix UI Tabs, gia installato):
+- **Tab "Professionista"**: logica esistente da `ShareDreamDialog.tsx`
+- **Tab "Email"**: logica esistente da `ShareDreamViaEmail.tsx`
+- **Tab "Link"**: 
+  - Se `dream.share_token` esiste: mostra il link con pulsante "Copia" e pulsante "Revoca link"
+  - Se non esiste: pulsante "Genera link pubblico" che genera un UUID, salva come `share_token` nel sogno, e mostra il link
 
-### 3. Nuova edge function `verify-reset-token`
+#### 4. Aggiornare `src/pages/DreamDetail.tsx`
 
-- Riceve email + codice OTP + nuova password
-- Verifica il codice contro il database (confronto hash)
-- Controlla scadenza e numero tentativi (max 5)
-- Se valido, usa `supabase.auth.admin.updateUserById()` per cambiare la password
-- Segna il token come usato
-- Non richiede autenticazione
+- Rimuovere i due pulsanti separati (Share2 + Share2) e i relativi state (`shareDialogOpen`, `shareEmailDialogOpen`)
+- Aggiungere un unico pulsante Share2 che apre `ShareDreamUnified`
+- Passare i dati del sogno (incluso `share_token`) al nuovo componente
 
-### 4. Email Template Onirico
+#### 5. Aggiornare `src/App.tsx`
 
-Un'email HTML con design ispirato all'immagine del portale magico:
-- Sfondo scuro gradient (nero/viola profondo)
-- Bordi dorati e effetti luminosi
-- Il codice OTP mostrato in grande al centro, dentro una "cornice mistica" con bordo dorato
-- Testo elegante con font serif
-- Particelle/stelle decorative via CSS
-- Colori: nero profondo, viola, oro, bagliori caldi
-- Footer con il branding "Interpreta i tuoi Sogni"
+- Aggiungere route `/dream/shared/:token` che punta a `SharedDreamPublic`
 
-### 5. Aggiornamento pagina Auth.tsx
+#### 6. Pulizia
 
-Modificare il flusso "Password dimenticata" in 3 step:
+- I file `ShareDreamDialog.tsx` e `ShareDreamViaEmail.tsx` possono essere rimossi (la logica sara integrata nel nuovo componente unificato)
 
-**Step 1 - Inserimento Email**: l'utente inserisce la propria email (come adesso)
-
-**Step 2 - Inserimento Codice OTP**: 6 campi input per il codice numerico (usando il componente `input-otp` gia installato), con timer di scadenza visibile, pulsante "Reinvia codice"
-
-**Step 3 - Nuova Password**: form per inserire e confermare la nuova password (come adesso)
-
-Il design sara coerente con lo stile onirico del portale, con sfumature viola/oro e animazioni sottili.
-
-## Dettagli Tecnici
-
-### File da creare:
-- `supabase/functions/request-password-reset/index.ts` - genera OTP e invia email
-- `supabase/functions/verify-reset-token/index.ts` - verifica OTP e resetta password
-
-### File da modificare:
-- `src/pages/Auth.tsx` - nuovo flusso a 3 step con OTP input
-
-### Migrazione database:
-- Creare tabella `password_reset_tokens` con RLS disabilitato per accesso pubblico bloccato (solo service role)
-
-### Sicurezza:
-- Codice OTP hashato nel database (non in chiaro)
-- Scadenza 15 minuti
-- Max 5 tentativi per codice
-- Rate limiting: max 3 richieste per email ogni 15 minuti
-- Risposta generica "Se l'email esiste, riceverai un codice" per non rivelare utenti registrati
+### Sicurezza
+- Il `share_token` e un UUID casuale, non indovinabile
+- La RPC `get_dream_by_share_token` restituisce solo campi pubblici (no user_id, no dati privati)
+- L'utente puo revocare il link in qualsiasi momento (imposta `share_token = NULL`)
+- La pagina pubblica non richiede autenticazione
 
