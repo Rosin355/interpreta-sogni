@@ -1,71 +1,94 @@
 
 
-# Piano: Collegamento Sistema Email con Dominio dreamalchemist.app
+# Piano: Sistema di Reset Password con Codice OTP e Email Onirica
 
-## Stato Attuale - Problemi Rilevati
+## Panoramica
 
-Ho analizzato tutte le funzioni email del portale e trovato questi problemi:
+Attualmente il reset password usa un link magico di Supabase. Vuoi un sistema piu sicuro con un **codice numerico a 6 cifre** (OTP) che l'utente deve inserire manualmente, con un'email dal design onirico ispirata all'immagine del portale magico.
 
-### 1. Indirizzo mittente sbagliato (CRITICO)
-La edge function `send-email-notification` invia tutte le email da `onboarding@resend.dev` invece che dal dominio verificato `dreamalchemist.app`. Resend blocca le email in produzione se non usi un dominio verificato.
+## Architettura del Flusso
 
-### 2. Bug nel template invito (CRITICO)  
-Il template "user_invitation" usa `window.location.origin` che NON esiste nelle edge functions Deno. Questo causa un crash quando si tenta di inviare un invito a un utente non registrato.
+Il flusso sara:
+1. L'utente inserisce la sua email nella pagina "Password dimenticata"
+2. Una edge function genera un codice OTP a 6 cifre, lo salva nel database con scadenza (15 minuti), e invia un'email bellissima con il codice
+3. L'utente inserisce il codice OTP nell'app
+4. L'app verifica il codice tramite edge function
+5. Se valido, l'utente puo impostare la nuova password
 
-### 3. Link errati nelle email
-I link nelle email puntano all'URL di Supabase invece che al sito web del portale. Gli utenti che cliccano vengono mandati alla pagina sbagliata.
+## Modifiche Necessarie
 
-### 4. Email di autenticazione Supabase (Password Reset, Conferma Email)
-Le email di reset password e conferma registrazione vengono inviate da Supabase direttamente, non dalla edge function. Per usare il dominio `dreamalchemist.app` anche per queste, serve configurare un SMTP custom nella dashboard Supabase.
+### 1. Nuova tabella `password_reset_tokens`
 
----
+Campi:
+- `id` (uuid, primary key)
+- `user_id` (uuid, riferimento all'utente)
+- `email` (text)
+- `token` (text, il codice a 6 cifre, hashato)
+- `expires_at` (timestamptz, scadenza 15 minuti)
+- `used` (boolean, default false)
+- `attempts` (integer, default 0, max 5 tentativi)
+- `created_at` (timestamptz)
 
-## Piano di Implementazione
+RLS: nessun accesso diretto dal client. Solo le edge functions (con service role key) possono leggere/scrivere questa tabella.
 
-### Passo 1 - Aggiornare la edge function `send-email-notification`
+### 2. Nuova edge function `request-password-reset`
 
-Modifiche:
-- Cambiare il `from` da `onboarding@resend.dev` a `Interpreta i tuoi Sogni <noreply@dreamalchemist.app>`
-- Definire una costante `APP_URL = "https://interpreta-sogni.lovable.app"` (o `https://dreamalchemist.app` se hai un custom domain collegato)
-- Correggere il bug `window.location.origin` nel template invitation, sostituendolo con la costante `APP_URL`
-- Aggiornare tutti i link nei template email per usare `APP_URL` invece dell'URL Supabase
-- Aggiungere link diretti alle pagine pertinenti (es. `/shared-dreams-received` per le condivisioni, `/auth` per registrazione)
+- Riceve l'email dell'utente
+- Verifica che l'utente esista (senza rivelare se esiste o no all'esterno)
+- Genera un codice casuale a 6 cifre
+- Salva l'hash del codice nella tabella `password_reset_tokens`
+- Invalida eventuali token precedenti per lo stesso utente
+- Invia l'email con il codice tramite Resend con template onirico
+- Non richiede autenticazione (l'utente non e loggato)
 
-### Passo 2 - Configurare SMTP Custom su Supabase (manuale)
+### 3. Nuova edge function `verify-reset-token`
 
-Per le email di autenticazione (reset password, conferma email, magic link), dovrai configurare un SMTP custom nella dashboard Supabase:
+- Riceve email + codice OTP + nuova password
+- Verifica il codice contro il database (confronto hash)
+- Controlla scadenza e numero tentativi (max 5)
+- Se valido, usa `supabase.auth.admin.updateUserById()` per cambiare la password
+- Segna il token come usato
+- Non richiede autenticazione
 
-1. Vai su Supabase Dashboard > Authentication > Email Templates
-2. Vai su Settings > Authentication > SMTP Settings
-3. Abilita "Custom SMTP"
-4. Inserisci le credenziali SMTP di Resend:
-   - Host: `smtp.resend.com`
-   - Port: `465`
-   - Username: `resend`
-   - Password: la tua Resend API key
-   - Sender email: `noreply@dreamalchemist.app`
+### 4. Email Template Onirico
 
-Questo passaggio va fatto manualmente dalla dashboard Supabase.
+Un'email HTML con design ispirato all'immagine del portale magico:
+- Sfondo scuro gradient (nero/viola profondo)
+- Bordi dorati e effetti luminosi
+- Il codice OTP mostrato in grande al centro, dentro una "cornice mistica" con bordo dorato
+- Testo elegante con font serif
+- Particelle/stelle decorative via CSS
+- Colori: nero profondo, viola, oro, bagliori caldi
+- Footer con il branding "Interpreta i tuoi Sogni"
 
----
+### 5. Aggiornamento pagina Auth.tsx
 
-## Riepilogo Email del Portale
+Modificare il flusso "Password dimenticata" in 3 step:
 
-| Funzione | Stato Attuale | Dopo le Modifiche |
-|---|---|---|
-| Condivisione sogno con professionista | Mittente sbagliato | Da `noreply@dreamalchemist.app` |
-| Condivisione sogno tra utenti | Mittente sbagliato | Da `noreply@dreamalchemist.app` |
-| Invito utente non registrato | CRASH (bug window) | Corretto con link funzionante |
-| Feedback professionista | Mittente sbagliato | Da `noreply@dreamalchemist.app` |
-| Approvazione professionista | Mittente sbagliato | Da `noreply@dreamalchemist.app` |
-| Reset password | Email default Supabase | Tramite SMTP custom Resend |
-| Conferma registrazione | Email default Supabase | Tramite SMTP custom Resend |
+**Step 1 - Inserimento Email**: l'utente inserisce la propria email (come adesso)
+
+**Step 2 - Inserimento Codice OTP**: 6 campi input per il codice numerico (usando il componente `input-otp` gia installato), con timer di scadenza visibile, pulsante "Reinvia codice"
+
+**Step 3 - Nuova Password**: form per inserire e confermare la nuova password (come adesso)
+
+Il design sara coerente con lo stile onirico del portale, con sfumature viola/oro e animazioni sottili.
 
 ## Dettagli Tecnici
 
-File da modificare:
-- `supabase/functions/send-email-notification/index.ts`: aggiornare `from`, `APP_URL`, fix `window` bug, aggiornare tutti i link nei template HTML
+### File da creare:
+- `supabase/functions/request-password-reset/index.ts` - genera OTP e invia email
+- `supabase/functions/verify-reset-token/index.ts` - verifica OTP e resetta password
 
-Configurazione manuale richiesta:
-- Supabase Dashboard > Settings > Auth > SMTP Settings: configurare Resend SMTP per email di autenticazione
+### File da modificare:
+- `src/pages/Auth.tsx` - nuovo flusso a 3 step con OTP input
+
+### Migrazione database:
+- Creare tabella `password_reset_tokens` con RLS disabilitato per accesso pubblico bloccato (solo service role)
+
+### Sicurezza:
+- Codice OTP hashato nel database (non in chiaro)
+- Scadenza 15 minuti
+- Max 5 tentativi per codice
+- Rate limiting: max 3 richieste per email ogni 15 minuti
+- Risposta generica "Se l'email esiste, riceverai un codice" per non rivelare utenti registrati
 
