@@ -22,68 +22,74 @@ async function hashToken(token: string): Promise<string> {
 function getOTPEmailHTML(code: string): string {
   const digits = code.split('');
   const digitBoxes = digits.map(d => `
-    <td style="width:48px;height:56px;text-align:center;vertical-align:middle;font-family:'Georgia',serif;font-size:28px;font-weight:bold;color:#f5e6a3;background:linear-gradient(135deg,rgba(139,92,246,0.3),rgba(30,15,60,0.8));border:2px solid #c9a84c;border-radius:10px;letter-spacing:0;padding:0;margin:0 4px;">
+    <td style="width:52px;height:62px;text-align:center;vertical-align:middle;font-family:'Georgia',serif;font-size:30px;font-weight:bold;color:#f5e6a3;background:linear-gradient(135deg,rgba(20,8,40,0.95),rgba(40,15,70,0.9));border:2px solid rgba(201,168,76,0.7);border-radius:12px;letter-spacing:0;padding:0;box-shadow:0 0 15px rgba(201,168,76,0.3),inset 0 0 20px rgba(139,92,246,0.2);">
       ${d}
     </td>
-  `).join('<td style="width:8px"></td>');
+  `).join('<td style="width:10px"></td>');
 
   return `<!DOCTYPE html>
 <html lang="it">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#0a0118;font-family:'Georgia','Times New Roman',serif;">
-<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:linear-gradient(180deg,#0a0118 0%,#1a0a2e 50%,#0d0520 100%);">
+<body style="margin:0;padding:0;background-color:#050010;font-family:'Georgia','Times New Roman',serif;">
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:linear-gradient(180deg,#050010 0%,#0d0520 30%,#1a0a2e 60%,#0a0118 100%);">
 <tr><td align="center" style="padding:40px 20px;">
 
+<!-- Outer glow wrapper -->
+<table role="presentation" cellpadding="0" cellspacing="0" width="500" style="max-width:500px;width:100%;">
+<tr><td style="padding:2px;background:linear-gradient(135deg,rgba(201,168,76,0.4),rgba(139,92,246,0.3),rgba(201,168,76,0.4));border-radius:22px;box-shadow:0 0 80px rgba(139,92,246,0.25),0 0 160px rgba(201,168,76,0.1),0 0 40px rgba(168,85,247,0.15);">
+
 <!-- Main card -->
-<table role="presentation" cellpadding="0" cellspacing="0" width="480" style="max-width:480px;width:100%;background:linear-gradient(135deg,rgba(20,10,40,0.95),rgba(15,5,30,0.98));border:1px solid rgba(201,168,76,0.4);border-radius:20px;box-shadow:0 0 60px rgba(139,92,246,0.2),0 0 120px rgba(201,168,76,0.1);">
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:linear-gradient(135deg,rgba(8,3,20,0.98),rgba(15,5,35,0.97),rgba(10,4,25,0.98));border-radius:20px;">
 
 <!-- Header stars -->
-<tr><td align="center" style="padding:30px 30px 10px;">
-  <div style="font-size:32px;letter-spacing:8px;">✦ ✧ ★ ✧ ✦</div>
+<tr><td align="center" style="padding:35px 30px 10px;">
+  <div style="font-size:28px;letter-spacing:12px;text-shadow:0 0 20px rgba(245,230,163,0.6),0 0 40px rgba(201,168,76,0.3);">✦ ✧ ★ ✧ ✦</div>
 </td></tr>
 
-<!-- Moon icon -->
-<tr><td align="center" style="padding:10px;">
-  <div style="width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#c9a84c,#f5e6a3);display:inline-block;line-height:70px;font-size:36px;box-shadow:0 0 30px rgba(201,168,76,0.5);">🌙</div>
+<!-- Moon icon with glow -->
+<tr><td align="center" style="padding:15px;">
+  <div style="width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#c9a84c,#f5e6a3);display:inline-block;line-height:76px;font-size:38px;box-shadow:0 0 30px rgba(201,168,76,0.6),0 0 60px rgba(201,168,76,0.3),0 0 100px rgba(139,92,246,0.2);">🌙</div>
 </td></tr>
 
 <!-- Title -->
-<tr><td align="center" style="padding:15px 30px 5px;">
-  <h1 style="margin:0;font-size:22px;font-weight:bold;color:#f5e6a3;font-family:'Georgia',serif;text-shadow:0 0 20px rgba(245,230,163,0.3);">Recupera la tua Password</h1>
+<tr><td align="center" style="padding:18px 30px 8px;">
+  <h1 style="margin:0;font-size:24px;font-weight:bold;color:#f5e6a3;font-family:'Georgia',serif;text-shadow:0 0 25px rgba(245,230,163,0.4),0 0 50px rgba(201,168,76,0.2);">Recupera la tua Password</h1>
 </td></tr>
 
-<tr><td align="center" style="padding:5px 30px 20px;">
-  <p style="margin:0;font-size:14px;color:#b8a9d4;line-height:1.6;">Hai richiesto di reimpostare la tua password.<br/>Usa questo codice magico per proseguire:</p>
+<tr><td align="center" style="padding:5px 30px 22px;">
+  <p style="margin:0;font-size:15px;color:#b8a9d4;line-height:1.7;">Hai richiesto di reimpostare la tua password.<br/>Usa questo codice magico per proseguire:</p>
 </td></tr>
 
-<!-- Divider -->
+<!-- Divider with glow -->
 <tr><td align="center" style="padding:0 40px;">
-  <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.5),transparent);"></div>
+  <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.6),rgba(139,92,246,0.4),rgba(201,168,76,0.6),transparent);box-shadow:0 0 10px rgba(201,168,76,0.3);"></div>
 </td></tr>
 
-<!-- OTP Code -->
-<tr><td align="center" style="padding:25px 20px;">
-  <table role="presentation" cellpadding="0" cellspacing="0">
+<!-- OTP Code with glowing container -->
+<tr><td align="center" style="padding:30px 20px;">
+  <table role="presentation" cellpadding="0" cellspacing="0" style="border-radius:16px;padding:4px;">
     <tr>${digitBoxes}</tr>
   </table>
 </td></tr>
 
-<!-- Divider -->
+<!-- Divider with glow -->
 <tr><td align="center" style="padding:0 40px;">
-  <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.5),transparent);"></div>
+  <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.6),rgba(139,92,246,0.4),rgba(201,168,76,0.6),transparent);box-shadow:0 0 10px rgba(201,168,76,0.3);"></div>
 </td></tr>
 
 <!-- Warning -->
-<tr><td align="center" style="padding:20px 30px 10px;">
-  <p style="margin:0;font-size:13px;color:#8b7fb8;line-height:1.5;">⏳ Questo codice scade tra <strong style="color:#f5e6a3;">15 minuti</strong></p>
-  <p style="margin:5px 0 0;font-size:12px;color:#6b5f8a;line-height:1.5;">Se non hai richiesto tu il reset, ignora questa email.</p>
+<tr><td align="center" style="padding:22px 30px 10px;">
+  <p style="margin:0;font-size:14px;color:#9b8fc4;line-height:1.6;">⏳ Questo codice scade tra <strong style="color:#f5e6a3;text-shadow:0 0 10px rgba(245,230,163,0.3);">15 minuti</strong></p>
+  <p style="margin:6px 0 0;font-size:12px;color:#6b5f8a;line-height:1.5;">Se non hai richiesto tu il reset, ignora questa email.</p>
 </td></tr>
 
 <!-- Footer -->
-<tr><td align="center" style="padding:20px 30px 30px;">
-  <p style="margin:0;font-size:11px;color:#4a3f6b;">✨ Dream Alchemist — Interpreta i tuoi Sogni ✨</p>
+<tr><td align="center" style="padding:22px 30px 32px;">
+  <p style="margin:0;font-size:12px;color:#5a4f7b;text-shadow:0 0 10px rgba(139,92,246,0.2);">✨ Dream Alchemist — Interpreta i tuoi Sogni ✨</p>
 </td></tr>
 
+</table>
+</td></tr>
 </table>
 </td></tr>
 </table>
