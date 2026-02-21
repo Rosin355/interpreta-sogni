@@ -15,9 +15,8 @@ import { it } from "date-fns/locale";
 import { VoiceNoteRecorder } from "@/components/VoiceNoteRecorder";
 import { TTSButton } from "@/components/TTSButton";
 import { ImageZoomModal } from "@/components/ImageZoomModal";
-import { ShareDreamDialog } from "@/components/ShareDreamDialog";
+import { ShareDreamUnified } from "@/components/ShareDreamUnified";
 import { ProfessionalCommentForm } from "@/components/ProfessionalCommentForm";
-import ShareDreamViaEmail from "@/components/ShareDreamViaEmail";
 import { CustomPromptInput, isCustomPromptValid } from "@/components/CustomPromptInput";
 import {
   AlertDialog,
@@ -53,7 +52,6 @@ const DreamDetail = () => {
   const [hasAstrologicalContext, setHasAstrologicalContext] = useState(false);
   const [natalChartData, setNatalChartData] = useState<any>(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const [shareEmailDialogOpen, setShareEmailDialogOpen] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
   const [isUserOwner, setIsUserOwner] = useState(false);
   const [isProfessional, setIsProfessional] = useState(false);
@@ -432,21 +430,7 @@ const DreamDetail = () => {
                               <Share2 className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Condividi con Professionista</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => setShareEmailDialogOpen(true)}
-                            >
-                              <Share2 className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Condividi via Email</TooltipContent>
+                          <TooltipContent>Condividi</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                       <Button
@@ -806,20 +790,14 @@ const DreamDetail = () => {
         </div>
       </div>
 
-      {/* Share Dream Dialog */}
-      <ShareDreamDialog
+      {/* Unified Share Dialog */}
+      <ShareDreamUnified
         dreamId={id!}
         dreamTitle={dream.title}
+        shareToken={dream.share_token || null}
         open={shareDialogOpen}
         onOpenChange={setShareDialogOpen}
-      />
-      
-      {/* Share Dream via Email Dialog */}
-      <ShareDreamViaEmail
-        dreamId={id!}
-        dreamTitle={dream.title}
-        open={shareEmailDialogOpen}
-        onOpenChange={setShareEmailDialogOpen}
+        onShareTokenChange={(token) => setDream({ ...dream, share_token: token })}
       />
     </>
   );
