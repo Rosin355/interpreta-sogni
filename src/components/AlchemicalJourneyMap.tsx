@@ -66,7 +66,7 @@ export const AlchemicalJourneyMap = ({
               key={phase.id}
               className={`
                 flex flex-col items-center gap-1.5 p-2 sm:p-3 rounded-lg border text-center transition-all
-                ${isActive ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border bg-card'}
+                ${isActive ? 'border-primary bg-primary/10 ring-2 ring-primary/30 shadow-[0_0_15px_hsl(var(--primary)/0.2)] animate-[pulse_3s_ease-in-out_infinite]' : 'border-border bg-card'}
               `}
             >
               <span className="text-xl sm:text-2xl">{phase.icon}</span>
