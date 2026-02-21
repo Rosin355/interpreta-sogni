@@ -102,7 +102,7 @@ export const alchemicalPhases: Record<AlchemicalPhase, PhaseDefinition> = {
       'perdita': 0.7
     },
     description: 'La fase della Nigredo rappresenta l\'inizio del processo alchemico, caratterizzata dall\'oscurità, dalla decomposizione e dalla morte simbolica. È il momento dell\'attraversamento dell\'ombra e della conoscenza del lato oscuro della psiche.',
-    psychologicalMeaning: 'Questa fase corrisponde al confronto con l\'inconscio, l\'elaborazione di traumi, paure profonde e aspetti repressi della personalità. È un processo necessario di dissoluzione dell\'ego e dei vecchi schemi per permettere una rinascita.',
+    psychologicalMeaning: 'Questa fase corrisponde al confronto con l\'inconscio, l\'elaborazione di traumi, paure profonde e aspetti repressi della personalità. \nQuando un individuo sosta in essa, non conosce ancora i propri veri desideri e potrebbe ignorare i propri potenziali inespressi e le proprie capacità o, in casi non meno comuni, potrebbe non essere ancora in grado di guardare con onestà ai propri agiti, e dunque elaborarli. \nIl processo necessario di dissoluzione dell\'ego e dei vecchi schemi permettere l\'emergere della maturità. Se nel nero il seme era obliato, nel bianco esso vedrà la luce... ',
     dreamCharacteristics: [
       'Atmosfere cupe, oscure e minacciose',
       'Sensazioni di pericolo imminente o morte',
