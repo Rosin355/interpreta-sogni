@@ -81,7 +81,7 @@ const Navigation = () => {
           <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/70 rounded-lg flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-sm">🌙</span>
           </div>
-          <span className="text-xl font-bold text-foreground">Dream's Alchemist</span>
+          <span className="text-xl font-bold text-foreground">Dream Alchemist</span>
         </div>
         
         {user ? (

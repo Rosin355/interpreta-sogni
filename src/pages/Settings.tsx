@@ -160,7 +160,7 @@ export default function Settings() {
           <div>
             <h1 className="text-3xl font-bold mb-2">Impostazioni</h1>
             <p className="text-muted-foreground">
-              Configura la tua esperienza con Dream's Alchemist
+              Configura la tua esperienza con Dream Alchemist
             </p>
           </div>
 

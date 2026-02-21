@@ -48,7 +48,7 @@ const About = () => {
     setIsSubmitting(true);
     try {
       // Encode values for WhatsApp
-      const message = `*Nuovo messaggio da Dream's Alchemist*%0A%0A*Nome:* ${encodeURIComponent(values.name)}%0A*Email:* ${encodeURIComponent(values.email)}%0A*Oggetto:* ${encodeURIComponent(values.subject)}%0A%0A*Messaggio:*%0A${encodeURIComponent(values.message)}`;
+      const message = `*Nuovo messaggio da Dream Alchemist*%0A%0A*Nome:* ${encodeURIComponent(values.name)}%0A*Email:* ${encodeURIComponent(values.email)}%0A*Oggetto:* ${encodeURIComponent(values.subject)}%0A%0A*Messaggio:*%0A${encodeURIComponent(values.message)}`;
       
       // Open WhatsApp with pre-filled message (replace with Jessica's number)
       window.open(`https://wa.me/393425855361?text=${message}`, '_blank');
@@ -73,19 +73,19 @@ const About = () => {
             <img
               className="rounded-xl object-cover w-full h-[240px] md:h-[460px]"
               src={dreamsHero}
-              alt="Dream's Alchemist - Il tuo viaggio nei sogni"
+              alt="Dream Alchemist - Il tuo viaggio nei sogni"
             />
 
             <div className="grid gap-6 md:grid-cols-2 md:gap-12">
               <h1 className="text-3xl md:text-4xl font-semibold leading-snug">
-                L'<span className="text-primary">ecosistema</span> Dream's Alchemist{" "}
+                L'<span className="text-primary">ecosistema</span> Dream Alchemist{" "}
                 <span className="text-muted-foreground">
                   unisce tecnologia, saggezza esoterica e crescita personale.
                 </span>
               </h1>
               <div className="space-y-6 text-muted-foreground">
                 <p>
-                  Dream's Alchemist è più di una semplice app per i sogni. È un ecosistema completo 
+                  Dream Alchemist è più di una semplice app per i sogni. È un ecosistema completo 
                   che supporta il tuo viaggio di auto-conoscenza attraverso strumenti innovativi, 
                   interpretazioni esoteriche e una community globale di sognatori.
                 </p>
@@ -112,7 +112,7 @@ const About = () => {
                 Chi Siamo
               </h1>
               <p className="text-muted-foreground">
-                Dream's Alchemist è nato dalla visione di Jessica Marin, Tarologa Esoterista Professionista 
+                Dream Alchemist è nato dalla visione di Jessica Marin, Tarologa Esoterista Professionista 
                 con oltre 15 anni di esperienza nelle arti divinatorie. Questo strumento innovativo unisce 
                 la sua profonda conoscenza esoterica con la tecnologia moderna per offrire interpretazioni 
                 personalizzate dei sogni che guidano verso l'auto-conoscenza e la crescita spirituale.
@@ -239,7 +239,7 @@ const About = () => {
                   <HelpCircle className="h-8 w-8 text-primary" />
                 </div>
                 <h2 className="text-3xl font-bold text-foreground mb-4">Domande Frequenti</h2>
-                <p className="text-muted-foreground">Trova le risposte alle domande più comuni su Dream's Alchemist</p>
+                <p className="text-muted-foreground">Trova le risposte alle domande più comuni su Dream Alchemist</p>
               </div>
 
               <Card className="border-primary/20 bg-gradient-to-br from-card to-card/50">
@@ -250,7 +250,7 @@ const About = () => {
                         Come funziona l'interpretazione dei sogni?
                       </AccordionTrigger>
                       <AccordionContent className="text-muted-foreground">
-                        Dream's Alchemist utilizza l'intelligenza artificiale combinata con la saggezza esoterica per analizzare i simboli e i temi presenti nei tuoi sogni. Il sistema considera il contesto personale, le emozioni e gli archetipi universali per offrirti un'interpretazione personalizzata e significativa.
+                        Dream Alchemist utilizza l'intelligenza artificiale combinata con la saggezza esoterica per analizzare i simboli e i temi presenti nei tuoi sogni. Il sistema considera il contesto personale, le emozioni e gli archetipi universali per offrirti un'interpretazione personalizzata e significativa.
                       </AccordionContent>
                     </AccordionItem>
 
@@ -268,7 +268,7 @@ const About = () => {
                         Posso usare l'app anche senza connessione internet?
                       </AccordionTrigger>
                       <AccordionContent className="text-muted-foreground">
-                        Dream's Alchemist è una Progressive Web App (PWA) che funziona parzialmente offline. Puoi visualizzare i tuoi sogni salvati e navigare nell'interfaccia senza connessione. Per salvare nuovi sogni o generare interpretazioni, avrai bisogno di una connessione internet.
+                        Dream Alchemist è una Progressive Web App (PWA) che funziona parzialmente offline. Puoi visualizzare i tuoi sogni salvati e navigare nell'interfaccia senza connessione. Per salvare nuovi sogni o generare interpretazioni, avrai bisogno di una connessione internet.
                       </AccordionContent>
                     </AccordionItem>
 
@@ -304,7 +304,7 @@ const About = () => {
                         Cos'è la ricerca collettiva sui sogni?
                       </AccordionTrigger>
                       <AccordionContent className="text-muted-foreground">
-                        Dream's Alchemist contribuisce a mappare i pattern onirici globali analizzando (in forma anonima) i temi e simboli ricorrenti nei sogni degli utenti che scelgono di partecipare. Questo ci aiuta a comprendere meglio gli archetipi universali e le connessioni tra le esperienze oniriche umane. La partecipazione è volontaria e puoi decidere sogno per sogno cosa condividere.
+                        Dream Alchemist contribuisce a mappare i pattern onirici globali analizzando (in forma anonima) i temi e simboli ricorrenti nei sogni degli utenti che scelgono di partecipare. Questo ci aiuta a comprendere meglio gli archetipi universali e le connessioni tra le esperienze oniriche umane. La partecipazione è volontaria e puoi decidere sogno per sogno cosa condividere.
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>
