@@ -58,14 +58,12 @@ export default function Explore() {
     try {
       setLoading(true);
 
-      // Fetch public dreams
+      // Fetch public dreams (no join to profiles since there's no FK and profiles has restrictive RLS)
       const { data: dreamsData, error: dreamsError } = await supabase
         .from("dreams")
-        .select(`
-          *,
-          profiles!dreams_user_id_fkey (username, avatar_url)
-        `)
+        .select("*")
         .eq("visibility", "public")
+        .eq("is_private", false)
         .order("created_at", { ascending: false })
         .limit(50);
 
