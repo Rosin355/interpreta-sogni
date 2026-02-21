@@ -44,16 +44,7 @@ export const AlchemicalJourneyMap = ({
 }: AlchemicalJourneyMapProps) => {
   return (
     <div className="w-full space-y-4">
-      {/* Segmented Progress Bar */}
-      <div className="w-full h-3 rounded-full overflow-hidden flex bg-muted">
-        {phases.map((phase) => (
-          <div
-            key={phase.id}
-            className={`${phase.barColor} transition-all duration-500`}
-            style={{ width: `${distribution[phase.id]}%` }}
-          />
-        ))}
-      </div>
+      {/* Phase Cards Row */}
 
       {/* Phase Cards Row */}
       <div className="grid grid-cols-3 gap-2 sm:gap-4">
