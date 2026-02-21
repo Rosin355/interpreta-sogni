@@ -1,34 +1,71 @@
 
 
-# Semplificazione Visualizzazione Viaggio Alchemico
+# Piano: Collegamento Sistema Email con Dominio dreamalchemist.app
 
-## Cosa cambia
+## Stato Attuale - Problemi Rilevati
 
-Sostituire la mappa visuale con cerchi animati (`AlchemicalJourneyMap`) con una visualizzazione testuale/card semplice che mostra:
+Ho analizzato tutte le funzioni email del portale e trovato questi problemi:
 
-- La fase corrente con badge colorato e percentuale
-- Una barra di progresso orizzontale con i tre colori (nero, bianco, rosso) proporzionali alla distribuzione
-- Le tre fasi in una riga con percentuali, evidenziando quella corrente
+### 1. Indirizzo mittente sbagliato (CRITICO)
+La edge function `send-email-notification` invia tutte le email da `onboarding@resend.dev` invece che dal dominio verificato `dreamalchemist.app`. Resend blocca le email in produzione se non usi un dominio verificato.
 
-## Dettaglio tecnico
+### 2. Bug nel template invito (CRITICO)  
+Il template "user_invitation" usa `window.location.origin` che NON esiste nelle edge functions Deno. Questo causa un crash quando si tenta di inviare un invito a un utente non registrato.
 
-### File: `src/components/AlchemicalJourneyMap.tsx`
-Riscrivere il componente rimuovendo:
-- I cerchi animati con glow e shadow pulsanti
-- Le tooltip complesse
-- Le animazioni framer-motion pesanti
+### 3. Link errati nelle email
+I link nelle email puntano all'URL di Supabase invece che al sito web del portale. Gli utenti che cliccano vengono mandati alla pagina sbagliata.
 
-Sostituendo con:
-- Tre card/badge in riga orizzontale con nome fase, icona e percentuale
-- Una barra di progresso segmentata (nero | bianco | rosso) proporzionale alla distribuzione
-- Indicatore "Fase attuale" semplice con testo e badge
-- Mantenere la modalita `compact` per Dashboard
+### 4. Email di autenticazione Supabase (Password Reset, Conferma Email)
+Le email di reset password e conferma registrazione vengono inviate da Supabase direttamente, non dalla edge function. Per usare il dominio `dreamalchemist.app` anche per queste, serve configurare un SMTP custom nella dashboard Supabase.
 
-### File: `src/pages/Alchemy.tsx`
-- Rimuovere i grafici Recharts (AreaChart e LineChart) dal tab "Grafici"
-- Semplificare i tab: mantenere solo "Le Tre Fasi" e "Transizioni"
-- Rimuovere import di Recharts non necessari
+---
 
-## Risultato
-Una pagina piu leggera, leggibile e meno pesante graficamente, che comunica le stesse informazioni in modo chiaro e diretto.
+## Piano di Implementazione
+
+### Passo 1 - Aggiornare la edge function `send-email-notification`
+
+Modifiche:
+- Cambiare il `from` da `onboarding@resend.dev` a `Interpreta i tuoi Sogni <noreply@dreamalchemist.app>`
+- Definire una costante `APP_URL = "https://interpreta-sogni.lovable.app"` (o `https://dreamalchemist.app` se hai un custom domain collegato)
+- Correggere il bug `window.location.origin` nel template invitation, sostituendolo con la costante `APP_URL`
+- Aggiornare tutti i link nei template email per usare `APP_URL` invece dell'URL Supabase
+- Aggiungere link diretti alle pagine pertinenti (es. `/shared-dreams-received` per le condivisioni, `/auth` per registrazione)
+
+### Passo 2 - Configurare SMTP Custom su Supabase (manuale)
+
+Per le email di autenticazione (reset password, conferma email, magic link), dovrai configurare un SMTP custom nella dashboard Supabase:
+
+1. Vai su Supabase Dashboard > Authentication > Email Templates
+2. Vai su Settings > Authentication > SMTP Settings
+3. Abilita "Custom SMTP"
+4. Inserisci le credenziali SMTP di Resend:
+   - Host: `smtp.resend.com`
+   - Port: `465`
+   - Username: `resend`
+   - Password: la tua Resend API key
+   - Sender email: `noreply@dreamalchemist.app`
+
+Questo passaggio va fatto manualmente dalla dashboard Supabase.
+
+---
+
+## Riepilogo Email del Portale
+
+| Funzione | Stato Attuale | Dopo le Modifiche |
+|---|---|---|
+| Condivisione sogno con professionista | Mittente sbagliato | Da `noreply@dreamalchemist.app` |
+| Condivisione sogno tra utenti | Mittente sbagliato | Da `noreply@dreamalchemist.app` |
+| Invito utente non registrato | CRASH (bug window) | Corretto con link funzionante |
+| Feedback professionista | Mittente sbagliato | Da `noreply@dreamalchemist.app` |
+| Approvazione professionista | Mittente sbagliato | Da `noreply@dreamalchemist.app` |
+| Reset password | Email default Supabase | Tramite SMTP custom Resend |
+| Conferma registrazione | Email default Supabase | Tramite SMTP custom Resend |
+
+## Dettagli Tecnici
+
+File da modificare:
+- `supabase/functions/send-email-notification/index.ts`: aggiornare `from`, `APP_URL`, fix `window` bug, aggiornare tutti i link nei template HTML
+
+Configurazione manuale richiesta:
+- Supabase Dashboard > Settings > Auth > SMTP Settings: configurare Resend SMTP per email di autenticazione
 
