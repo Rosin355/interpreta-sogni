@@ -504,7 +504,7 @@ export default function Profile() {
               ) : (
                 <div className="space-y-3">
                   <p className="text-sm text-muted-foreground">
-                    Installa Dream's Alchemist sul tuo dispositivo per accesso rapido e funzionalità offline
+                    Installa Dream Alchemist sul tuo dispositivo per accesso rapido e funzionalità offline
                   </p>
                   <Button onClick={handleInstallPWA} variant="outline" className="w-full">
                     <Download className="mr-2 h-4 w-4" />
