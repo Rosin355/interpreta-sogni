@@ -622,9 +622,10 @@ const DreamDetail = () => {
                 <Select
                   value={dream.visibility || "private"}
                   onValueChange={async (value) => {
+                    const isPrivate = value === "private";
                     const { error } = await supabase
                       .from("dreams")
-                      .update({ visibility: value })
+                      .update({ visibility: value, is_private: isPrivate })
                       .eq("id", id);
                     
                     if (error) {
