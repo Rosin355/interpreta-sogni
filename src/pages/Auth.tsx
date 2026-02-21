@@ -51,6 +51,94 @@ const newPasswordSchema = z.object({
   path: ["confirmPassword"],
 });
 
+// Password validation helpers (outside component to avoid re-creation)
+const getPasswordValidation = (password: string) => ({
+  hasMinLength: password.length >= 8,
+  hasUppercase: /[A-Z]/.test(password),
+  hasNumber: /[0-9]/.test(password),
+});
+
+const isPasswordValid = (password: string) => {
+  const validation = getPasswordValidation(password);
+  return validation.hasMinLength && validation.hasUppercase && validation.hasNumber;
+};
+
+const PasswordRequirements = ({ password }: { password: string }) => {
+  const validation = getPasswordValidation(password);
+  
+  if (!password) return null;
+  
+  const requirements = [
+    { met: validation.hasMinLength, label: "Almeno 8 caratteri" },
+    { met: validation.hasUppercase, label: "Almeno una lettera maiuscola" },
+    { met: validation.hasNumber, label: "Almeno un numero" },
+  ];
+  
+  return (
+    <div className="mt-2 space-y-1">
+      {requirements.map((req, index) => (
+        <div 
+          key={index} 
+          className={`flex items-center gap-2 text-xs transition-colors ${
+            req.met ? "text-green-500" : "text-muted-foreground"
+          }`}
+        >
+          {req.met ? (
+            <Check className="h-3 w-3" />
+          ) : (
+            <X className="h-3 w-3" />
+          )}
+          <span>{req.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const PasswordInput = ({ 
+  id, 
+  value, 
+  onChange, 
+  show, 
+  onToggle, 
+  placeholder = "••••••••",
+  disabled = false,
+  showRequirements = false
+}: {
+  id: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  show: boolean;
+  onToggle: () => void;
+  placeholder?: string;
+  disabled?: boolean;
+  showRequirements?: boolean;
+}) => (
+  <div>
+    <div className="relative">
+      <Input
+        id={id}
+        type={show ? "text" : "password"}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        required
+        disabled={disabled}
+        className="pr-10"
+      />
+      <button
+        type="button"
+        onClick={onToggle}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+        tabIndex={-1}
+      >
+        {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+      </button>
+    </div>
+    {showRequirements && <PasswordRequirements password={value} />}
+  </div>
+);
+
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -196,95 +284,6 @@ const Auth = () => {
     }
   };
 
-  // Password input component with toggle
-  // Password validation helpers
-  const getPasswordValidation = (password: string) => ({
-    hasMinLength: password.length >= 8,
-    hasUppercase: /[A-Z]/.test(password),
-    hasNumber: /[0-9]/.test(password),
-  });
-
-  const isPasswordValid = (password: string) => {
-    const validation = getPasswordValidation(password);
-    return validation.hasMinLength && validation.hasUppercase && validation.hasNumber;
-  };
-
-  // Password requirements indicator component
-  const PasswordRequirements = ({ password }: { password: string }) => {
-    const validation = getPasswordValidation(password);
-    
-    if (!password) return null;
-    
-    const requirements = [
-      { met: validation.hasMinLength, label: "Almeno 8 caratteri" },
-      { met: validation.hasUppercase, label: "Almeno una lettera maiuscola" },
-      { met: validation.hasNumber, label: "Almeno un numero" },
-    ];
-    
-    return (
-      <div className="mt-2 space-y-1">
-        {requirements.map((req, index) => (
-          <div 
-            key={index} 
-            className={`flex items-center gap-2 text-xs transition-colors ${
-              req.met ? "text-green-500" : "text-muted-foreground"
-            }`}
-          >
-            {req.met ? (
-              <Check className="h-3 w-3" />
-            ) : (
-              <X className="h-3 w-3" />
-            )}
-            <span>{req.label}</span>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  const PasswordInput = ({ 
-    id, 
-    value, 
-    onChange, 
-    show, 
-    onToggle, 
-    placeholder = "••••••••",
-    disabled = false,
-    showRequirements = false
-  }: {
-    id: string;
-    value: string;
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    show: boolean;
-    onToggle: () => void;
-    placeholder?: string;
-    disabled?: boolean;
-    showRequirements?: boolean;
-  }) => (
-    <div>
-      <div className="relative">
-        <Input
-          id={id}
-          type={show ? "text" : "password"}
-          placeholder={placeholder}
-          value={value}
-          onChange={onChange}
-          required
-          disabled={disabled}
-          className="pr-10"
-        />
-        <button
-          type="button"
-          onClick={onToggle}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-          tabIndex={-1}
-        >
-          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-        </button>
-      </div>
-      {showRequirements && <PasswordRequirements password={value} />}
-    </div>
-  );
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
