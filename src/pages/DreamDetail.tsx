@@ -593,7 +593,10 @@ const DreamDetail = () => {
               )}
 
               <div>
-                <h3 className="font-semibold mb-2">Descrizione</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold">Descrizione</h3>
+                  <TTSButton text={dream.content} label="Ascolta descrizione" />
+                </div>
                 <p className="text-muted-foreground whitespace-pre-wrap">{dream.content}</p>
               </div>
 
