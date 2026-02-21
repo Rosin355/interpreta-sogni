@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { z } from "zod";
 import Navigation from "@/components/Navigation";
-import { Eye, EyeOff, ArrowLeft, Check, X } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, Check, X, Loader2 } from "lucide-react";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 const loginSchema = z.object({
   email: z.string().email("Email non valida").max(255, "Email troppo lunga"),
@@ -154,11 +155,15 @@ const Auth = () => {
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [showResetConfirmPassword, setShowResetConfirmPassword] = useState(false);
   
-  // Password recovery states
+  // Password recovery states  
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [isResetMode, setIsResetMode] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [newPasswordForm, setNewPasswordForm] = useState({ password: "", confirmPassword: "" });
+  const [otpStep, setOtpStep] = useState<1 | 2 | 3>(1); // 1=email, 2=OTP, 3=new password
+  const [otpCode, setOtpCode] = useState("");
+  const [otpTimer, setOtpTimer] = useState(0);
+  const [otpSending, setOtpSending] = useState(false);
   
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [signupForm, setSignupForm] = useState({ email: "", password: "", confirmPassword: "" });
@@ -207,77 +212,98 @@ const Auth = () => {
     setShowForgotPassword(false);
   };
 
+  // OTP countdown timer
+  useEffect(() => {
+    if (otpTimer <= 0) return;
+    const interval = setInterval(() => setOtpTimer(t => t - 1), 1000);
+    return () => clearInterval(interval);
+  }, [otpTimer]);
+
+  const formatTimer = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     try {
       const validated = resetEmailSchema.parse({ email: resetEmail });
-      setLoading(true);
-
-      const { error } = await supabase.auth.resetPasswordForEmail(validated.email.trim(), {
-        redirectTo: `${window.location.origin}/auth?mode=reset`,
-      });
-
-      if (error) {
-        toast({
-          title: "Errore",
-          description: error.message,
-          variant: "destructive",
-        });
+      setOtpSending(true);
+      const response = await fetch(
+        `https://zufsbpcgcvlcdtksrzhu.supabase.co/functions/v1/request-password-reset`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1ZnNicGNnY3ZsY2R0a3Nyemh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3MzQzMjgsImV4cCI6MjA3NjMxMDMyOH0.qiNGzng-uO87V6lGyVJKksRIfCNxdKwUgTvEucwUZHE' },
+          body: JSON.stringify({ email: validated.email.trim() }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        toast({ title: "Errore", description: data.error || "Errore nell'invio.", variant: "destructive" });
       } else {
-        toast({
-          title: "Email inviata!",
-          description: "Controlla la tua casella di posta per il link di recupero",
-        });
-        setResetEmail("");
-        setShowForgotPassword(false);
+        toast({ title: "Codice inviato!", description: "Se l'email è registrata, riceverai un codice a 6 cifre." });
+        setOtpStep(2);
+        setOtpTimer(900);
+        setOtpCode("");
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
-        toast({
-          title: "Errore di validazione",
-          description: error.errors[0].message,
-          variant: "destructive",
-        });
+        toast({ title: "Errore", description: error.errors[0].message, variant: "destructive" });
       }
     } finally {
-      setLoading(false);
+      setOtpSending(false);
     }
   };
 
-  const handleResetPassword = async (e: React.FormEvent) => {
+  const handleResendOTP = async () => {
+    setOtpSending(true);
+    try {
+      await fetch(
+        `https://zufsbpcgcvlcdtksrzhu.supabase.co/functions/v1/request-password-reset`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1ZnNicGNnY3ZsY2R0a3Nyemh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3MzQzMjgsImV4cCI6MjA3NjMxMDMyOH0.qiNGzng-uO87V6lGyVJKksRIfCNxdKwUgTvEucwUZHE' },
+          body: JSON.stringify({ email: resetEmail.trim() }),
+        }
+      );
+      toast({ title: "Codice reinviato!", description: "Controlla la tua casella di posta." });
+      setOtpTimer(900);
+      setOtpCode("");
+    } catch {
+      toast({ title: "Errore", description: "Impossibile reinviare il codice.", variant: "destructive" });
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const handleVerifyOTPAndReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     try {
       const validated = newPasswordSchema.parse(newPasswordForm);
       setLoading(true);
-
-      const { error } = await supabase.auth.updateUser({
-        password: validated.password,
-      });
-
-      if (error) {
-        toast({
-          title: "Errore",
-          description: error.message,
-          variant: "destructive",
-        });
+      const response = await fetch(
+        `https://zufsbpcgcvlcdtksrzhu.supabase.co/functions/v1/verify-reset-token`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1ZnNicGNnY3ZsY2R0a3Nyemh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3MzQzMjgsImV4cCI6MjA3NjMxMDMyOH0.qiNGzng-uO87V6lGyVJKksRIfCNxdKwUgTvEucwUZHE' },
+          body: JSON.stringify({ email: resetEmail.trim(), code: otpCode, newPassword: validated.password }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        toast({ title: "Errore", description: data.error, variant: "destructive" });
       } else {
-        toast({
-          title: "Password aggiornata!",
-          description: "La tua password è stata cambiata con successo",
-        });
+        toast({ title: "Password aggiornata!", description: "Ora puoi accedere con la nuova password." });
+        setShowForgotPassword(false);
+        setOtpStep(1);
+        setOtpCode("");
+        setResetEmail("");
         setNewPasswordForm({ password: "", confirmPassword: "" });
-        setIsResetMode(false);
-        setSearchParams({ mode: "login" });
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
-        toast({
-          title: "Errore di validazione",
-          description: error.errors[0].message,
-          variant: "destructive",
-        });
+        toast({ title: "Errore", description: error.errors[0].message, variant: "destructive" });
       }
     } finally {
       setLoading(false);
@@ -499,34 +525,147 @@ const Auth = () => {
 
             <TabsContent value="login">
               {showForgotPassword ? (
-                <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="space-y-4">
                   <button
                     type="button"
-                    onClick={() => setShowForgotPassword(false)}
+                    onClick={() => { setShowForgotPassword(false); setOtpStep(1); setOtpCode(""); }}
                     className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <ArrowLeft className="h-4 w-4" />
                     Torna al login
                   </button>
-                  <div className="space-y-2">
-                    <Label htmlFor="reset-email">Email</Label>
-                    <Input
-                      id="reset-email"
-                      type="email"
-                      placeholder="tua@email.com"
-                      value={resetEmail}
-                      onChange={(e) => setResetEmail(e.target.value)}
-                      required
-                      disabled={loading}
-                    />
+
+                  {/* Step indicator */}
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    {[1, 2, 3].map((step) => (
+                      <div key={step} className="flex items-center gap-2">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                          otpStep >= step 
+                            ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30' 
+                            : 'bg-muted text-muted-foreground'
+                        }`}>
+                          {otpStep > step ? <Check className="h-4 w-4" /> : step}
+                        </div>
+                        {step < 3 && <div className={`w-8 h-0.5 ${otpStep > step ? 'bg-primary' : 'bg-muted'}`} />}
+                      </div>
+                    ))}
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Inserisci la tua email per ricevere un link di recupero password.
-                  </p>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Invio in corso..." : "Invia link di recupero"}
-                  </Button>
-                </form>
+
+                  {/* Step 1: Email */}
+                  {otpStep === 1 && (
+                    <form onSubmit={handleForgotPassword} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="reset-email">Email</Label>
+                        <Input
+                          id="reset-email"
+                          type="email"
+                          placeholder="tua@email.com"
+                          value={resetEmail}
+                          onChange={(e) => setResetEmail(e.target.value)}
+                          required
+                          disabled={otpSending}
+                        />
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Inserisci la tua email per ricevere un codice di verifica a 6 cifre.
+                      </p>
+                      <Button type="submit" className="w-full" disabled={otpSending}>
+                        {otpSending ? (
+                          <><Loader2 className="h-4 w-4 animate-spin mr-2" />Invio in corso...</>
+                        ) : "Invia codice di verifica"}
+                      </Button>
+                    </form>
+                  )}
+
+                  {/* Step 2: OTP Code */}
+                  {otpStep === 2 && (
+                    <div className="space-y-4">
+                      <div className="text-center space-y-2">
+                        <p className="text-sm text-muted-foreground">
+                          Abbiamo inviato un codice a 6 cifre a <strong className="text-foreground">{resetEmail}</strong>
+                        </p>
+                        {otpTimer > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            Il codice scade tra <span className="text-primary font-semibold">{formatTimer(otpTimer)}</span>
+                          </p>
+                        )}
+                        {otpTimer <= 0 && (
+                          <p className="text-xs text-destructive font-medium">Codice scaduto</p>
+                        )}
+                      </div>
+                      <div className="flex justify-center">
+                        <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode}>
+                          <InputOTPGroup>
+                            <InputOTPSlot index={0} />
+                            <InputOTPSlot index={1} />
+                            <InputOTPSlot index={2} />
+                            <InputOTPSlot index={3} />
+                            <InputOTPSlot index={4} />
+                            <InputOTPSlot index={5} />
+                          </InputOTPGroup>
+                        </InputOTP>
+                      </div>
+                      <Button 
+                        className="w-full" 
+                        disabled={otpCode.length !== 6}
+                        onClick={() => setOtpStep(3)}
+                      >
+                        Verifica codice
+                      </Button>
+                      <button
+                        type="button"
+                        onClick={handleResendOTP}
+                        disabled={otpSending}
+                        className="w-full text-sm text-primary hover:underline disabled:opacity-50"
+                      >
+                        {otpSending ? "Invio in corso..." : "Reinvia codice"}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Step 3: New Password */}
+                  {otpStep === 3 && (
+                    <form onSubmit={handleVerifyOTPAndReset} className="space-y-4">
+                      <p className="text-sm text-muted-foreground text-center">
+                        Inserisci la tua nuova password
+                      </p>
+                      <div className="space-y-2">
+                        <Label htmlFor="new-password">Nuova Password</Label>
+                        <PasswordInput
+                          id="new-password"
+                          value={newPasswordForm.password}
+                          onChange={(e) => setNewPasswordForm({ ...newPasswordForm, password: e.target.value })}
+                          show={showResetPassword}
+                          onToggle={() => setShowResetPassword(!showResetPassword)}
+                          placeholder="Minimo 8 caratteri"
+                          disabled={loading}
+                          showRequirements={true}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="confirm-new-password">Conferma Password</Label>
+                        <PasswordInput
+                          id="confirm-new-password"
+                          value={newPasswordForm.confirmPassword}
+                          onChange={(e) => setNewPasswordForm({ ...newPasswordForm, confirmPassword: e.target.value })}
+                          show={showResetConfirmPassword}
+                          onToggle={() => setShowResetConfirmPassword(!showResetConfirmPassword)}
+                          placeholder="Ripeti la password"
+                          disabled={loading}
+                        />
+                      </div>
+                      <Button 
+                        type="submit" 
+                        className="w-full" 
+                        disabled={loading || !isPasswordValid(newPasswordForm.password)}
+                      >
+                        {loading ? (
+                          <><Loader2 className="h-4 w-4 animate-spin mr-2" />Aggiornamento...</>
+                        ) : "Aggiorna Password"}
+                      </Button>
+                    </form>
+                  )}
+                </div>
               ) : (
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
@@ -715,46 +854,7 @@ const Auth = () => {
             </TabsContent>
           </Tabs>
 
-          {/* Reset Password Form (shown when user clicks reset link from email) */}
-          {isResetMode && (
-            <div className="mt-6 pt-6 border-t border-border">
-              <form onSubmit={handleResetPassword} className="space-y-4">
-                <h3 className="text-lg font-semibold text-foreground">Imposta nuova password</h3>
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">Nuova Password</Label>
-                  <PasswordInput
-                    id="new-password"
-                    value={newPasswordForm.password}
-                    onChange={(e) => setNewPasswordForm({ ...newPasswordForm, password: e.target.value })}
-                    show={showResetPassword}
-                    onToggle={() => setShowResetPassword(!showResetPassword)}
-                    placeholder="Minimo 8 caratteri"
-                    disabled={loading}
-                    showRequirements={true}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-new-password">Conferma Nuova Password</Label>
-                  <PasswordInput
-                    id="confirm-new-password"
-                    value={newPasswordForm.confirmPassword}
-                    onChange={(e) => setNewPasswordForm({ ...newPasswordForm, confirmPassword: e.target.value })}
-                    show={showResetConfirmPassword}
-                    onToggle={() => setShowResetConfirmPassword(!showResetConfirmPassword)}
-                    placeholder="Ripeti la password"
-                    disabled={loading}
-                  />
-                </div>
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={loading || !isPasswordValid(newPasswordForm.password)}
-                >
-                  {loading ? "Aggiornamento in corso..." : "Aggiorna Password"}
-                </Button>
-              </form>
-            </div>
-          )}
+
         </CardContent>
       </Card>
       </div>
