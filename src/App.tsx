@@ -29,6 +29,7 @@ const ProfessionalVerification = lazy(() => import("./pages/ProfessionalVerifica
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const SharedDreams = lazy(() => import("./pages/SharedDreams"));
 const SharedDreamsReceived = lazy(() => import("./pages/SharedDreamsReceived"));
+const SharedDreamPublic = lazy(() => import("./pages/SharedDreamPublic"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Mystic loading fallback component
@@ -65,6 +66,7 @@ const App = () => (
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/shared-dreams" element={<SharedDreams />} />
               <Route path="/shared-with-me" element={<SharedDreamsReceived />} />
+              <Route path="/dream/shared/:token" element={<SharedDreamPublic />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -247,6 +247,7 @@ export type Database = {
           is_private: boolean | null
           mood: string | null
           no_recall: boolean | null
+          share_token: string | null
           tags: string[] | null
           title: string
           updated_at: string | null
@@ -267,6 +268,7 @@ export type Database = {
           is_private?: boolean | null
           mood?: string | null
           no_recall?: boolean | null
+          share_token?: string | null
           tags?: string[] | null
           title: string
           updated_at?: string | null
@@ -287,6 +289,7 @@ export type Database = {
           is_private?: boolean | null
           mood?: string | null
           no_recall?: boolean | null
+          share_token?: string | null
           tags?: string[] | null
           title?: string
           updated_at?: string | null
@@ -650,6 +653,7 @@ export type Database = {
     }
     Functions: {
       find_user_by_email: { Args: { user_email: string }; Returns: string }
+      get_dream_by_share_token: { Args: { token: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
