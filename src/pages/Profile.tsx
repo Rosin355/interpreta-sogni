@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Download, CheckCircle2, Smartphone, TrendingUp, Upload, X, Sparkles } from "lucide-react";
+import { Loader2, Download, TrendingUp, Upload, X, Sparkles } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import StreakCard from "@/components/StreakCard";
 import { format } from "date-fns";
@@ -26,7 +26,6 @@ export default function Profile() {
   const [username, setUsername] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [gender, setGender] = useState("");
-  const [isPWAInstalled, setIsPWAInstalled] = useState(false);
   const [dreamStats, setDreamStats] = useState({
     total: 0,
     thisWeek: 0,
@@ -37,7 +36,6 @@ export default function Profile() {
 
   useEffect(() => {
     checkAuth();
-    checkPWAStatus();
     loadProfile();
     loadDreamStats();
   }, []);
@@ -49,11 +47,6 @@ export default function Profile() {
       return;
     }
     setUser(user);
-  };
-
-  const checkPWAStatus = () => {
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    setIsPWAInstalled(isStandalone);
   };
 
   const loadProfile = async () => {
