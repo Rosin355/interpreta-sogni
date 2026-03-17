@@ -204,8 +204,8 @@ const NotificationManager = () => {
     if (permission === "granted") {
       new Notification("Ricorda di registrare i tuoi sogni! 🌙", {
         body: "Hai sognato qualcosa stanotte? Registralo prima di dimenticarlo!",
-        icon: "/pwa-192x192.png",
-        badge: "/pwa-192x192.png",
+        icon: "/favicon.ico",
+        badge: "/favicon.ico",
         tag: "dream-reminder",
         requireInteraction: false,
       });
