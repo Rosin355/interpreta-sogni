@@ -220,46 +220,41 @@ const Timeline = () => {
                 </div>
 
                 <TransformComponent
-                  wrapperClass="!w-full !h-[calc(100vh-300px)] border rounded-lg bg-card/50"
+                  wrapperClass="!w-full !h-[calc(100vh-300px)] border border-border/80 rounded-lg bg-card/50"
                   contentClass="!w-full !h-full"
                 >
-                  <div className="relative p-8 min-h-full">
-                    {/* Vertical timeline line */}
-                    <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary via-accent to-primary" />
+                  <div className="relative min-h-full p-8">
+                    <div className="absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 bg-[linear-gradient(180deg,hsl(var(--primary)/0.7)_0%,hsl(var(--accent)/0.35)_50%,hsl(var(--primary)/0.7)_100%)]" />
+                    <div className="absolute left-1/2 top-0 bottom-0 w-16 -translate-x-1/2 bg-[radial-gradient(circle,hsl(var(--primary)/0.12)_0%,transparent_72%)] blur-2xl" />
 
-                    {/* Timeline items */}
                     <div className="space-y-12">
                       {groupedDreams.map(([monthYear, monthDreams], groupIndex) => (
                         <div key={monthYear} className="relative">
-                          {/* Month header */}
-                          <div className="absolute left-1/2 -translate-x-1/2 z-10">
+                          <div className="absolute left-1/2 z-10 -translate-x-1/2">
                             <Badge
-                              variant="secondary"
-                              className="text-sm font-semibold px-4 py-2 bg-primary text-primary-foreground"
+                              variant="outline"
+                              className="border-primary/30 bg-card/90 px-4 py-2 text-sm font-medium uppercase tracking-[0.22em] text-foreground"
                             >
                               {monthYear}
                             </Badge>
                           </div>
 
-                          {/* Dreams in this month */}
-                          <div className="mt-12 space-y-8">
+                          <div className="mt-14 space-y-10">
                             {monthDreams.map((dream, index) => {
                               const isLeft = index % 2 === 0;
                               return (
                                 <div
                                   key={dream.id}
-                                  className={`relative flex ${
-                                    isLeft ? "justify-start" : "justify-end"
-                                  }`}
+                                  className={`relative flex ${isLeft ? "justify-start" : "justify-end"}`}
                                 >
-                                  {/* Connector dot */}
-                                  <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-                                    <div className="w-4 h-4 rounded-full bg-primary border-4 border-background" />
+                                  <div className="absolute left-1/2 top-10 -translate-x-1/2">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-full border border-primary/30 bg-card text-xs text-primary shadow-[0_0_24px_hsl(var(--primary)/0.18)]">
+                                      ✦
+                                    </div>
                                   </div>
 
-                                  {/* Dream card */}
                                   <Card
-                                    className={`w-[45%] cursor-pointer hover:shadow-xl transition-all duration-300 ${
+                                    className={`group w-[45%] cursor-pointer overflow-hidden border-border/80 bg-card/75 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-[0_20px_60px_hsl(var(--background)/0.35)] ${
                                       isLeft ? "mr-[55%]" : "ml-[55%]"
                                     }`}
                                     onClick={() => navigate(`/dreams/${dream.id}`)}
@@ -269,37 +264,45 @@ const Timeline = () => {
                                         <img
                                           src={dream.image_url}
                                           alt={dream.title}
-                                          className="w-full h-full object-cover"
+                                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                                         />
                                       </div>
                                     )}
-                                    <CardContent className="p-4">
-                                      <div className="flex items-center justify-between mb-2 gap-2">
-                                        <h3 className="font-semibold text-lg line-clamp-1">
-                                          {dream.title}
-                                        </h3>
+                                    <CardContent className="space-y-4 p-5">
+                                      <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                          <p className="mb-2 text-[11px] uppercase tracking-[0.32em] text-muted-foreground">
+                                            {String(index + 1).padStart(2, "0")} · Traccia onirica
+                                          </p>
+                                          <h3 className="line-clamp-1 text-lg font-semibold">{dream.title}</h3>
+                                        </div>
                                         <div className="flex items-center gap-2 flex-shrink-0">
                                           {dream.alchemical_phase && (
-                                            <AlchemicalBadge 
-                                              phase={dream.alchemical_phase as AlchemicalPhase} 
-                                              size="sm" 
+                                            <AlchemicalBadge
+                                              phase={dream.alchemical_phase as AlchemicalPhase}
+                                              size="sm"
                                               showIcon={false}
                                             />
                                           )}
-                                          {dream.mood && (
-                                            <Badge variant="secondary">{dream.mood}</Badge>
-                                          )}
                                         </div>
                                       </div>
-                                      <p className="text-xs text-muted-foreground mb-2">
+
+                                      <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
                                         {format(new Date(dream.dream_date), "d MMMM yyyy", {
                                           locale: it,
                                         })}
                                       </p>
-                                      <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
+
+                                      <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
                                         {dream.content}
                                       </p>
-                                      <div className="flex flex-wrap gap-1">
+
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        {dream.mood && (
+                                          <Badge variant="outline" className="border-border bg-background/50 text-muted-foreground">
+                                            {dream.mood}
+                                          </Badge>
+                                        )}
                                         {dream.tags?.slice(0, 3).map((tag, tagIndex) => (
                                           <Badge
                                             key={tagIndex}

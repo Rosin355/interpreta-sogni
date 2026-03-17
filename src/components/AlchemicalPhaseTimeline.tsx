@@ -23,28 +23,32 @@ const phaseStyles: Record<
     markerClass: string;
     badgeClass: string;
     surfaceClass: string;
+    glowClass: string;
   }
 > = {
   nigredo: {
     accentClass: "text-foreground",
-    lineClass: "bg-border",
+    lineClass: "from-border via-border to-border/0",
     markerClass: "border-foreground/30 bg-card text-foreground",
     badgeClass: "border-border bg-secondary text-secondary-foreground",
     surfaceClass: "bg-card/70 border-border",
+    glowClass: "bg-foreground/12",
   },
   albedo: {
     accentClass: "text-accent",
-    lineClass: "bg-accent/30",
+    lineClass: "from-accent/50 via-accent/20 to-accent/0",
     markerClass: "border-accent/30 bg-accent/10 text-accent",
     badgeClass: "border-accent/30 bg-accent/10 text-accent",
     surfaceClass: "bg-accent/5 border-accent/20",
+    glowClass: "bg-accent/10",
   },
   rubedo: {
     accentClass: "text-primary",
-    lineClass: "bg-primary/30",
+    lineClass: "from-primary/50 via-primary/20 to-primary/0",
     markerClass: "border-primary/30 bg-primary/10 text-primary",
     badgeClass: "border-primary/30 bg-primary/10 text-primary",
     surfaceClass: "bg-primary/5 border-primary/20",
+    glowClass: "bg-primary/10",
   },
 };
 
@@ -54,7 +58,7 @@ export const AlchemicalPhaseTimeline = ({
   compact = false,
 }: AlchemicalPhaseTimelineProps) => {
   return (
-    <div className={cn("space-y-5", compact && "space-y-4")}>
+    <div className={cn("space-y-6", compact && "space-y-4")}>
       {phaseOrder.map((phaseId, index) => {
         const phase = alchemicalPhases[phaseId];
         const percentage = distribution[phaseId];
@@ -62,25 +66,39 @@ export const AlchemicalPhaseTimeline = ({
         const styles = phaseStyles[phaseId];
 
         return (
-          <div key={phaseId} className="grid grid-cols-[auto_1fr] gap-4 sm:gap-6">
-            <div className="flex flex-col items-center">
+          <div
+            key={phaseId}
+            className={cn(
+              "grid grid-cols-[72px_1fr] gap-4 sm:grid-cols-[88px_1fr] sm:gap-6",
+              compact && "grid-cols-[64px_1fr]",
+            )}
+          >
+            <div className="relative flex flex-col items-center">
+              <div className={cn("absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b", styles.lineClass)} />
+              <div className={cn("absolute left-1/2 top-12 h-[calc(100%-3rem)] w-10 -translate-x-1/2 rounded-full blur-2xl", styles.glowClass)} />
+
               <div
                 className={cn(
-                  "flex h-12 w-12 items-center justify-center rounded-full border text-sm font-semibold tracking-[0.24em]",
+                  "relative z-10 flex h-14 w-14 items-center justify-center rounded-full border text-sm font-semibold tracking-[0.26em] backdrop-blur-sm",
                   styles.markerClass,
-                  isActive && "shadow-[0_0_0_1px_hsl(var(--ring)/0.25)]",
+                  isActive && "shadow-[0_0_0_1px_hsl(var(--ring)/0.25),0_0_36px_hsl(var(--ring)/0.18)]",
+                  compact && "h-12 w-12",
                 )}
               >
                 {String(index + 1).padStart(2, "0")}
               </div>
-              {index < phaseOrder.length - 1 && (
-                <div className={cn("mt-2 h-full min-h-16 w-px", styles.lineClass)} />
-              )}
+
+              <div className="relative z-10 mt-3 flex flex-col items-center gap-2">
+                <span className="text-lg" aria-hidden="true">
+                  ✦
+                </span>
+                <div className={cn("h-2 w-2 rounded-full", isActive ? styles.accentClass.replace("text-", "bg-") : "bg-muted-foreground/30")} />
+              </div>
             </div>
 
             <Card
               className={cn(
-                "overflow-hidden border transition-colors",
+                "relative overflow-hidden border transition-colors before:absolute before:left-0 before:top-0 before:h-full before:w-px before:bg-border/60",
                 styles.surfaceClass,
                 isActive && "ring-1 ring-ring/40",
               )}
@@ -101,7 +119,7 @@ export const AlchemicalPhaseTimeline = ({
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">
+                        <p className="text-xs uppercase tracking-[0.32em] text-muted-foreground">
                           {phase.latinName}
                         </p>
                       </div>
