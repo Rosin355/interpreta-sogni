@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { StatCardSkeleton, ChartSkeleton } from "@/components/ui/dream-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlchemicalJourneyMap } from "@/components/AlchemicalJourneyMap";
+import { AlchemicalTransitionsList } from "@/components/AlchemicalTransitionsList";
 import { calculateUserJourney, type UserJourney } from "@/utils/alchemical-phases";
 
 const Dashboard = () => {
