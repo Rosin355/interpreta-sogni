@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Download, CheckCircle2, Smartphone, TrendingUp, Upload, X, Sparkles } from "lucide-react";
+import { Loader2, Download, TrendingUp, Upload, X, Sparkles } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import StreakCard from "@/components/StreakCard";
 import { format } from "date-fns";
@@ -26,7 +26,6 @@ export default function Profile() {
   const [username, setUsername] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [gender, setGender] = useState("");
-  const [isPWAInstalled, setIsPWAInstalled] = useState(false);
   const [dreamStats, setDreamStats] = useState({
     total: 0,
     thisWeek: 0,
@@ -37,7 +36,6 @@ export default function Profile() {
 
   useEffect(() => {
     checkAuth();
-    checkPWAStatus();
     loadProfile();
     loadDreamStats();
   }, []);
@@ -49,11 +47,6 @@ export default function Profile() {
       return;
     }
     setUser(user);
-  };
-
-  const checkPWAStatus = () => {
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    setIsPWAInstalled(isStandalone);
   };
 
   const loadProfile = async () => {
@@ -278,12 +271,6 @@ export default function Profile() {
     }
   };
 
-  const handleInstallPWA = () => {
-    toast({
-      title: "Installa l'app",
-      description: "Cerca il pulsante 'Aggiungi a Home' nel menu del browser",
-    });
-  };
 
   if (loading) {
     return (
@@ -483,37 +470,6 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Smartphone className="h-5 w-5" />
-                App Nativa
-              </CardTitle>
-              <CardDescription>Installa l'app per un'esperienza migliore</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {isPWAInstalled ? (
-                <div className="flex items-center gap-3 p-4 bg-primary/10 rounded-lg border border-primary/20">
-                  <CheckCircle2 className="h-6 w-6 text-primary" />
-                  <div className="flex-1">
-                    <p className="font-medium">App Installata</p>
-                    <p className="text-sm text-muted-foreground">Stai usando la versione nativa dell'app</p>
-                  </div>
-                  <Badge variant="secondary">Attiva</Badge>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    Installa Dream Alchemist sul tuo dispositivo per accesso rapido e funzionalità offline
-                  </p>
-                  <Button onClick={handleInstallPWA} variant="outline" className="w-full">
-                    <Download className="mr-2 h-4 w-4" />
-                    Installa App
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
 
           {/* Natal Chart Section */}
           <StreakCard />

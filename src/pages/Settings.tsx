@@ -9,7 +9,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Bell, Palette, Shield, Trash2, Download } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import NotificationManager from "@/components/NotificationManager";
-import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useTheme } from "next-themes";
 export default function Settings() {
   const navigate = useNavigate();
@@ -20,13 +19,6 @@ export default function Settings() {
     theme,
     setTheme
   } = useTheme();
-  const {
-    isSupported,
-    isSubscribed,
-    loading: pushLoading,
-    subscribe,
-    unsubscribe
-  } = usePushNotifications();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   useEffect(() => {
@@ -171,42 +163,15 @@ export default function Settings() {
                 <Bell className="h-5 w-5" />
                 Notifiche
               </CardTitle>
-              <CardDescription>Gestisci le notifiche push per i promemoria dei sogni</CardDescription>
+              <CardDescription>Gestisci i promemoria locali per ricordarti di registrare i sogni</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <NotificationManager />
-              
-              {isSupported && <>
-                  <div className="border-t pt-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <Label>Notifiche Push</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Ricevi notifiche push direttamente sul tuo dispositivo
-                        </p>
-                      </div>
-                      <Switch checked={isSubscribed} onCheckedChange={checked => {
-                    if (checked) {
-                      subscribe();
-                    } else {
-                      unsubscribe();
-                    }
-                  }} disabled={pushLoading} />
-                    </div>
-                  </div>
-                  
-                  {isSubscribed && <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
-                      <p className="text-sm">
-                        ✅ Notifiche push attive! Riceverai promemoria per registrare i tuoi sogni.
-                      </p>
-                    </div>}
-                </>}
-              
-              {!isSupported && <div className="p-3 bg-muted rounded-lg">
-                  <p className="text-sm text-muted-foreground">
-                    Le notifiche push non sono supportate su questo dispositivo.
-                  </p>
-                </div>}
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  Le notifiche web restano disponibili solo nel browser; la configurazione PWA è stata rimossa.
+                </p>
+              </div>
             </CardContent>
           </Card>
 

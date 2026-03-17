@@ -268,7 +268,7 @@ const About = () => {
                         Posso usare l'app anche senza connessione internet?
                       </AccordionTrigger>
                       <AccordionContent className="text-muted-foreground">
-                        Dream Alchemist è una Progressive Web App (PWA) che funziona parzialmente offline. Puoi visualizzare i tuoi sogni salvati e navigare nell'interfaccia senza connessione. Per salvare nuovi sogni o generare interpretazioni, avrai bisogno di una connessione internet.
+                        Per l'esperienza completa Dream Alchemist richiede una connessione internet, perché salvataggio, interpretazioni e sincronizzazione dei dati passano dai servizi online dell'app.
                       </AccordionContent>
                     </AccordionItem>
 
