@@ -204,17 +204,15 @@ const MyDreams = () => {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredDreams.map((dream) => (
+              {filteredDreams.map((dream, index) => (
                 <Card
                   key={dream.id}
-                  className="cursor-pointer hover:shadow-lg transition-shadow overflow-hidden"
+                  className="group cursor-pointer overflow-hidden border-border/80 bg-card/70 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-[0_20px_60px_hsl(var(--background)/0.35)]"
                 >
-                  {/* Thumbnail Immagine */}
                   {dream.image_url ? (
-                    <div 
+                    <div
                       className="aspect-video w-full overflow-hidden bg-muted"
                       onClick={(e) => {
-                        // Impedisci la navigazione quando si clicca sull'immagine per lo zoom
                         if ((e.target as HTMLElement).closest('.image-zoom-wrapper')) {
                           e.stopPropagation();
                         } else {
@@ -222,42 +220,36 @@ const MyDreams = () => {
                         }
                       }}
                     >
-                      <div className="image-zoom-wrapper">
+                      <div className="image-zoom-wrapper h-full w-full">
                         <ImageZoomModal src={dream.image_url} alt={dream.title}>
                           <img
                             src={dream.image_url}
                             alt={dream.title}
-                            className="w-full h-full object-cover"
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                           />
                         </ImageZoomModal>
                       </div>
                     </div>
                   ) : (
-                    <div 
-                      className="aspect-video w-full bg-gradient-to-br from-primary/5 to-primary/10 flex items-center justify-center"
+                    <div
+                      className="aspect-video w-full bg-[linear-gradient(135deg,hsl(var(--card))_0%,hsl(var(--dream-space)/0.75)_100%)] flex items-center justify-center"
                       onClick={() => navigate(`/dreams/${dream.id}`)}
                     >
-                      <div className="text-muted-foreground/30">
-                        <svg
-                          className="w-16 h-16"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1.5}
-                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          />
-                        </svg>
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground/50">
+                        <span className="text-xs uppercase tracking-[0.32em]">Sogno</span>
+                        <span className="text-3xl">✦</span>
                       </div>
                     </div>
                   )}
 
-                  <CardHeader onClick={() => navigate(`/dreams/${dream.id}`)} className="cursor-pointer">
-                    <div className="flex items-start justify-between mb-2">
-                      <CardTitle className="text-xl">{dream.title}</CardTitle>
+                  <CardHeader onClick={() => navigate(`/dreams/${dream.id}`)} className="cursor-pointer space-y-4 border-b border-border/60">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="mb-2 text-xs uppercase tracking-[0.32em] text-muted-foreground">
+                          {String(index + 1).padStart(2, "0")} · Diario onirico
+                        </p>
+                        <CardTitle className="line-clamp-2 text-xl">{dream.title}</CardTitle>
+                      </div>
                       {dream.alchemical_phase && (
                         <AlchemicalBadge phase={dream.alchemical_phase as AlchemicalPhase} size="sm" />
                       )}
@@ -266,27 +258,26 @@ const MyDreams = () => {
                       {format(new Date(dream.dream_date), "d MMMM yyyy", { locale: it })}
                     </p>
                   </CardHeader>
-                  <CardContent onClick={() => navigate(`/dreams/${dream.id}`)} className="cursor-pointer">
-                    <p className="text-muted-foreground line-clamp-3 mb-3">
+
+                  <CardContent onClick={() => navigate(`/dreams/${dream.id}`)} className="cursor-pointer space-y-4 pt-5">
+                    <p className="line-clamp-4 text-sm leading-6 text-muted-foreground">
                       {dream.content}
                     </p>
-                    {dream.mood && (
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Umore: <span className="font-medium">{dream.mood}</span>
-                      </p>
-                    )}
-                    {dream.tags && dream.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {dream.tags.map((tag: string, idx: number) => (
-                          <span
-                            key={idx}
-                            className={`text-xs px-3 py-1.5 rounded-full font-medium border transition-all duration-300 hover:scale-105 hover:animate-pulse ${getTagColor(tag)}`}
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {dream.mood && (
+                        <span className="rounded-full border border-border bg-background/50 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                          {dream.mood}
+                        </span>
+                      )}
+                      {dream.tags?.slice(0, 4).map((tag: string, idx: number) => (
+                        <span
+                          key={idx}
+                          className={`text-xs px-3 py-1.5 rounded-full font-medium border ${getTagColor(tag)}`}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
               ))}
