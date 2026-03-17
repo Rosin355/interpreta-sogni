@@ -4,21 +4,28 @@ import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { 
-  calculateUserJourney, 
-  getAllPhases, 
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  calculateUserJourney,
+  getAllPhases,
   getPhaseAdvice,
   type UserJourney,
-  type AlchemicalPhase 
+  type AlchemicalPhase,
 } from "@/utils/alchemical-phases";
 import { AlchemicalJourneyMap } from "@/components/AlchemicalJourneyMap";
-import { Loader2, TrendingUp, TrendingDown, Minus, Info } from "lucide-react";
+import { AlchemicalTransitionsList } from "@/components/AlchemicalTransitionsList";
+import { Loader2, TrendingUp, TrendingDown, Minus, Sparkles, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useAlchemicalCelebration } from "@/hooks/useAlchemicalCelebration";
 import { AlchemicalTransitionCelebration } from "@/components/AlchemicalTransitionCelebration";
+import { cn } from "@/lib/utils";
+
+const phaseBadgeClass: Record<AlchemicalPhase, string> = {
+  nigredo: "border-border bg-secondary text-secondary-foreground",
+  albedo: "border-accent/30 bg-accent/10 text-accent",
+  rubedo: "border-primary/30 bg-primary/10 text-primary",
+};
 
 const Alchemy = () => {
   const navigate = useNavigate();
@@ -30,65 +37,56 @@ const Alchemy = () => {
     from: AlchemicalPhase;
     to: AlchemicalPhase;
   } | null>(null);
-  
+
   const { celebrate } = useAlchemicalCelebration();
 
   useEffect(() => {
     checkAuth();
-    
-    // Controlla se c'è una transizione recente da celebrare
+
     const checkForTransitions = async () => {
-      // Aspetta che i dati siano caricati
       if (!journey || !journey.transitions || journey.transitions.length === 0) return;
-      
-      // Prendi l'ultima transizione
+
       const lastTransition = journey.transitions[journey.transitions.length - 1];
-      
-      // Controlla se abbiamo già celebrato questa transizione
       const celebratedTransitions = JSON.parse(
-        localStorage.getItem('celebratedAlchemicalTransitions') || '[]'
+        localStorage.getItem("celebratedAlchemicalTransitions") || "[]",
       );
-      
-      // Crea un ID unico per questa transizione (data + from + to)
       const transitionId = `${lastTransition.date}-${lastTransition.from}-${lastTransition.to}`;
-      
-      // Se non abbiamo celebrato questa transizione E è recente (ultimi 7 giorni)
+
       if (!celebratedTransitions.includes(transitionId)) {
         const transitionDate = new Date(lastTransition.date);
         const now = new Date();
         const daysDifference = (now.getTime() - transitionDate.getTime()) / (1000 * 3600 * 24);
-        
+
         if (daysDifference <= 7) {
-          // Celebra la transizione!
           setTimeout(() => {
             setCelebrationTransition({
               from: lastTransition.from,
-              to: lastTransition.to
+              to: lastTransition.to,
             });
             setShowCelebration(true);
             celebrate({ phase: lastTransition.to, fromPhase: lastTransition.from });
-            
-            // Segna questa transizione come celebrata
+
             const updatedCelebrations = [...celebratedTransitions, transitionId];
-            localStorage.setItem('celebratedAlchemicalTransitions', JSON.stringify(updatedCelebrations));
-            
-            // Mantieni solo le ultime 10 celebrazioni per non riempire localStorage
+            localStorage.setItem("celebratedAlchemicalTransitions", JSON.stringify(updatedCelebrations));
+
             if (updatedCelebrations.length > 10) {
               localStorage.setItem(
-                'celebratedAlchemicalTransitions',
-                JSON.stringify(updatedCelebrations.slice(-10))
+                "celebratedAlchemicalTransitions",
+                JSON.stringify(updatedCelebrations.slice(-10)),
               );
             }
           }, 800);
         }
       }
     };
-    
+
     checkForTransitions();
   }, [celebrate, journey]);
 
   const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) {
       navigate("/auth");
       return;
@@ -98,7 +96,9 @@ const Alchemy = () => {
 
   const fetchDreams = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const { data, error } = await supabase
@@ -122,37 +122,36 @@ const Alchemy = () => {
     }
   };
 
-  const getPhaseColor = (phase: AlchemicalPhase) => {
-    switch (phase) {
-      case "nigredo":
-        return "bg-black text-white hover:bg-black/90";
-      case "albedo":
-        return "bg-white text-black border-2 border-border hover:bg-gray-50";
-      case "rubedo":
-        return "bg-gradient-to-r from-red-500 to-amber-500 text-white hover:from-red-600 hover:to-amber-600";
-    }
-  };
-
-  const getTrendIcon = () => {
+  const getTrendMeta = () => {
     if (!journey) return null;
+
     switch (journey.trend) {
       case "progressing":
-        return <TrendingUp className="h-5 w-5 text-green-500" />;
+        return {
+          label: "In evoluzione",
+          icon: <TrendingUp className="h-4 w-4 text-primary" />,
+        };
       case "regressing":
-        return <TrendingDown className="h-5 w-5 text-red-500" />;
+        return {
+          label: "In regressione",
+          icon: <TrendingDown className="h-4 w-4 text-accent" />,
+        };
       case "stable":
-        return <Minus className="h-5 w-5 text-muted-foreground" />;
+        return {
+          label: "Stabile",
+          icon: <Minus className="h-4 w-4 text-muted-foreground" />,
+        };
     }
   };
 
-
   const allPhases = getAllPhases();
+  const trendMeta = getTrendMeta();
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        <div className="container mx-auto px-4 pt-24 pb-12 flex items-center justify-center">
+        <div className="container mx-auto flex items-center justify-center px-4 pb-12 pt-24">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </div>
@@ -163,12 +162,12 @@ const Alchemy = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        <div className="container mx-auto px-4 pt-24 pb-12">
+        <div className="container mx-auto px-4 pb-12 pt-24">
           <Card>
             <CardHeader>
               <CardTitle>Il Tuo Viaggio Alchemico</CardTitle>
               <CardDescription>
-                Registra i tuoi sogni per iniziare a tracciare il tuo percorso di trasformazione interiore
+                Registra i tuoi sogni per iniziare a tracciare il tuo percorso di trasformazione interiore.
               </CardDescription>
             </CardHeader>
           </Card>
@@ -180,8 +179,7 @@ const Alchemy = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
-      {/* Componente di celebrazione */}
+
       {celebrationTransition && (
         <AlchemicalTransitionCelebration
           show={showCelebration}
@@ -190,178 +188,130 @@ const Alchemy = () => {
           onComplete={() => setShowCelebration(false)}
         />
       )}
-      
-      <div className="container mx-auto px-4 pt-24 pb-12 space-y-8">
-        {/* Header con fase corrente */}
-        <motion.div
+
+      <div className="container mx-auto space-y-8 px-4 pb-12 pt-24">
+        <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.45 }}
         >
-          <Card className="border-2">
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <CardTitle className="text-2xl sm:text-3xl mb-2">Il Tuo Viaggio Alchemico</CardTitle>
-                  <CardDescription className="text-sm">
-                    Mappa della tua trasformazione interiore attraverso i sogni
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  {getTrendIcon()}
-                  <Badge variant="outline" className="text-xs sm:text-sm">
-                    {journey.trend === "progressing" && "In Progresso"}
-                    {journey.trend === "regressing" && "In Regressione"}
-                    {journey.trend === "stable" && "Stabile"}
+          <Card className="overflow-hidden border-border/80 bg-[linear-gradient(135deg,hsl(var(--card))_0%,hsl(var(--dream-space)/0.55)_100%)]">
+            <CardHeader className="space-y-5">
+              <div className="space-y-3">
+                <p className="text-xs uppercase tracking-[0.32em] text-muted-foreground">
+                  Mappa interiore
+                </p>
+                <CardTitle className="max-w-3xl text-3xl sm:text-4xl">
+                  Il tuo viaggio alchemico, letto in tre fasi essenziali.
+                </CardTitle>
+                <CardDescription className="max-w-2xl text-base leading-7 text-muted-foreground">
+                  Una lettura più semplice e narrativa del tuo percorso tra ombra, purificazione e integrazione.
+                </CardDescription>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge variant="outline" className={cn("font-medium", phaseBadgeClass[journey.currentPhase])}>
+                  Fase attuale: {journey.currentPhase}
+                </Badge>
+                {trendMeta && (
+                  <Badge variant="outline" className="gap-2 border-border bg-card/70 text-foreground">
+                    {trendMeta.icon}
+                    {trendMeta.label}
                   </Badge>
-                </div>
+                )}
+                <Badge variant="outline" className="border-border bg-card/70 text-foreground">
+                  {dreams.length} sogni analizzati
+                </Badge>
               </div>
             </CardHeader>
-            <CardContent className="px-1 sm:px-4 md:px-6 py-4">
+            <CardContent className="space-y-6">
               <AlchemicalJourneyMap
                 currentPhase={journey.currentPhase}
                 distribution={journey.distribution}
                 compact={false}
               />
-            </CardContent>
-          </Card>
-        </motion.div>
 
-        {/* Consiglio per la fase attuale */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          <Card className="bg-primary/5 border-primary/20">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Info className="h-5 w-5 text-primary" />
-                <CardTitle className="text-xl">Guida per la Fase Attuale</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-foreground/80">{getPhaseAdvice(journey.currentPhase)}</p>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Tabs con contenuti dettagliati */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <Tabs defaultValue="phases" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="phases" className="text-xs sm:text-sm">Le Tre Fasi</TabsTrigger>
-              <TabsTrigger value="evolution" className="text-xs sm:text-sm">Transizioni</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="phases" className="space-y-4 mt-6">
-              {allPhases.map((phase, index) => (
-                <motion.div
-                  key={phase.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                >
-                  <Card className={journey.currentPhase === phase.id ? "border-2 border-primary" : ""}>
-                    <CardHeader>
-                      <div className="flex items-center justify-between flex-wrap gap-4">
-                        <div>
-                          <CardTitle className="text-2xl mb-2">{phase.name}</CardTitle>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge className={getPhaseColor(phase.id)}>
-                              {phase.id}
-                            </Badge>
-                            <span className="text-2xl">{phase.icon}</span>
-                          </div>
-                        </div>
-                        {journey.currentPhase === phase.id && (
-                          <Badge variant="default">Fase Attuale</Badge>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <h4 className="font-semibold mb-2">Significato</h4>
-                        <p className="text-muted-foreground">{phase.description}</p>
-                      </div>
-                      <Separator />
-                      <div>
-                        <h4 className="font-semibold mb-2">Significato Psicologico</h4>
-                        <p className="text-muted-foreground">{phase.psychologicalMeaning}</p>
-                      </div>
-                      <Separator />
-                      <div>
-                        <h4 className="font-semibold mb-2">Caratteristiche nei Sogni</h4>
-                        <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                          {phase.dreamCharacteristics.map((char, i) => (
-                            <li key={i}>{char}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      <Separator />
-                      <div>
-                        <h4 className="font-semibold mb-2">Parole Chiave</h4>
-                        <div className="flex gap-2 flex-wrap">
-                          {phase.keywords.slice(0, 10).map((keyword) => (
-                            <Badge key={keyword} variant="secondary" className="text-xs">
-                              {keyword}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </TabsContent>
-
-
-            <TabsContent value="evolution" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Le Tue Transizioni</CardTitle>
-                  <CardDescription>
-                    Storico dei cambiamenti tra le fasi alchemiche
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {journey.transitions.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">
-                      Continua a registrare i tuoi sogni per vedere le transizioni tra le fasi
+              <Card className="border-primary/20 bg-primary/5">
+                <CardContent className="flex items-start gap-3 p-5">
+                  <Sparkles className="mt-0.5 h-5 w-5 text-primary" />
+                  <div>
+                    <p className="mb-1 text-sm uppercase tracking-[0.28em] text-muted-foreground">
+                      Guida del momento
                     </p>
-                  ) : (
-                    <div className="space-y-4">
-                      {journey.transitions.map((transition, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.5, delay: index * 0.05 }}
-                          className="flex items-center gap-4 p-4 rounded-lg border bg-card"
-                        >
-                          <Badge className={getPhaseColor(transition.from)}>
-                            {transition.from}
-                          </Badge>
-                          <span className="text-muted-foreground">→</span>
-                          <Badge className={getPhaseColor(transition.to)}>
-                            {transition.to}
-                          </Badge>
-                          <span className="text-sm text-muted-foreground ml-auto">
-                            {new Date(transition.date).toLocaleDateString("it-IT")}
-                          </span>
-                        </motion.div>
-                      ))}
-                    </div>
-                  )}
+                    <p className="text-sm leading-6 text-foreground/85">
+                      {getPhaseAdvice(journey.currentPhase)}
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-          </Tabs>
-        </motion.div>
+            </CardContent>
+          </Card>
+        </motion.section>
+
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.08 }}
+          className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]"
+        >
+          <Card className="border-border/80 bg-card/60">
+            <CardHeader>
+              <CardTitle>Le tre fasi</CardTitle>
+              <CardDescription>
+                Descrizioni brevi per leggere subito il significato del tuo momento attuale.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {allPhases.map((phase, index) => (
+                <Collapsible key={phase.id} defaultOpen={journey.currentPhase === phase.id}>
+                  <div className="rounded-lg border border-border/70 bg-background/30">
+                    <CollapsibleTrigger className="flex w-full items-center justify-between gap-4 p-4 text-left">
+                      <div className="flex min-w-0 items-center gap-4">
+                        <span className="text-sm uppercase tracking-[0.28em] text-muted-foreground">
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-lg font-semibold">{phase.name}</h3>
+                            <Badge variant="outline" className={cn("font-medium", phaseBadgeClass[phase.id])}>
+                              {journey.distribution[phase.id]}%
+                            </Badge>
+                            {journey.currentPhase === phase.id && (
+                              <Badge variant="outline" className="border-border bg-card/70 text-foreground">
+                                Dominante
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="mt-1 text-sm text-muted-foreground">{phase.description}</p>
+                        </div>
+                      </div>
+                      <ChevronDown className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                    </CollapsibleTrigger>
+
+                    <CollapsibleContent>
+                      <div className="space-y-4 border-t border-border/60 px-4 pb-4 pt-4 text-sm">
+                        <div>
+                          <h4 className="mb-1 font-medium">Significato psicologico</h4>
+                          <p className="leading-6 text-muted-foreground">{phase.psychologicalMeaning}</p>
+                        </div>
+                        <div>
+                          <h4 className="mb-2 font-medium">Caratteristiche frequenti</h4>
+                          <ul className="space-y-1 text-muted-foreground">
+                            {phase.dreamCharacteristics.slice(0, 4).map((item) => (
+                              <li key={item}>• {item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </div>
+                </Collapsible>
+              ))}
+            </CardContent>
+          </Card>
+
+          <AlchemicalTransitionsList transitions={journey.transitions} />
+        </motion.section>
       </div>
     </div>
   );

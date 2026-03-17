@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Flame, Droplet, Moon } from "lucide-react";
 import { AlchemicalPhase } from "@/utils/alchemical-phases";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 interface AlchemicalBadgeProps {
   phase: AlchemicalPhase;
@@ -14,60 +15,55 @@ const phaseConfig = {
   nigredo: {
     label: "Nigredo",
     icon: Moon,
-    className: "bg-gradient-to-r from-gray-900 to-black text-white border-gray-700 shadow-[0_0_15px_rgba(0,0,0,0.5)]",
-    description: "Opera al Nero - Fase della dissoluzione e dell'ombra. Rappresenta sogni oscuri, difficili o di trasformazione profonda."
+    className: "border-border bg-secondary text-secondary-foreground",
+    description: "Opera al Nero - Fase della dissoluzione e dell'ombra. Rappresenta sogni oscuri, difficili o di trasformazione profonda.",
   },
   albedo: {
     label: "Albedo",
     icon: Droplet,
-    className: "bg-gradient-to-r from-gray-100 to-white text-gray-900 border-gray-300 shadow-[0_0_15px_rgba(255,255,255,0.5)]",
-    description: "Opera al Bianco - Fase della purificazione e chiarezza. Indica sogni di pulizia, serenità e consapevolezza crescente."
+    className: "border-accent/30 bg-accent/10 text-accent",
+    description: "Opera al Bianco - Fase della purificazione e chiarezza. Indica sogni di pulizia, serenità e consapevolezza crescente.",
   },
   rubedo: {
     label: "Rubedo",
     icon: Flame,
-    className: "bg-gradient-to-r from-red-600 to-amber-600 text-white border-amber-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]",
-    description: "Opera al Rosso - Fase della realizzazione e integrazione. Simboleggia sogni di gioia, amore, creatività e compimento."
-  }
+    className: "border-primary/30 bg-primary/10 text-primary",
+    description: "Opera al Rosso - Fase della realizzazione e integrazione. Simboleggia sogni di gioia, amore, creatività e compimento.",
+  },
 };
 
-export const AlchemicalBadge = ({ 
-  phase, 
-  size = "md", 
+export const AlchemicalBadge = ({
+  phase,
+  size = "md",
   showIcon = true,
-  className = "" 
+  className = "",
 }: AlchemicalBadgeProps) => {
   const config = phaseConfig[phase];
   const Icon = config.icon;
-  
+
   const sizeClasses = {
-    sm: "text-xs px-2 py-0.5",
-    md: "text-sm px-3 py-1",
-    lg: "text-base px-4 py-1.5"
+    sm: "text-[11px] px-2.5 py-1",
+    md: "text-xs px-3 py-1.5",
+    lg: "text-sm px-4 py-2",
   };
 
   const iconSizes = {
     sm: "h-3 w-3",
-    md: "h-4 w-4",
-    lg: "h-5 w-5"
+    md: "h-3.5 w-3.5",
+    lg: "h-4 w-4",
   };
 
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Badge 
-            className={`
-              ${config.className} 
-              ${sizeClasses[size]} 
-              font-semibold 
-              border-2 
-              transition-all 
-              duration-300 
-              hover:scale-105 
-              cursor-help
-              ${className}
-            `}
+          <Badge
+            className={cn(
+              "cursor-help rounded-full border font-medium uppercase tracking-[0.16em] transition-colors",
+              config.className,
+              sizeClasses[size],
+              className,
+            )}
           >
             <div className="flex items-center gap-1.5">
               {showIcon && <Icon className={iconSizes[size]} />}
