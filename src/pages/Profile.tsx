@@ -271,12 +271,6 @@ export default function Profile() {
     }
   };
 
-  const handleInstallPWA = () => {
-    toast({
-      title: "Installa l'app",
-      description: "Cerca il pulsante 'Aggiungi a Home' nel menu del browser",
-    });
-  };
 
   if (loading) {
     return (
