@@ -18,6 +18,8 @@ import { ImageZoomModal } from "@/components/ImageZoomModal";
 import { ShareDreamUnified } from "@/components/ShareDreamUnified";
 import { ProfessionalCommentForm } from "@/components/ProfessionalCommentForm";
 import { CustomPromptInput, isCustomPromptValid } from "@/components/CustomPromptInput";
+import { AlchemicalBadge } from "@/components/AlchemicalBadge";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -407,16 +409,36 @@ const DreamDetail = () => {
             Torna ai Miei Sogni
           </Button>
 
-          <Card className="mb-6">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="text-3xl mb-2">{dream.title}</CardTitle>
-                  <p className="text-muted-foreground">
-                    {format(new Date(dream.dream_date), "d MMMM yyyy", { locale: it })}
-                  </p>
+          <Card className="mb-6 overflow-hidden border-border/80 bg-[linear-gradient(135deg,hsl(var(--card))_0%,hsl(var(--dream-space)/0.55)_100%)]">
+            <CardHeader className="space-y-6">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div className="flex-1 space-y-4">
+                  <div className="space-y-2">
+                    <p className="text-xs uppercase tracking-[0.32em] text-muted-foreground">
+                      Diario onirico
+                    </p>
+                    <CardTitle className="text-3xl sm:text-4xl">{dream.title}</CardTitle>
+                    <p className="text-sm uppercase tracking-[0.24em] text-muted-foreground">
+                      {format(new Date(dream.dream_date), "d MMMM yyyy", { locale: it })}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {dream.alchemical_phase && (
+                      <AlchemicalBadge phase={dream.alchemical_phase} size="sm" />
+                    )}
+                    {dream.mood && (
+                      <Badge variant="outline" className="border-border bg-card/70 text-muted-foreground">
+                        Umore: {dream.mood}
+                      </Badge>
+                    )}
+                    <Badge variant="outline" className="border-border bg-card/70 text-foreground">
+                      {dream.visibility === "public" ? "Pubblico" : "Privato"}
+                    </Badge>
+                  </div>
                 </div>
-                <div className="flex gap-2">
+
+                <div className="flex gap-2 self-start">
                   {isUserOwner && (
                     <>
                       <TooltipProvider>
@@ -468,24 +490,28 @@ const DreamDetail = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Immagine Generata */}
               {dream.image_url ? (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold">Immagine del Sogno</h3>
-                    <Badge variant="secondary" className="capitalize">
+                <section className="space-y-4 border-t border-border/60 pt-6">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">
+                        Visione generata
+                      </p>
+                      <h3 className="text-lg font-semibold">Immagine del sogno</h3>
+                    </div>
+                    <Badge variant="outline" className="capitalize border-border bg-card/70 text-foreground">
                       {dream.image_style || 'auto'}
                     </Badge>
                   </div>
-                  <div className="relative aspect-video rounded-lg overflow-hidden group">
+                  <div className="group relative aspect-video overflow-hidden rounded-lg border border-border/70 bg-background/30">
                     <ImageZoomModal src={dream.image_url} alt={dream.title}>
                       <img
                         src={dream.image_url}
                         alt={dream.title}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 rounded-full p-3">
+                      <div className="absolute inset-0 flex items-center justify-center bg-background/0 transition-all duration-300 group-hover:bg-background/20">
+                        <div className="rounded-full border border-border bg-card/90 p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
                             <circle cx="11" cy="11" r="8"/>
                             <path d="m21 21-4.35-4.35"/>
@@ -551,10 +577,10 @@ const DreamDetail = () => {
                       </div>
                     </DialogContent>
                   </Dialog>
-                </div>
+                </section>
               ) : (
-                <div className="border-2 border-dashed rounded-lg p-8 text-center space-y-3">
-                  <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground" />
+                <section className="space-y-3 rounded-lg border border-dashed border-border/70 bg-background/20 p-8 text-center">
+                  <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
                   <p className="text-muted-foreground">
                     Nessuna immagine generata per questo sogno
                   </p>
@@ -567,42 +593,83 @@ const DreamDetail = () => {
                     <ImageIcon className="h-4 w-4" />
                     {imageGenerating ? "Generazione..." : "Genera Immagine"}
                   </Button>
-                </div>
-              )}
-              {dream.mood && (
-                <div>
-                  <h3 className="font-semibold mb-2">Umore</h3>
-                  <p className="text-muted-foreground">{dream.mood}</p>
-                </div>
+                </section>
               )}
 
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold">Descrizione</h3>
-                  <TTSButton text={dream.content} label="Ascolta descrizione" />
+              <section className="grid gap-6 border-t border-border/60 pt-6 md:grid-cols-[minmax(0,1.2fr)_minmax(220px,0.8fr)]">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">
+                        Narrazione
+                      </p>
+                      <h3 className="text-lg font-semibold">Descrizione</h3>
+                    </div>
+                    <TTSButton text={dream.content} label="Ascolta descrizione" />
+                  </div>
+                  <p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{dream.content}</p>
                 </div>
-                <p className="text-muted-foreground whitespace-pre-wrap">{dream.content}</p>
-              </div>
+
+                <div className="space-y-5 rounded-lg border border-border/70 bg-background/20 p-5">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">
+                      Scheda rapida
+                    </p>
+                  </div>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-center justify-between gap-4 border-b border-border/60 pb-3">
+                      <span className="text-muted-foreground">Data</span>
+                      <span className="text-right font-medium text-foreground">
+                        {format(new Date(dream.dream_date), "d MMM yyyy", { locale: it })}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4 border-b border-border/60 pb-3">
+                      <span className="text-muted-foreground">Visibilità</span>
+                      <span className="font-medium text-foreground">
+                        {dream.visibility === "public" ? "Pubblico" : "Privato"}
+                      </span>
+                    </div>
+                    {dream.mood && (
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-muted-foreground">Umore</span>
+                        <span className="font-medium text-foreground">{dream.mood}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
 
               {dream.tags && dream.tags.length > 0 && (
-                <div>
-                  <h3 className="font-semibold mb-2">Tag</h3>
+                <section className="space-y-3 border-t border-border/60 pt-6">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">
+                      Simboli ricorrenti
+                    </p>
+                    <h3 className="text-lg font-semibold">Tag</h3>
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {dream.tags.map((tag: string, idx: number) => (
                       <span
                         key={idx}
-                        className={`px-4 py-2 rounded-full text-sm font-medium border transition-all duration-300 hover:scale-105 hover:animate-pulse ${getTagColor(tag)}`}
+                        className={cn(
+                          "rounded-full border px-4 py-2 text-sm font-medium transition-transform duration-300 hover:scale-105",
+                          getTagColor(tag),
+                        )}
                       >
                         {tag}
                       </span>
                     ))}
                   </div>
-                </div>
+                </section>
               )}
 
-              {/* Visibilità */}
-              <div>
-                <h3 className="font-semibold mb-2">Visibilità</h3>
+              <section className="space-y-3 border-t border-border/60 pt-6">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">
+                    Controllo accesso
+                  </p>
+                  <h3 className="text-lg font-semibold">Visibilità</h3>
+                </div>
                 <Select
                   value={dream.visibility || "private"}
                   onValueChange={async (value) => {
@@ -629,7 +696,7 @@ const DreamDetail = () => {
                     }
                   }}
                 >
-                  <SelectTrigger className="w-full md:w-[200px]">
+                  <SelectTrigger className="w-full md:w-[220px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -637,27 +704,27 @@ const DreamDetail = () => {
                     <SelectItem value="public">🌍 Pubblico</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {dream.visibility === "public" 
-                    ? "Questo sogno è visibile a tutti gli utenti nella pagina Esplora" 
+                <p className="text-xs text-muted-foreground">
+                  {dream.visibility === "public"
+                    ? "Questo sogno è visibile a tutti gli utenti nella pagina Esplora"
                     : "Solo tu puoi vedere questo sogno"}
                 </p>
-              </div>
+              </section>
             </CardContent>
           </Card>
 
           {/* Interpretazione AI */}
-          <Card>
+          <Card className="border-border/80 bg-card/70">
             <CardHeader>
               <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5" />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
                   <CardTitle>Interpretazione AI</CardTitle>
                   {hasAstrologicalContext && natalChartData && (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Badge variant="secondary" className="gap-1">
+                          <Badge variant="outline" className="gap-1 border-primary/30 bg-primary/10 text-primary">
                             <Sparkles className="h-3 w-3" />
                             Astrologica
                           </Badge>
@@ -693,17 +760,17 @@ const DreamDetail = () => {
             </CardHeader>
             <CardContent>
               {dream.interpretation ? (
-                <div className="space-y-4">
+                <div className="space-y-4 border-t border-border/60 pt-6">
                   <div className="prose prose-invert max-w-none">
                     <ReactMarkdown
                       components={{
-                        h1: ({node, ...props}) => <h1 className="text-2xl font-bold text-foreground mb-4" {...props} />,
-                        h2: ({node, ...props}) => <h2 className="text-xl font-bold text-foreground mb-3" {...props} />,
-                        h3: ({node, ...props}) => <h3 className="text-lg font-semibold text-foreground mb-2" {...props} />,
+                        h1: ({node, ...props}) => <h1 className="mb-4 text-2xl font-bold text-foreground" {...props} />,
+                        h2: ({node, ...props}) => <h2 className="mb-3 text-xl font-bold text-foreground" {...props} />,
+                        h3: ({node, ...props}) => <h3 className="mb-2 text-lg font-semibold text-foreground" {...props} />,
                         strong: ({node, ...props}) => <strong className="font-bold text-foreground" {...props} />,
-                        p: ({node, ...props}) => <p className="text-muted-foreground mb-3" {...props} />,
-                        ul: ({node, ...props}) => <ul className="list-disc list-inside text-muted-foreground mb-3 space-y-1" {...props} />,
-                        ol: ({node, ...props}) => <ol className="list-decimal list-inside text-muted-foreground mb-3 space-y-1" {...props} />,
+                        p: ({node, ...props}) => <p className="mb-3 text-muted-foreground" {...props} />,
+                        ul: ({node, ...props}) => <ul className="mb-3 list-disc list-inside space-y-1 text-muted-foreground" {...props} />,
+                        ol: ({node, ...props}) => <ol className="mb-3 list-decimal list-inside space-y-1 text-muted-foreground" {...props} />,
                         li: ({node, ...props}) => <li className="text-muted-foreground" {...props} />,
                       }}
                     >
@@ -722,8 +789,8 @@ const DreamDetail = () => {
                   </Button>
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground mb-4">
+                <div className="py-8 text-center">
+                  <p className="mb-4 text-muted-foreground">
                     Non hai ancora richiesto un'interpretazione per questo sogno
                   </p>
                   <Button
@@ -741,33 +808,32 @@ const DreamDetail = () => {
             </CardContent>
           </Card>
 
-          {/* Professional Comments Section */}
           {(comments.length > 0 || canComment) && (
-            <Card className="mb-6">
+            <Card className="mb-6 border-border/80 bg-card/70">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
+                  <MessageSquare className="h-5 w-5 text-primary" />
                   Feedback Professionali
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 {comments.length > 0 && (
-                  <div className="space-y-4">
+                  <div className="space-y-4 border-t border-border/60 pt-6">
                     {comments.map((comment) => (
-                      <Card key={comment.id} className="border-l-4 border-l-primary/50">
+                      <Card key={comment.id} className="border-border/70 bg-background/20">
                         <CardHeader>
-                          <div className="flex items-start justify-between">
+                          <div className="flex items-start justify-between gap-4">
                             <div>
                               <p className="font-semibold">{comment.professional_name}</p>
                               <p className="text-sm text-muted-foreground">{comment.specialization}</p>
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                               {format(new Date(comment.created_at), "d MMM yyyy 'alle' HH:mm", { locale: it })}
                             </p>
                           </div>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
+                          <p className="whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{comment.content}</p>
                         </CardContent>
                       </Card>
                     ))}

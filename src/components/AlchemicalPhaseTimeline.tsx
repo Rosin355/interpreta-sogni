@@ -94,6 +94,19 @@ export const AlchemicalPhaseTimeline = ({
                 </span>
                 <div className={cn("h-2 w-2 rounded-full", isActive ? styles.accentClass.replace("text-", "bg-") : "bg-muted-foreground/30")} />
               </div>
+
+              {index < phaseOrder.length - 1 && (
+                <div className="relative z-10 mt-4 flex flex-col items-center gap-3">
+                  <span className="text-[10px] uppercase tracking-[0.34em] text-muted-foreground/70">
+                    ∴
+                  </span>
+                  <div className="flex items-center gap-1.5" aria-hidden="true">
+                    <span className="h-px w-4 bg-border/70" />
+                    <span className="text-xs text-muted-foreground/70">✦</span>
+                    <span className="h-px w-4 bg-border/70" />
+                  </div>
+                </div>
+              )}
             </div>
 
             <Card
