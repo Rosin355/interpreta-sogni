@@ -18,6 +18,8 @@ import { ImageZoomModal } from "@/components/ImageZoomModal";
 import { ShareDreamUnified } from "@/components/ShareDreamUnified";
 import { ProfessionalCommentForm } from "@/components/ProfessionalCommentForm";
 import { CustomPromptInput, isCustomPromptValid } from "@/components/CustomPromptInput";
+import { AlchemicalBadge } from "@/components/AlchemicalBadge";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
