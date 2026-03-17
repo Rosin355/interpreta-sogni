@@ -1,59 +1,110 @@
 
+Obiettivo: semplificare il “Viaggio Alchemico” ispirandoci all’infografica allegata, ma mantenendo il brand mistico dell’app e applicando il nuovo linguaggio visivo a tutto il sistema.
 
-## Piano: Dialog di condivisione unificato + Condivisione tramite Link Pubblico
+1. Direzione di redesign
+- Passare da una visualizzazione “dashboard/card” a una struttura più editoriale e lineare.
+- Tenere solo le 3 fasi attuali: Nigredo, Albedo, Rubedo.
+- Mettere in primo piano:
+  - fase corrente
+  - percentuali
+  - spiegazione sintetica per ogni fase
+  - transizioni
+- Ridurre animazioni e glow continui nella vista standard; lasciare la celebrazione solo come evento speciale.
 
-### Panoramica
-Unificare le due icone di condivisione in un unico dialog a tabs (Professionista / Email / Link) e aggiungere la possibilita di generare un link pubblico per condividere il sogno con chiunque, anche senza account.
+2. Nuovo pattern UI proposto
+Creerei un nuovo layout chiamabile, ad esempio, “AlchemicalJourneyTimeline”, con:
+- header semplice: titolo + sottotitolo + fase attuale
+- lista verticale di 3 step numerati
+- per ogni step:
+  - numero grande
+  - nome fase + icona
+  - breve testo descrittivo
+  - percentuale utente
+  - evidenza visiva se è la fase dominante
+- sezione finale separata per “Transizioni recenti”
 
-### Cosa cambia per l'utente
-- **Un solo pulsante "Condividi"** nella pagina del sogno invece di due icone identiche
-- Il dialog si apre con **3 tabs**: Professionista, Email, Link
-- Nel tab **Link** si puo generare un link pubblico unico, copiarlo con un click, e revocarlo quando si vuole
+Schema:
+```text
+[ Titolo ]
+[ fase attuale | trend ]
 
----
+01 Nigredo
+descrizione breve
+43%
 
-### Dettaglio Tecnico
+02 Albedo
+descrizione breve
+32%
 
-#### 1. Database: aggiungere colonna `share_token` alla tabella `dreams`
+03 Rubedo
+descrizione breve
+25%
 
-Nuova migrazione SQL:
-- Aggiungere `share_token TEXT UNIQUE DEFAULT NULL` alla tabella `dreams`
-- Aggiungere una RLS policy che permetta a chiunque (anche anonimi) di leggere un sogno se forniscono il `share_token` corretto via query
-- Creare una funzione RPC `get_dream_by_share_token(token TEXT)` con `SECURITY DEFINER` che restituisce i dati del sogno (titolo, contenuto, mood, tags, immagine, data) senza esporre user_id o dati sensibili
+[ Transizioni recenti ]
+Nigredo → Albedo
+Albedo → Rubedo
+```
 
-#### 2. Nuova pagina: `src/pages/SharedDreamPublic.tsx`
+3. Dove intervenire
+- `src/components/AlchemicalJourneyMap.tsx`
+  - sostituire l’attuale griglia 3-card con il nuovo componente/lista verticale
+  - mantenere props compatibili dove possibile (`currentPhase`, `distribution`, `compact`)
+- `src/pages/Alchemy.tsx`
+  - semplificare la hero iniziale
+  - usare il nuovo journey layout come fulcro della pagina
+  - ridurre peso visivo delle tabs attuali
+  - trasformare “Le Tre Fasi” in contenuto più sintetico e leggibile
+  - mantenere “Transizioni”, ma con una lista più pulita
+- `src/pages/Dashboard.tsx`
+  - aggiornare il widget compatto per usare la stessa grammatica visiva semplificata
+- `src/components/AlchemicalBadge.tsx`
+  - alleggerire il badge: meno gradienti/glow, più leggibilità editoriale
+  - mantenere differenza cromatica tra le 3 fasi
+- `src/pages/MyDreams.tsx` e `src/pages/Timeline.tsx`
+  - allineare i badge e la terminologia al nuovo stile
+  - evitare che il sistema appaia “vecchio” in alcune sezioni e “nuovo” in altre
 
-- Route: `/dream/shared/:token`
-- Pagina pubblica (no auth richiesta) che chiama la RPC `get_dream_by_share_token`
-- Mostra il sogno in modalita read-only con design "onirico"
-- Se il token non esiste o e stato revocato, mostra un messaggio "Sogno non disponibile"
+4. Scelte di design consigliate
+Dato che vuoi qualcosa “ispirato ma brandizzato”:
+- sfondo: mantenere il dark mystic dell’app
+- struttura: prendere dall’allegato la gerarchia verticale e la semplicità
+- tipografia: numeri grandi, testi brevi, meno box annidati
+- colori fase:
+  - Nigredo: carbone / nero profondo
+  - Albedo: perla / argento
+  - Rubedo: rosso / ambra
+- usare sottili linee divisorie e accenti glow solo sull’elemento attivo
 
-#### 3. Nuovo componente: `src/components/ShareDreamUnified.tsx`
+5. Contenuti da accorciare
+L’attuale pagina `/alchemy` ha molto testo lungo per fase. Per renderla più semplice:
+- mostrare subito una descrizione breve
+- spostare i dettagli lunghi in:
+  - collapsible/accordion
+  - oppure sezione secondaria “Approfondisci”
+Così la pagina resta chiara già al primo colpo.
 
-Dialog unificato con Tabs (Radix UI Tabs, gia installato):
-- **Tab "Professionista"**: logica esistente da `ShareDreamDialog.tsx`
-- **Tab "Email"**: logica esistente da `ShareDreamViaEmail.tsx`
-- **Tab "Link"**: 
-  - Se `dream.share_token` esiste: mostra il link con pulsante "Copia" e pulsante "Revoca link"
-  - Se non esiste: pulsante "Genera link pubblico" che genera un UUID, salva come `share_token` nel sogno, e mostra il link
+6. Impatto tecnico
+- Nessun cambiamento al modello dati necessario
+- Riutilizziamo:
+  - `calculateUserJourney`
+  - `getAllPhases`
+  - `getPhaseAdvice`
+  - `journey.transitions`
+- Il lavoro è principalmente UI/refactor, non logica backend
 
-#### 4. Aggiornare `src/pages/DreamDetail.tsx`
+7. Ordine di implementazione
+- Step 1: ridisegnare `AlchemicalJourneyMap` in versione verticale semplice
+- Step 2: aggiornare `/alchemy` per dare priorità al nuovo layout
+- Step 3: adattare il riepilogo in Dashboard
+- Step 4: uniformare `AlchemicalBadge` e gli altri punti del sistema
+- Step 5: rifinire testi, spaziature, responsive mobile
 
-- Rimuovere i due pulsanti separati (Share2 + Share2) e i relativi state (`shareDialogOpen`, `shareEmailDialogOpen`)
-- Aggiungere un unico pulsante Share2 che apre `ShareDreamUnified`
-- Passare i dati del sogno (incluso `share_token`) al nuovo componente
+8. Risultato atteso
+Otterrai un’esperienza più chiara, elegante e coerente:
+- più semplice da leggere
+- più vicina al riferimento allegato
+- meno “tecnica”
+- più coerente in tutta l’app
 
-#### 5. Aggiornare `src/App.tsx`
-
-- Aggiungere route `/dream/shared/:token` che punta a `SharedDreamPublic`
-
-#### 6. Pulizia
-
-- I file `ShareDreamDialog.tsx` e `ShareDreamViaEmail.tsx` possono essere rimossi (la logica sara integrata nel nuovo componente unificato)
-
-### Sicurezza
-- Il `share_token` e un UUID casuale, non indovinabile
-- La RPC `get_dream_by_share_token` restituisce solo campi pubblici (no user_id, no dati privati)
-- L'utente puo revocare il link in qualsiasi momento (imposta `share_token = NULL`)
-- La pagina pubblica non richiede autenticazione
-
+9. Nota pratica
+Ti consiglio di non replicare l’infografica 1:1 con 7 stadi, perché il tuo sistema oggi è costruito su 3 fasi. La soluzione migliore è usare il linguaggio visivo dell’allegato, ma adattato fedelmente al tuo modello Nigredo / Albedo / Rubedo.
