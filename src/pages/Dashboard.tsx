@@ -190,20 +190,21 @@ const Dashboard = () => {
 
           {/* Percorso Alchemico */}
           {!loading && journey && allDreams.length > 0 && (
-            <Card className="mb-8">
+            <Card className="mb-8 border-border/80 bg-card/70">
               <CardHeader>
                 <CardTitle>Il Tuo Percorso Alchemico</CardTitle>
                 <CardDescription>
-                  Scopri la fase della tua trasformazione interiore
+                  Una lettura sintetica della fase che stai attraversando.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-6">
                 <AlchemicalJourneyMap
                   currentPhase={journey.currentPhase}
                   distribution={journey.distribution}
                   compact={true}
                 />
-                <div className="mt-6 text-center">
+                <AlchemicalTransitionsList transitions={journey.transitions} compact={true} />
+                <div className="text-center">
                   <Button
                     variant="outline"
                     onClick={() => navigate("/alchemy")}
