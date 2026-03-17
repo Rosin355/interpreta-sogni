@@ -5,7 +5,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "next-themes";
 import { GlobalNotificationManager } from "@/components/GlobalNotificationManager";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import MysticCursor from "@/components/ui/MysticCursor";
 import { MysticLoader } from "@/components/ui/MysticLoader";
 
@@ -43,7 +42,6 @@ const App = () => (
       <GlobalNotificationManager>
         <Toaster />
         <Sonner />
-        <PWAInstallPrompt />
         <MysticCursor />
         <BrowserRouter>
           <Suspense fallback={<PageLoader />}>
@@ -67,7 +65,6 @@ const App = () => (
               <Route path="/shared-dreams" element={<SharedDreams />} />
               <Route path="/shared-with-me" element={<SharedDreamsReceived />} />
               <Route path="/dream/shared/:token" element={<SharedDreamPublic />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
