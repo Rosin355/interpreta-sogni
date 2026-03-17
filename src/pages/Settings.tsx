@@ -9,7 +9,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Bell, Palette, Shield, Trash2, Download } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import NotificationManager from "@/components/NotificationManager";
-import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useTheme } from "next-themes";
 export default function Settings() {
   const navigate = useNavigate();
@@ -20,13 +19,6 @@ export default function Settings() {
     theme,
     setTheme
   } = useTheme();
-  const {
-    isSupported,
-    isSubscribed,
-    loading: pushLoading,
-    subscribe,
-    unsubscribe
-  } = usePushNotifications();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   useEffect(() => {
