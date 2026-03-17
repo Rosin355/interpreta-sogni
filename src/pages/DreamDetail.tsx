@@ -714,17 +714,17 @@ const DreamDetail = () => {
           </Card>
 
           {/* Interpretazione AI */}
-          <Card>
+          <Card className="border-border/80 bg-card/70">
             <CardHeader>
               <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5" />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
                   <CardTitle>Interpretazione AI</CardTitle>
                   {hasAstrologicalContext && natalChartData && (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Badge variant="secondary" className="gap-1">
+                          <Badge variant="outline" className="gap-1 border-primary/30 bg-primary/10 text-primary">
                             <Sparkles className="h-3 w-3" />
                             Astrologica
                           </Badge>
@@ -760,17 +760,17 @@ const DreamDetail = () => {
             </CardHeader>
             <CardContent>
               {dream.interpretation ? (
-                <div className="space-y-4">
+                <div className="space-y-4 border-t border-border/60 pt-6">
                   <div className="prose prose-invert max-w-none">
                     <ReactMarkdown
                       components={{
-                        h1: ({node, ...props}) => <h1 className="text-2xl font-bold text-foreground mb-4" {...props} />,
-                        h2: ({node, ...props}) => <h2 className="text-xl font-bold text-foreground mb-3" {...props} />,
-                        h3: ({node, ...props}) => <h3 className="text-lg font-semibold text-foreground mb-2" {...props} />,
+                        h1: ({node, ...props}) => <h1 className="mb-4 text-2xl font-bold text-foreground" {...props} />,
+                        h2: ({node, ...props}) => <h2 className="mb-3 text-xl font-bold text-foreground" {...props} />,
+                        h3: ({node, ...props}) => <h3 className="mb-2 text-lg font-semibold text-foreground" {...props} />,
                         strong: ({node, ...props}) => <strong className="font-bold text-foreground" {...props} />,
-                        p: ({node, ...props}) => <p className="text-muted-foreground mb-3" {...props} />,
-                        ul: ({node, ...props}) => <ul className="list-disc list-inside text-muted-foreground mb-3 space-y-1" {...props} />,
-                        ol: ({node, ...props}) => <ol className="list-decimal list-inside text-muted-foreground mb-3 space-y-1" {...props} />,
+                        p: ({node, ...props}) => <p className="mb-3 text-muted-foreground" {...props} />,
+                        ul: ({node, ...props}) => <ul className="mb-3 list-disc list-inside space-y-1 text-muted-foreground" {...props} />,
+                        ol: ({node, ...props}) => <ol className="mb-3 list-decimal list-inside space-y-1 text-muted-foreground" {...props} />,
                         li: ({node, ...props}) => <li className="text-muted-foreground" {...props} />,
                       }}
                     >
@@ -789,8 +789,8 @@ const DreamDetail = () => {
                   </Button>
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground mb-4">
+                <div className="py-8 text-center">
+                  <p className="mb-4 text-muted-foreground">
                     Non hai ancora richiesto un'interpretazione per questo sogno
                   </p>
                   <Button
@@ -808,33 +808,32 @@ const DreamDetail = () => {
             </CardContent>
           </Card>
 
-          {/* Professional Comments Section */}
           {(comments.length > 0 || canComment) && (
-            <Card className="mb-6">
+            <Card className="mb-6 border-border/80 bg-card/70">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
+                  <MessageSquare className="h-5 w-5 text-primary" />
                   Feedback Professionali
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 {comments.length > 0 && (
-                  <div className="space-y-4">
+                  <div className="space-y-4 border-t border-border/60 pt-6">
                     {comments.map((comment) => (
-                      <Card key={comment.id} className="border-l-4 border-l-primary/50">
+                      <Card key={comment.id} className="border-border/70 bg-background/20">
                         <CardHeader>
-                          <div className="flex items-start justify-between">
+                          <div className="flex items-start justify-between gap-4">
                             <div>
                               <p className="font-semibold">{comment.professional_name}</p>
                               <p className="text-sm text-muted-foreground">{comment.specialization}</p>
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                               {format(new Date(comment.created_at), "d MMM yyyy 'alle' HH:mm", { locale: it })}
                             </p>
                           </div>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
+                          <p className="whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{comment.content}</p>
                         </CardContent>
                       </Card>
                     ))}
