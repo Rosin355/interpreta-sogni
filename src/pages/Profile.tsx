@@ -470,37 +470,6 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Smartphone className="h-5 w-5" />
-                App Nativa
-              </CardTitle>
-              <CardDescription>Installa l'app per un'esperienza migliore</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {isPWAInstalled ? (
-                <div className="flex items-center gap-3 p-4 bg-primary/10 rounded-lg border border-primary/20">
-                  <CheckCircle2 className="h-6 w-6 text-primary" />
-                  <div className="flex-1">
-                    <p className="font-medium">App Installata</p>
-                    <p className="text-sm text-muted-foreground">Stai usando la versione nativa dell'app</p>
-                  </div>
-                  <Badge variant="secondary">Attiva</Badge>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    Installa Dream Alchemist sul tuo dispositivo per accesso rapido e funzionalità offline
-                  </p>
-                  <Button onClick={handleInstallPWA} variant="outline" className="w-full">
-                    <Download className="mr-2 h-4 w-4" />
-                    Installa App
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
 
           {/* Natal Chart Section */}
           <StreakCard />
