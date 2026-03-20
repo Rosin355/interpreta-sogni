@@ -1,47 +1,56 @@
 
 
-## Fix: Dettatura vocale nella creazione sogno
+## Fix: Generazione immagine con prompt personalizzato
 
-### Problemi identificati
+### Problema
+Dai log, l'API restituisce **status 200** ma il body contiene un errore 429 embedded:
+```
+choices[0].error: {code: 429, message: "rate_limit_exceeded"}
+```
+Il codice attuale controlla solo `imageResponse.status`, quindi non rileva questo errore e fallisce con "NO_IMAGE".
 
-1. **`audio/webm` non supportato su Safari/iOS** — `new MediaRecorder(stream, { mimeType: 'audio/webm' })` fallisce silenziosamente su Safari. Serve un fallback a `audio/mp4`.
+Secondo problema: il prompt è troppo lungo (~2488 chars) con il contenuto del sogno completo + custom prompt, il che aumenta il consumo di token e la probabilità di rate limit.
 
-2. **Errori non catturati nel `FileReader`** — Il `throw` dentro `reader.onerror` e gli errori dentro `reader.onloadend` non vengono catturati dal `try/catch` esterno perché sono callback asincrone. Il risultato è che se qualcosa va storto, l'utente resta bloccato su "Trascrizione in corso..." per sempre.
+### Correzioni
 
-3. **CORS headers incompleti nella edge function** — Mancano gli header Supabase client (`x-supabase-client-platform`, etc.) che il client JS invia automaticamente.
+**File: `supabase/functions/generate-dream-image/index.ts`**
 
-4. **Nessun feedback se la trascrizione torna vuota** — Se ElevenLabs restituisce testo vuoto, l'utente non riceve alcun messaggio.
+1. **Rilevare errori embedded nella risposta 200** — Dopo il parsing JSON (riga 314), controllare `choices[0].error` prima di cercare l'immagine. Se c'è un errore 429 embedded, restituire il messaggio di rate limit all'utente.
 
-### Piano di intervento
+2. **Troncare il contenuto del sogno** — Limitare `content` a ~800 caratteri nel prompt per ridurre la lunghezza totale.
 
-**File 1: `src/components/VoiceRecorder.tsx`**
-- Aggiungere detection del mimeType supportato (`audio/webm` → fallback `audio/mp4`)
-- Riscrivere `transcribeAudio` usando una Promise wrapper attorno al FileReader per gestire correttamente gli errori
-- Aggiungere toast se la trascrizione torna vuota
-- Assicurarsi che `isTranscribing` venga resettato in tutti i casi di errore
+3. **Riscrivere il prompt in inglese** — I modelli di generazione immagini funzionano meglio con prompt in inglese. Tradurre la struttura del prompt mantenendo le descrizioni di stile e mood.
 
-**File 2: `supabase/functions/speech-to-text-elevenlabs/index.ts`**
-- Aggiornare i CORS headers con gli header Supabase client mancanti
-- Passare il mimeType corretto al blob (non hardcodare `audio/webm`)
-- Deploy automatico
+4. **Aggiungere retry con backoff** — Se l'errore è 429 embedded, tentare una seconda volta dopo 3 secondi prima di restituire l'errore all'utente.
 
 ### Dettaglio tecnico
 
 ```typescript
-// mimeType detection
-const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
-  ? 'audio/webm' 
-  : 'audio/mp4';
+// Dopo riga 314: parsing della risposta
+const imageData = await imageResponse.json();
 
-// Promise-based FileReader
-const base64Audio = await new Promise<string>((resolve, reject) => {
-  const reader = new FileReader();
-  reader.onloadend = () => {
-    const result = reader.result?.toString().split(',')[1];
-    result ? resolve(result) : reject(new Error('Conversione audio fallita'));
-  };
-  reader.onerror = () => reject(reader.error);
-  reader.readAsDataURL(audioBlob);
-});
+// CHECK embedded errors (NEW)
+const embeddedError = imageData.choices?.[0]?.error;
+if (embeddedError) {
+  console.error(`Embedded error:`, embeddedError);
+  if (embeddedError.code === 429) {
+    return new Response(
+      JSON.stringify({ error: 'Limite richieste raggiunto. Riprova tra qualche minuto.', errorCode: 'AI_RATE_LIMIT' }),
+      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+  return new Response(
+    JSON.stringify({ error: 'Errore AI', errorCode: 'AI_ERROR' }),
+    { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+// Truncate content in prompt
+const truncatedContent = content.length > 800 
+  ? content.substring(0, 800) + '...' 
+  : content;
 ```
+
+### Nessuna modifica frontend necessaria
+Il client gestisce già correttamente gli errori 429 e 500.
 
