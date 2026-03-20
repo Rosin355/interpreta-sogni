@@ -17,6 +17,27 @@ interface VoiceRecorderProps {
   onTranscription: (text: string) => void;
 }
 
+function getSupportedMimeType(): string {
+  if (typeof MediaRecorder !== 'undefined') {
+    if (MediaRecorder.isTypeSupported('audio/webm')) return 'audio/webm';
+    if (MediaRecorder.isTypeSupported('audio/mp4')) return 'audio/mp4';
+    if (MediaRecorder.isTypeSupported('audio/ogg')) return 'audio/ogg';
+  }
+  return 'audio/webm'; // fallback
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result?.toString().split(',')[1];
+      result ? resolve(result) : reject(new Error('Conversione audio fallita'));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error('Errore lettura audio'));
+    reader.readAsDataURL(blob);
+  });
+}
+
 export const VoiceRecorder = ({ onTranscription }: VoiceRecorderProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -24,13 +45,15 @@ export const VoiceRecorder = ({ onTranscription }: VoiceRecorderProps) => {
   const [transcribedText, setTranscribedText] = useState("");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const mimeTypeRef = useRef<string>('audio/webm');
 
   const startRecording = async () => {
     try {
+      const mimeType = getSupportedMimeType();
+      mimeTypeRef.current = mimeType;
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm',
-      });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
 
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
@@ -42,10 +65,8 @@ export const VoiceRecorder = ({ onTranscription }: VoiceRecorderProps) => {
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
         await transcribeAudio(audioBlob);
-        
-        // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
       };
 
@@ -77,36 +98,27 @@ export const VoiceRecorder = ({ onTranscription }: VoiceRecorderProps) => {
     setIsTranscribing(true);
 
     try {
-      // Convert blob to base64
-      const reader = new FileReader();
-      reader.readAsDataURL(audioBlob);
-      
-      reader.onloadend = async () => {
-        const base64Audio = reader.result?.toString().split(',')[1];
+      const base64Audio = await blobToBase64(audioBlob);
 
-        if (!base64Audio) {
-          throw new Error('Failed to convert audio to base64');
-        }
+      const { data, error } = await supabase.functions.invoke('speech-to-text-elevenlabs', {
+        body: { audio: base64Audio, mimeType: mimeTypeRef.current }
+      });
 
-        const { data, error } = await supabase.functions.invoke('speech-to-text-elevenlabs', {
-          body: { audio: base64Audio }
+      if (error) throw error;
+
+      if (!data?.text || data.text.trim() === '') {
+        toast({
+          title: "Nessun testo rilevato",
+          description: "Non è stato possibile riconoscere parole nell'audio. Riprova parlando più chiaramente.",
+          variant: "destructive",
         });
-
-        if (error) {
-          throw error;
-        }
-
-        if (data?.text) {
-          setTranscribedText(data.text);
-          setShowPreview(true);
-        }
-
         setIsTranscribing(false);
-      };
+        return;
+      }
 
-      reader.onerror = () => {
-        throw new Error('Failed to read audio file');
-      };
+      setTranscribedText(data.text);
+      setShowPreview(true);
+      setIsTranscribing(false);
     } catch (error) {
       console.error('Error transcribing audio:', error);
       toast({

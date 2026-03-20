@@ -4,7 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 function processBase64Chunks(base64String: string, chunkSize = 32768) {
@@ -42,10 +42,8 @@ serve(async (req) => {
   }
 
   try {
-    // Validate JWT authentication
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error('Missing Authorization header');
       return new Response(
         JSON.stringify({ error: 'Autenticazione richiesta' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -60,7 +58,6 @@ serve(async (req) => {
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      console.error('Authentication failed:', authError);
       return new Response(
         JSON.stringify({ error: 'Autenticazione non valida' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -69,7 +66,6 @@ serve(async (req) => {
 
     console.log('Authenticated user:', user.id);
 
-    // Rate Limiting
     const { RateLimiter, RATE_LIMITS } = await import("../_shared/rate-limiter.ts");
     const { speechToTextSchema } = await import("../_shared/validation.ts");
     
@@ -99,7 +95,6 @@ serve(async (req) => {
       );
     }
 
-    // Input Validation
     const requestBody = await req.json();
     console.log('[STT] Request received, audio data length:', requestBody.audio?.length || 0);
     
@@ -117,20 +112,22 @@ serve(async (req) => {
     }
 
     const { audio } = validation.data;
+    const clientMimeType = requestBody.mimeType || 'audio/webm';
     
     if (!audio) {
-      console.error('[STT] No audio data provided');
       throw new Error('No audio data provided');
     }
 
-    console.log('[STT] Processing audio for transcription...');
+    console.log('[STT] Processing audio, mimeType:', clientMimeType);
 
     const binaryAudio = processBase64Chunks(audio);
     console.log('[STT] Audio size:', binaryAudio.length, 'bytes');
 
+    const extension = clientMimeType.includes('mp4') ? 'mp4' : clientMimeType.includes('ogg') ? 'ogg' : 'webm';
+
     const formData = new FormData();
-    const blob = new Blob([binaryAudio], { type: 'audio/webm' });
-    formData.append('file', blob, 'audio.webm');
+    const blob = new Blob([binaryAudio], { type: clientMimeType });
+    formData.append('file', blob, `audio.${extension}`);
     formData.append('model_id', 'scribe_v1');
     formData.append('language_code', 'it');
 
@@ -152,7 +149,6 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('[STT] ElevenLabs STT API error:', response.status, errorText);
-      console.error('[STT] Response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
       throw new Error(`ElevenLabs STT API error: ${errorText}`);
     }
 
@@ -160,7 +156,6 @@ serve(async (req) => {
     const text = result.text;
 
     console.log('[STT] Transcription successful, length:', text?.length || 0);
-    console.log('[STT] Preview:', text?.substring(0, 100));
 
     return new Response(
       JSON.stringify({ text }),
@@ -175,7 +170,6 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('[STT] FATAL ERROR:', error);
-    console.error('[STT] Error stack:', error.stack);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
