@@ -1,59 +1,47 @@
 
 
-## Piano: Dialog di condivisione unificato + Condivisione tramite Link Pubblico
+## Fix: Dettatura vocale nella creazione sogno
 
-### Panoramica
-Unificare le due icone di condivisione in un unico dialog a tabs (Professionista / Email / Link) e aggiungere la possibilita di generare un link pubblico per condividere il sogno con chiunque, anche senza account.
+### Problemi identificati
 
-### Cosa cambia per l'utente
-- **Un solo pulsante "Condividi"** nella pagina del sogno invece di due icone identiche
-- Il dialog si apre con **3 tabs**: Professionista, Email, Link
-- Nel tab **Link** si puo generare un link pubblico unico, copiarlo con un click, e revocarlo quando si vuole
+1. **`audio/webm` non supportato su Safari/iOS** — `new MediaRecorder(stream, { mimeType: 'audio/webm' })` fallisce silenziosamente su Safari. Serve un fallback a `audio/mp4`.
 
----
+2. **Errori non catturati nel `FileReader`** — Il `throw` dentro `reader.onerror` e gli errori dentro `reader.onloadend` non vengono catturati dal `try/catch` esterno perché sono callback asincrone. Il risultato è che se qualcosa va storto, l'utente resta bloccato su "Trascrizione in corso..." per sempre.
 
-### Dettaglio Tecnico
+3. **CORS headers incompleti nella edge function** — Mancano gli header Supabase client (`x-supabase-client-platform`, etc.) che il client JS invia automaticamente.
 
-#### 1. Database: aggiungere colonna `share_token` alla tabella `dreams`
+4. **Nessun feedback se la trascrizione torna vuota** — Se ElevenLabs restituisce testo vuoto, l'utente non riceve alcun messaggio.
 
-Nuova migrazione SQL:
-- Aggiungere `share_token TEXT UNIQUE DEFAULT NULL` alla tabella `dreams`
-- Aggiungere una RLS policy che permetta a chiunque (anche anonimi) di leggere un sogno se forniscono il `share_token` corretto via query
-- Creare una funzione RPC `get_dream_by_share_token(token TEXT)` con `SECURITY DEFINER` che restituisce i dati del sogno (titolo, contenuto, mood, tags, immagine, data) senza esporre user_id o dati sensibili
+### Piano di intervento
 
-#### 2. Nuova pagina: `src/pages/SharedDreamPublic.tsx`
+**File 1: `src/components/VoiceRecorder.tsx`**
+- Aggiungere detection del mimeType supportato (`audio/webm` → fallback `audio/mp4`)
+- Riscrivere `transcribeAudio` usando una Promise wrapper attorno al FileReader per gestire correttamente gli errori
+- Aggiungere toast se la trascrizione torna vuota
+- Assicurarsi che `isTranscribing` venga resettato in tutti i casi di errore
 
-- Route: `/dream/shared/:token`
-- Pagina pubblica (no auth richiesta) che chiama la RPC `get_dream_by_share_token`
-- Mostra il sogno in modalita read-only con design "onirico"
-- Se il token non esiste o e stato revocato, mostra un messaggio "Sogno non disponibile"
+**File 2: `supabase/functions/speech-to-text-elevenlabs/index.ts`**
+- Aggiornare i CORS headers con gli header Supabase client mancanti
+- Passare il mimeType corretto al blob (non hardcodare `audio/webm`)
+- Deploy automatico
 
-#### 3. Nuovo componente: `src/components/ShareDreamUnified.tsx`
+### Dettaglio tecnico
 
-Dialog unificato con Tabs (Radix UI Tabs, gia installato):
-- **Tab "Professionista"**: logica esistente da `ShareDreamDialog.tsx`
-- **Tab "Email"**: logica esistente da `ShareDreamViaEmail.tsx`
-- **Tab "Link"**: 
-  - Se `dream.share_token` esiste: mostra il link con pulsante "Copia" e pulsante "Revoca link"
-  - Se non esiste: pulsante "Genera link pubblico" che genera un UUID, salva come `share_token` nel sogno, e mostra il link
+```typescript
+// mimeType detection
+const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
+  ? 'audio/webm' 
+  : 'audio/mp4';
 
-#### 4. Aggiornare `src/pages/DreamDetail.tsx`
-
-- Rimuovere i due pulsanti separati (Share2 + Share2) e i relativi state (`shareDialogOpen`, `shareEmailDialogOpen`)
-- Aggiungere un unico pulsante Share2 che apre `ShareDreamUnified`
-- Passare i dati del sogno (incluso `share_token`) al nuovo componente
-
-#### 5. Aggiornare `src/App.tsx`
-
-- Aggiungere route `/dream/shared/:token` che punta a `SharedDreamPublic`
-
-#### 6. Pulizia
-
-- I file `ShareDreamDialog.tsx` e `ShareDreamViaEmail.tsx` possono essere rimossi (la logica sara integrata nel nuovo componente unificato)
-
-### Sicurezza
-- Il `share_token` e un UUID casuale, non indovinabile
-- La RPC `get_dream_by_share_token` restituisce solo campi pubblici (no user_id, no dati privati)
-- L'utente puo revocare il link in qualsiasi momento (imposta `share_token = NULL`)
-- La pagina pubblica non richiede autenticazione
+// Promise-based FileReader
+const base64Audio = await new Promise<string>((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onloadend = () => {
+    const result = reader.result?.toString().split(',')[1];
+    result ? resolve(result) : reject(new Error('Conversione audio fallita'));
+  };
+  reader.onerror = () => reject(reader.error);
+  reader.readAsDataURL(audioBlob);
+});
+```
 
