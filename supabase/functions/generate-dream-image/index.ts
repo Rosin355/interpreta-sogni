@@ -225,41 +225,46 @@ serve(async (req) => {
       }
     }
 
-    // Mappa degli stili con descrizioni ottimizzate
+    // Style descriptions in English for better model performance
     const styleDescriptions: Record<string, string> = {
-      'realistico': 'fotorealistico, dettagliato, cinematografico, illuminazione naturale',
-      'onirico': 'surreale, etereo, atmosfera dreamlike, colori pastello, elementi fluttuanti',
-      'artistico': 'dipinto ad olio, pittorico, pennellate visibili, stile impressionista',
-      'minimalista': 'minimalista, design pulito, forme geometriche semplici, palette limitata',
-      'fantastico': 'fantasy art, magico, elementi fantastici, colori vividi, luci brillanti'
+      'realistico': 'photorealistic, detailed, cinematic lighting, natural tones',
+      'onirico': 'surreal, ethereal, dreamlike atmosphere, soft pastel colors, floating elements',
+      'artistico': 'oil painting style, painterly, visible brushstrokes, impressionist',
+      'minimalista': 'minimalist, clean design, simple geometric shapes, limited palette',
+      'fantastico': 'fantasy art, magical, vivid colors, brilliant lights, enchanted'
     };
 
     const moodColors: Record<string, string> = {
-      'felicita': 'toni caldi dorati e gialli luminosi',
-      'tristezza': 'toni freddi blu e grigi',
-      'rabbia': 'rossi intensi e arancioni ardenti',
-      'paura': 'toni scuri e ombre profonde',
-      'sorpresa': 'colori brillanti e contrastanti',
-      'disgusto': 'verdi torbidi e marroni',
-      'ansia': 'grigi nebbiosi e viola tesi',
-      'calma': 'blu sereni e verdi acquatici',
-      'eccitazione': 'colori vivaci e saturi',
-      'confusione': 'colori sfocati e mischiati',
-      'noia': 'toni neutri e desaturati',
-      'vergogna': 'rosa pallidi e rossi sbiaditi',
-      'orgoglio': 'ori e porpora regali'
+      'felicita': 'warm golden and bright yellow tones',
+      'tristezza': 'cool blue and grey tones',
+      'rabbia': 'intense red and fiery orange tones',
+      'paura': 'dark tones and deep shadows',
+      'sorpresa': 'bright contrasting colors',
+      'disgusto': 'murky greens and browns',
+      'ansia': 'foggy greys and tense purples',
+      'calma': 'serene blues and aquatic greens',
+      'eccitazione': 'vivid saturated colors',
+      'confusione': 'blurred mixed colors',
+      'noia': 'neutral desaturated tones',
+      'vergogna': 'pale pinks and faded reds',
+      'orgoglio': 'regal golds and purples'
     };
 
     const styleDesc = styleDescriptions[finalStyle || 'onirico'] || styleDescriptions['onirico'];
-    const colorDesc = mood ? moodColors[mood.toLowerCase()] || 'colori naturali' : 'colori naturali';
+    const colorDesc = mood ? moodColors[mood.toLowerCase()] || 'natural colors' : 'natural colors';
     
-    let imagePrompt = `Crea un'immagine ${styleDesc} che rappresenti questo sogno: ${content}. 
-Usa ${colorDesc} per riflettere l'emozione. 
-L'immagine deve essere evocativa, simbolica e catturare l'essenza onirica del sogno. 
-Aspect ratio 16:9, alta qualità, composizione bilanciata.`;
+    // Truncate content to ~800 chars to reduce prompt length and rate limit risk
+    const truncatedContent = content.length > 800 
+      ? content.substring(0, 800) + '...' 
+      : content;
+    
+    let imagePrompt = `Create a ${styleDesc} image representing this dream: ${truncatedContent}. 
+Use ${colorDesc} to reflect the emotion. 
+The image should be evocative, symbolic, and capture the dreamlike essence. 
+Aspect ratio 16:9, high quality, balanced composition.`;
 
     if (customPrompt) {
-      imagePrompt += `\n\nSuggerimenti aggiuntivi dall'utente: ${customPrompt}`;
+      imagePrompt += `\n\nAdditional user instructions: ${customPrompt}`;
       console.log(`[${requestId}] Custom prompt added (${customPrompt.length} chars)`);
     }
 
@@ -267,63 +272,88 @@ Aspect ratio 16:9, alta qualità, composizione bilanciata.`;
     console.log(`[${requestId}] Final style: ${finalStyle}`);
     console.log(`[${requestId}] Prompt length: ${imagePrompt.length} chars`);
 
-    const imageRequestBody = {
-      model: 'google/gemini-2.5-flash-image-preview',
-      messages: [
-        {
-          role: 'user',
-          content: imagePrompt
-        }
-      ],
-      modalities: ['image', 'text']
+    // Helper to call the image API with retry on embedded 429
+    const callImageApi = async (): Promise<{ imageUrl?: string; error?: any }> => {
+      const imageRequestBody = {
+        model: 'google/gemini-2.5-flash-image',
+        messages: [
+          {
+            role: 'user',
+            content: imagePrompt
+          }
+        ],
+        modalities: ['image', 'text']
+      };
+
+      const resp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(imageRequestBody),
+      });
+
+      console.log(`[${requestId}] Image API response status: ${resp.status}`);
+
+      if (!resp.ok) {
+        const errorText = await resp.text();
+        console.error(`[${requestId}] Image API error - Status: ${resp.status}, Body: ${errorText}`);
+        return { error: { status: resp.status, text: errorText } };
+      }
+
+      const data = await resp.json();
+
+      // Check for embedded errors (API returns 200 but error inside body)
+      const embeddedError = data.choices?.[0]?.error;
+      if (embeddedError) {
+        console.error(`[${requestId}] Embedded error in response:`, JSON.stringify(embeddedError));
+        return { error: { embedded: true, code: embeddedError.code, type: embeddedError.metadata?.error_type } };
+      }
+
+      const url = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      return url ? { imageUrl: url } : { error: { noImage: true, responsePreview: JSON.stringify(data).slice(0, 500) } };
     };
 
-    const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(imageRequestBody),
-    });
+    // First attempt
+    let result = await callImageApi();
 
-    console.log(`[${requestId}] Image API response status: ${imageResponse.status}`);
+    // Retry once on rate limit (embedded 429) after 3s backoff
+    if (result.error?.embedded && result.error?.code === 429) {
+      console.log(`[${requestId}] Rate limited (embedded 429), retrying after 3s...`);
+      await new Promise(r => setTimeout(r, 3000));
+      result = await callImageApi();
+    }
 
-    if (!imageResponse.ok) {
-      const errorText = await imageResponse.text();
-      console.error(`[${requestId}] Image API error - Status: ${imageResponse.status}, Body: ${errorText}`);
-      
-      if (imageResponse.status === 429) {
+    // Handle final errors
+    if (result.error) {
+      if (result.error.status === 429 || (result.error.embedded && result.error.code === 429)) {
         return new Response(
           JSON.stringify({ error: 'Limite richieste API raggiunto. Riprova tra qualche minuto.', errorCode: 'AI_RATE_LIMIT' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (imageResponse.status === 402) {
+      if (result.error.status === 402 || (result.error.embedded && result.error.code === 402)) {
         return new Response(
           JSON.stringify({ error: 'Crediti AI insufficienti. Contatta il supporto.', errorCode: 'AI_CREDITS_EXHAUSTED' }),
           { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+      if (result.error.noImage) {
+        console.error(`[${requestId}] No image URL in response:`, result.error.responsePreview);
+        return new Response(
+          JSON.stringify({ error: 'Nessuna immagine generata dall\'AI', errorCode: 'NO_IMAGE' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       return new Response(
-        JSON.stringify({ error: `Errore generazione immagine (${imageResponse.status})`, errorCode: 'AI_ERROR', details: errorText.slice(0, 200) }),
+        JSON.stringify({ error: `Errore generazione immagine`, errorCode: 'AI_ERROR', details: result.error.text?.slice(0, 200) }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const imageData = await imageResponse.json();
-    const imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
-    if (!imageUrl) {
-      console.error(`[${requestId}] No image URL in response:`, JSON.stringify(imageData).slice(0, 500));
-      return new Response(
-        JSON.stringify({ error: 'Nessuna immagine generata dall\'AI', errorCode: 'NO_IMAGE' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
+    const imageUrl = result.imageUrl!;
     console.log(`[${requestId}] Image generated successfully (URL length: ${imageUrl.length})`);
-
     // Salva l'URL dell'immagine nel database
     console.log(`[${requestId}] Saving image to database...`);
     const { error: updateError } = await supabase
