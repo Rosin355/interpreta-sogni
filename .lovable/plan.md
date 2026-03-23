@@ -1,56 +1,43 @@
 
 
-## Fix: Generazione immagine con prompt personalizzato
+## Fix: Speech-to-Text (registrazione vocale → testo)
 
-### Problema
-Dai log, l'API restituisce **status 200** ma il body contiene un errore 429 embedded:
-```
-choices[0].error: {code: 429, message: "rate_limit_exceeded"}
-```
-Il codice attuale controlla solo `imageResponse.status`, quindi non rileva questo errore e fallisce con "NO_IMAGE".
+### Problemi identificati
 
-Secondo problema: il prompt è troppo lungo (~2488 chars) con il contenuto del sogno completo + custom prompt, il che aumenta il consumo di token e la probabilità di rate limit.
+1. **Endpoint API obsoleto** — La edge function usa `https://api.elevenlabs.io/v1/speech-to-text/convert` ma l'endpoint attuale di ElevenLabs è `https://api.elevenlabs.io/v1/speech-to-text` (senza `/convert`). Questo causa un errore 404 o redirect silenzioso.
+
+2. **Modello obsoleto** — Il codice usa `scribe_v1`, ma ElevenLabs ha rilasciato `scribe_v2` (14 marzo 2026) che è più accurato e stabile. `scribe_v1` potrebbe essere stato deprecato.
+
+3. **Corruzione base64** — La funzione `processBase64Chunks` divide la stringa base64 a posizioni arbitrarie (`chunkSize = 32768`), ma base64 deve essere decodificato in gruppi di 4 caratteri. Se il chunk non cade su un multiplo di 4, `atob()` può fallire silenziosamente o produrre bytes corrotti.
 
 ### Correzioni
 
-**File: `supabase/functions/generate-dream-image/index.ts`**
+**File: `supabase/functions/speech-to-text-elevenlabs/index.ts`**
 
-1. **Rilevare errori embedded nella risposta 200** — Dopo il parsing JSON (riga 314), controllare `choices[0].error` prima di cercare l'immagine. Se c'è un errore 429 embedded, restituire il messaggio di rate limit all'utente.
-
-2. **Troncare il contenuto del sogno** — Limitare `content` a ~800 caratteri nel prompt per ridurre la lunghezza totale.
-
-3. **Riscrivere il prompt in inglese** — I modelli di generazione immagini funzionano meglio con prompt in inglese. Tradurre la struttura del prompt mantenendo le descrizioni di stile e mood.
-
-4. **Aggiungere retry con backoff** — Se l'errore è 429 embedded, tentare una seconda volta dopo 3 secondi prima di restituire l'errore all'utente.
+1. **Aggiornare l'endpoint API** da `/v1/speech-to-text/convert` a `/v1/speech-to-text`
+2. **Aggiornare il modello** da `scribe_v1` a `scribe_v2`
+3. **Fixare processBase64Chunks** — assicurarsi che il chunkSize sia sempre un multiplo di 4 per evitare corruzione nella decodifica base64
+4. **Aggiungere logging più dettagliato** per la risposta dell'API ElevenLabs per facilitare il debug futuro
 
 ### Dettaglio tecnico
 
 ```typescript
-// Dopo riga 314: parsing della risposta
-const imageData = await imageResponse.json();
+// Fix 1: endpoint corretto
+const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text', { ... });
 
-// CHECK embedded errors (NEW)
-const embeddedError = imageData.choices?.[0]?.error;
-if (embeddedError) {
-  console.error(`Embedded error:`, embeddedError);
-  if (embeddedError.code === 429) {
-    return new Response(
-      JSON.stringify({ error: 'Limite richieste raggiunto. Riprova tra qualche minuto.', errorCode: 'AI_RATE_LIMIT' }),
-      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-  return new Response(
-    JSON.stringify({ error: 'Errore AI', errorCode: 'AI_ERROR' }),
-    { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
+// Fix 2: modello aggiornato
+formData.append('model_id', 'scribe_v2');
+
+// Fix 3: chunkSize multiplo di 4
+function processBase64Chunks(base64String: string, chunkSize = 32768) {
+  // Ensure chunkSize is a multiple of 4 for valid base64 decoding
+  chunkSize = chunkSize - (chunkSize % 4);
+  // ... rest unchanged
 }
-
-// Truncate content in prompt
-const truncatedContent = content.length > 800 
-  ? content.substring(0, 800) + '...' 
-  : content;
 ```
 
-### Nessuna modifica frontend necessaria
-Il client gestisce già correttamente gli errori 429 e 500.
+**Nessuna modifica frontend** — il componente `VoiceRecorder.tsx` è già corretto.
+
+### Deploy
+Re-deploy della edge function `speech-to-text-elevenlabs` dopo le modifiche.
 
