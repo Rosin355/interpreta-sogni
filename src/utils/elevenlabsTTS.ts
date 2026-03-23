@@ -430,13 +430,14 @@ export class ElevenLabsTTS {
 
     } catch (error) {
       console.error('ElevenLabsTTS speak error:', error);
+      const userMessage = error instanceof Error ? error.message : "Impossibile generare l'audio";
       toast({
-        title: "Errore generazione audio",
-        description: error instanceof Error ? error.message : "Impossibile generare l'audio",
+        title: "Errore audio",
+        description: this.getUserFriendlyMessage(userMessage),
         variant: "destructive",
-        duration: 4000,
+        duration: 5000,
       });
-      throw error;
+      throw new Error(this.getUserFriendlyMessage(userMessage));
     }
   }
 
