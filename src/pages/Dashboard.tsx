@@ -12,6 +12,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Ba
 import { dreamCategories, categorizeDreams, getCategoryFromTag } from "@/utils/dream-categories";
 import { calculateInsights, getTemporalData } from "@/utils/dream-insights";
 import { exportDashboardToPDF } from "@/utils/pdf-export";
+import { DreamDiaryExport } from "@/components/DreamDiaryExport";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { StatCardSkeleton, ChartSkeleton } from "@/components/ui/dream-skeleton";
