@@ -11,8 +11,8 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+  SheetTrigger } from
+"@/components/ui/sheet";
 
 const Navigation = () => {
   const navigate = useNavigate();
@@ -27,12 +27,12 @@ const Navigation = () => {
       const { data: { user }, error } = await supabase.auth.getUser();
       console.log("[Navigation] getUser result", { user, error });
       setUser(user);
-      
+
       if (user) {
         const { data: isAdminData, error: isAdminError } = await supabase.rpc('is_admin', { _user_id: user.id });
         console.log("[Navigation] is_admin (init) result", { isAdminData, isAdminError });
         setIsAdmin(!!isAdminData);
-        
+
         const { data: isSuperAdminData, error: isSuperAdminError } = await supabase.rpc('is_super_admin', { _user_id: user.id });
         console.log("[Navigation] is_super_admin (init) result", { isSuperAdminData, isSuperAdminError });
         setIsSuperAdmin(!!isSuperAdminData);
@@ -49,7 +49,7 @@ const Navigation = () => {
       (event, session) => {
         console.log("[Navigation] onAuthStateChange", { event, hasSession: !!session });
         setUser(session?.user ?? null);
-        
+
         // CRITICAL: Use setTimeout to avoid deadlock
         // Never call Supabase functions directly inside onAuthStateChange
         if (session?.user) {
@@ -58,7 +58,7 @@ const Navigation = () => {
             const { data: isAdminData, error: isAdminError } = await supabase.rpc('is_admin', { _user_id: session.user.id });
             console.log("[Navigation] is_admin (auth event) result", { isAdminData, isAdminError });
             setIsAdmin(!!isAdminData);
-            
+
             const { data: isSuperAdminData, error: isSuperAdminError } = await supabase.rpc('is_super_admin', { _user_id: session.user.id });
             console.log("[Navigation] is_super_admin (auth event) result", { isSuperAdminData, isSuperAdminError });
             setIsSuperAdmin(!!isSuperAdminData);
@@ -78,73 +78,75 @@ const Navigation = () => {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="container mx-auto px-6 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate(user ? "/dashboard" : "/")}>
-          <img src="/dreamalchemist_logo.png" alt="Dream Alchemist" className="w-10 h-10 rounded-lg object-contain" />
+          <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center rounded-none">
+            <span className="text-primary-foreground font-bold text-sm">🌙</span>
+          </div>
           <span className="text-xl font-bold text-foreground">Dream Alchemist</span>
         </div>
         
-        {user ? (
-          // Menu per utenti loggati
-          <div className="flex items-center space-x-4">
+        {user ?
+        // Menu per utenti loggati
+        <div className="flex items-center space-x-4">
             <div className="hidden md:flex items-center space-x-6">
               <button
-                onClick={() => navigate("/explore")}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
+              onClick={() => navigate("/explore")}
+              className="text-muted-foreground hover:text-foreground transition-colors">
+              
                 Esplora
               </button>
               <button
-                onClick={() => navigate("/my-dreams")}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
+              onClick={() => navigate("/my-dreams")}
+              className="text-muted-foreground hover:text-foreground transition-colors">
+              
                 I Miei Sogni
               </button>
               <button
-                onClick={() => navigate("/astrology")}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
+              onClick={() => navigate("/astrology")}
+              className="text-muted-foreground hover:text-foreground transition-colors">
+              
                 Astrologia
               </button>
               <button
-                onClick={() => navigate("/alchemy")}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
+              onClick={() => navigate("/alchemy")}
+              className="text-muted-foreground hover:text-foreground transition-colors">
+              
                 Alchimia
               </button>
               <button
-                onClick={() => navigate("/shared-with-me")}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
+              onClick={() => navigate("/shared-with-me")}
+              className="text-muted-foreground hover:text-foreground transition-colors">
+              
                 Sogni Condivisi
               </button>
               <button
-                onClick={() => navigate("/about")}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
+              onClick={() => navigate("/about")}
+              className="text-muted-foreground hover:text-foreground transition-colors">
+              
                 Chi Siamo
               </button>
             </div>
 
-            {isAdmin && (
-              <div className="hidden md:flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 shadow-sm">
+            {isAdmin &&
+          <div className="hidden md:flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 shadow-sm">
                 <span className="text-[11px] font-semibold tracking-wide uppercase text-primary">
                   {isSuperAdmin ? "👑 SUPER ADMIN" : "Modalità Admin"}
                 </span>
                 <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate("/admin")}
-                  className="h-7 px-2 text-[11px]"
-                >
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/admin")}
+              className="h-7 px-2 text-[11px]">
+              
                   Dashboard
                 </Button>
               </div>
-            )}
+          }
             
-            <Button 
-              size="sm"
-              onClick={() => navigate("/dreams/new")}
-              className="gap-2 hidden sm:flex"
-            >
+            <Button
+            size="sm"
+            onClick={() => navigate("/dreams/new")}
+            className="gap-2 hidden sm:flex">
+            
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Nuovo Sogno</span>
             </Button>
@@ -164,8 +166,8 @@ const Navigation = () => {
                 <SheetHeader>
                   <SheetTitle>Menu</SheetTitle>
                 </SheetHeader>
-                {isAdmin && (
-                  <div className="mt-4 px-4 py-3 rounded-xl border border-primary/40 bg-primary/10 flex items-center justify-between">
+                {isAdmin &&
+              <div className="mt-4 px-4 py-3 rounded-xl border border-primary/40 bg-primary/10 flex items-center justify-between">
                     <div className="flex flex-col">
                       <span className="text-xs font-semibold text-primary tracking-wide uppercase">
                         {isSuperAdmin ? "👑 SUPER ADMIN" : "Modalità Admin"}
@@ -175,81 +177,81 @@ const Navigation = () => {
                       </span>
                     </div>
                     <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        navigate("/admin");
-                        setMobileMenuOpen(false);
-                      }}
-                      className="ml-3 text-xs h-8 px-3"
-                    >
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    navigate("/admin");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="ml-3 text-xs h-8 px-3">
+                  
                       Dashboard
                     </Button>
                   </div>
-                )}
+              }
                 <div className="flex flex-col space-y-4 mt-8">
                   <button
-                    onClick={() => {
-                      navigate("/explore");
-                      setMobileMenuOpen(false);
-                    }}
-                    className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-                  >
+                  onClick={() => {
+                    navigate("/explore");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors">
+                  
                     Esplora
                   </button>
                   <button
-                    onClick={() => {
-                      navigate("/my-dreams");
-                      setMobileMenuOpen(false);
-                    }}
-                    className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-                  >
+                  onClick={() => {
+                    navigate("/my-dreams");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors">
+                  
                     I Miei Sogni
                   </button>
                   <button
-                    onClick={() => {
-                      navigate("/astrology");
-                      setMobileMenuOpen(false);
-                    }}
-                    className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-                  >
+                  onClick={() => {
+                    navigate("/astrology");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors">
+                  
                     Astrologia
                   </button>
                   <button
-                    onClick={() => {
-                      navigate("/alchemy");
-                      setMobileMenuOpen(false);
-                    }}
-                    className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-                  >
+                  onClick={() => {
+                    navigate("/alchemy");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors">
+                  
                     Alchimia
                   </button>
                   <button
-                    onClick={() => {
-                      navigate("/shared-with-me");
-                      setMobileMenuOpen(false);
-                    }}
-                    className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-                  >
+                  onClick={() => {
+                    navigate("/shared-with-me");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors">
+                  
                     Sogni Condivisi
                   </button>
                   <button
-                    onClick={() => {
-                      navigate("/about");
-                      setMobileMenuOpen(false);
-                    }}
-                    className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-                  >
+                  onClick={() => {
+                    navigate("/about");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors">
+                  
                     Chi Siamo
                   </button>
                   <div className="pt-4 border-t border-border">
-                    <Button 
-                      onClick={() => {
-                        navigate("/dreams/new");
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full gap-2"
-                    >
+                    <Button
+                    onClick={() => {
+                      navigate("/dreams/new");
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full gap-2">
+                    
                       <Plus className="h-4 w-4" />
                       Nuovo Sogno
                     </Button>
@@ -260,36 +262,36 @@ const Navigation = () => {
                 </div>
               </SheetContent>
             </Sheet>
-          </div>
-        ) : (
-          // Menu per utenti non loggati
-          <div className="flex items-center space-x-4">
+          </div> :
+
+        // Menu per utenti non loggati
+        <div className="flex items-center space-x-4">
             <div className="hidden md:flex items-center space-x-8 mr-4">
               <button
-                onClick={() => navigate("/explore")}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
+              onClick={() => navigate("/explore")}
+              className="text-muted-foreground hover:text-foreground transition-colors">
+              
                 Esplora
               </button>
               <button
-                onClick={() => navigate("/about")}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
+              onClick={() => navigate("/about")}
+              className="text-muted-foreground hover:text-foreground transition-colors">
+              
                 Chi Siamo
               </button>
             </div>
-            <Button 
-              variant="outline-white" 
-              size="sm"
-              className="h-9 px-3 sm:px-4 hidden sm:flex"
-              onClick={() => navigate("/auth?mode=login")}
-            >
+            <Button
+            variant="outline-white"
+            size="sm"
+            className="h-9 px-3 sm:px-4 hidden sm:flex"
+            onClick={() => navigate("/auth?mode=login")}>
+            
               Accedi
             </Button>
-            <RainbowButton 
-              className="h-9 px-3 sm:px-4 text-sm hidden sm:flex"
-              onClick={() => navigate("/auth?mode=signup")}
-            >
+            <RainbowButton
+            className="h-9 px-3 sm:px-4 text-sm hidden sm:flex"
+            onClick={() => navigate("/auth?mode=signup")}>
+            
               Inizia Ora
             </RainbowButton>
 
@@ -306,41 +308,41 @@ const Navigation = () => {
                 </SheetHeader>
                 <div className="flex flex-col space-y-4 mt-8">
                   <button
-                    onClick={() => {
-                      navigate("/explore");
-                      setMobileMenuOpen(false);
-                    }}
-                    className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-                  >
+                  onClick={() => {
+                    navigate("/explore");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors">
+                  
                     Esplora
                   </button>
                   <button
-                    onClick={() => {
-                      navigate("/about");
-                      setMobileMenuOpen(false);
-                    }}
-                    className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-                  >
+                  onClick={() => {
+                    navigate("/about");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors">
+                  
                     Chi Siamo
                   </button>
                   <div className="pt-4 border-t border-border space-y-3">
-                    <Button 
-                      variant="outline" 
-                      className="w-full"
-                      onClick={() => {
-                        navigate("/auth?mode=login");
-                        setMobileMenuOpen(false);
-                      }}
-                    >
+                    <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      navigate("/auth?mode=login");
+                      setMobileMenuOpen(false);
+                    }}>
+                    
                       Accedi
                     </Button>
-                    <RainbowButton 
-                      className="w-full"
-                      onClick={() => {
-                        navigate("/auth?mode=signup");
-                        setMobileMenuOpen(false);
-                      }}
-                    >
+                    <RainbowButton
+                    className="w-full"
+                    onClick={() => {
+                      navigate("/auth?mode=signup");
+                      setMobileMenuOpen(false);
+                    }}>
+                    
                       Inizia Ora
                     </RainbowButton>
                   </div>
@@ -348,10 +350,10 @@ const Navigation = () => {
               </SheetContent>
             </Sheet>
           </div>
-        )}
+        }
       </div>
-    </nav>
-  );
+    </nav>);
+
 };
 
 export default Navigation;
