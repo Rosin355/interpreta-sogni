@@ -45,7 +45,7 @@ const ProfessionalVerification = () => {
     return (
       <>
         <Navigation />
-        <div className="min-h-screen bg-background flex items-center justify-center pt-24">
+        <div className="min-h-screen bg-background flex items-center justify-center" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </>
