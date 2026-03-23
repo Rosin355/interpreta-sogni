@@ -37,6 +37,7 @@ interface Message {
 interface AlchemistChatProps {
   dreamId: string;
   hasInterpretation: boolean;
+  exportButton?: React.ReactNode;
 }
 
 function getSupportedMimeType(): string {
@@ -48,7 +49,7 @@ function getSupportedMimeType(): string {
   return "audio/webm";
 }
 
-export const AlchemistChat = ({ dreamId, hasInterpretation }: AlchemistChatProps) => {
+export const AlchemistChat = ({ dreamId, hasInterpretation, exportButton }: AlchemistChatProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
@@ -295,7 +296,9 @@ export const AlchemistChat = ({ dreamId, hasInterpretation }: AlchemistChatProps
             <Sparkles className="h-5 w-5 text-primary" />
             Parla con l'Alchimista
           </CardTitle>
-          {messages.length > 0 && (
+          <div className="flex items-center gap-1">
+            {exportButton}
+            {messages.length > 0 && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive">
@@ -316,6 +319,7 @@ export const AlchemistChat = ({ dreamId, hasInterpretation }: AlchemistChatProps
               </AlertDialogContent>
             </AlertDialog>
           )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
