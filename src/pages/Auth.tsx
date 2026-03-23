@@ -504,9 +504,7 @@ const Auth = () => {
       <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm border-border shadow-xl">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-              <span className="text-2xl">🌙</span>
-            </div>
+            <img src="/dreamalchemist_logo.png" alt="Dream Alchemist" className="w-12 h-12 rounded-lg object-contain" />
           </div>
           <CardTitle className="text-2xl text-center text-foreground">
             Dream Alchemist

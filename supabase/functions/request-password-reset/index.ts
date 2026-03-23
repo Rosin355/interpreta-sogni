@@ -53,9 +53,9 @@ function getOTPEmailHTML(code: string): string {
   <div style="font-size:28px;letter-spacing:12px;color:#f5e6a3;">✦ ✧ ★ ✧ ✦</div>
 </td></tr>
 
-<!-- Moon icon with glow -->
+<!-- Logo -->
 <tr><td align="center" style="padding:15px;">
-  <div style="width:76px;height:76px;border-radius:50%;background-color:#8b7a2f;display:inline-block;line-height:76px;font-size:38px;text-align:center;">🌙</div>
+  <img src="https://interpreta-sogni.lovable.app/dreamalchemist_logo.png" alt="Dream Alchemist" width="76" height="76" style="width:76px;height:76px;border-radius:12px;display:inline-block;" />
 </td></tr>
 
 <!-- Title -->
