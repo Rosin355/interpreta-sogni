@@ -1,70 +1,54 @@
 
 
-## Piano: "Parla con l'Alchimista" + Diario dei Sogni PDF
+## Piano: Potenziamento "Parla con l'Alchimista"
 
-### Parte 1: Sostituire Note Vocali con "Parla con l'Alchimista"
+### 1. CRUD messaggi individuali
 
-Sostituire il componente `VoiceNoteRecorder` con una chat conversazionale AI legata al sogno e alla sua interpretazione. L'utente può scrivere o usare speech-to-text per continuare a dialogare con l'Alchimista sul significato del sogno.
+Aggiungere la possibilita di modificare ed eliminare singoli messaggi utente nella chat.
 
-**Database: Nuova tabella `dream_conversations`**
-- `id`, `dream_id`, `user_id`, `role` (user/assistant), `content`, `created_at`
-- RLS: solo il proprietario può leggere/scrivere/eliminare i propri messaggi
+**Frontend (`AlchemistChat.tsx`):**
+- Aggiungere menu contestuale (long-press/hover) sui messaggi utente con opzioni "Modifica" e "Elimina"
+- Per "Elimina": conferma e cancellazione dal DB + aggiornamento stato locale
+- Per "Modifica": inline editing con salvataggio su DB
 
-**Nuova Edge Function: `chat-with-alchemist`**
-- Riceve `dreamId` e `message` dall'utente
-- Carica dal DB: contenuto del sogno, interpretazione, e cronologia conversazione precedente
-- Invia tutto come contesto a OpenAI con un system prompt che lo configura come "L'Alchimista" - esperto di sogni che continua l'analisi
-- Salva sia il messaggio utente che la risposta AI nella tabella `dream_conversations`
-- Restituisce la risposta
+**Database:** La tabella `dream_conversations` non ha policy UPDATE. Serve una migrazione per aggiungere una RLS policy UPDATE per i messaggi dell'utente.
 
-**Nuovo componente: `AlchemistChat.tsx`**
-- Sostituisce `VoiceNoteRecorder` in `DreamDetail.tsx`
-- UI chat con messaggi scrollabili (user a destra, alchimista a sinistra)
-- Input testuale + bottone microfono (riusa la logica STT di `VoiceRecorder.tsx`)
-- Bottone "Elimina conversazione" per reset
-- Mostra "L'Alchimista sta riflettendo..." durante il caricamento
+### 2. TTS sulle risposte dell'Alchimista
 
-### Parte 2: Diario dei Sogni PDF (sostituisce il report attuale)
+Aggiungere il componente `TTSButton` sotto ogni messaggio dell'Alchimista, riusando lo stesso componente gia usato per le interpretazioni.
 
-Sostituire `exportDashboardToPDF` con un vero diario dei sogni che trascrive i contenuti.
+**Frontend (`AlchemistChat.tsx`):**
+- Importare `TTSButton`
+- Renderizzare un `TTSButton` compatto sotto ogni messaggio con `role === "assistant"`
 
-**Riscrivere `pdf-export.ts` con due funzioni:**
+### 3. Contesto potenziato: sogni precedenti + knowledge base + guida personalizzata
 
-1. `exportSingleDreamPDF(dream)` — PDF del sogno corrente con:
-   - Titolo, data, mood, tags, fase alchemica
-   - Contenuto completo del sogno
-   - Interpretazione AI completa
-   - Conversazione con l'Alchimista (se presente)
+**Edge Function (`chat-with-alchemist/index.ts`):**
 
-2. `exportAllDreamsPDF(dreams)` — Diario completo con:
-   - Copertina "Il Mio Diario dei Sogni" con data
-   - Indice dei sogni
-   - Ogni sogno come "pagina di diario" con contenuto, interpretazione, conversazione
-   - Impaginazione automatica multi-pagina
+- **Sogni precedenti correlati**: Caricare gli ultimi 10 sogni dell'utente (titolo, contenuto troncato, mood, tags, fase alchemica, data) per dare contesto temporale e trovare pattern ricorrenti
+- **Knowledge base**: Estrarre simboli/tag dal sogno corrente, cercarli nella tabella `dream_knowledge_base` e includerli nel system prompt come riferimenti
+- **Guida alchemica personalizzata**: Calcolare la distribuzione delle fasi alchemiche dell'utente dai sogni recenti e includere nel prompt il profilo alchemico dell'utente (fase dominante, progressione, consigli)
+- **System prompt potenziato**: Riscrivere il prompt per configurare l'AI come guida personale del viaggio alchemico dell'utente, non solo interprete del singolo sogno
 
-**Opzione invio via email:**
-- Dialog con scelta: "Scarica PDF" o "Invia via Email"
-- Per l'email: nuova edge function `send-dream-diary` che genera il PDF server-side e lo invia tramite Resend all'email dell'utente
+### Dettaglio tecnico
 
-**UI in DreamDetail.tsx:**
-- Bottone "Scarica Diario" nel dettaglio sogno (sogno singolo)
+```text
+System Prompt Structure:
+├── Identita: L'Alchimista, guida personale
+├── Sogno corrente (completo)
+├── Sogni precedenti (ultimi 10, troncati)
+├── Knowledge base (simboli trovati nel sogno)
+├── Profilo alchemico utente (distribuzione fasi)
+└── Istruzioni di comportamento
+```
 
-**UI in Dashboard.tsx / MyDreams.tsx:**
-- Bottone "Esporta Diario" che apre dialog con opzioni:
-  - Sogno corrente / Tutti i sogni
-  - Scarica PDF / Invia via email
+**Migrazione DB:** Aggiungere policy UPDATE su `dream_conversations` per `role = 'user'`
 
 ### File coinvolti
 
 | File | Azione |
 |------|--------|
-| Migrazione DB | Creare tabella `dream_conversations` |
-| `supabase/functions/chat-with-alchemist/index.ts` | Nuova edge function |
-| `supabase/functions/send-dream-diary/index.ts` | Nuova edge function per email |
-| `src/components/AlchemistChat.tsx` | Nuovo componente chat |
-| `src/components/DreamDiaryExport.tsx` | Nuovo dialog esportazione diario |
-| `src/utils/pdf-export.ts` | Riscrivere con funzioni diario |
-| `src/pages/DreamDetail.tsx` | Sostituire VoiceNoteRecorder con AlchemistChat + aggiungere bottone diario |
-| `src/pages/Dashboard.tsx` | Aggiornare bottone export |
-| `src/components/VoiceNoteRecorder.tsx` | Rimuovere (non più usato) |
+| Migrazione DB | Policy UPDATE su dream_conversations |
+| `src/components/AlchemistChat.tsx` | CRUD messaggi + TTS su risposte |
+| `supabase/functions/chat-with-alchemist/index.ts` | Sogni precedenti, knowledge base, profilo alchemico |
 
