@@ -28,123 +28,181 @@ interface EmailNotificationRequest {
   };
 }
 
-function buildEmailFooter(): string {
+// ─── Shared Email Wrapper ───
+function buildEmailWrapper(content: string, title: string, icon: string): string {
   return `
-    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
-    <p style="color: #6b7280; font-size: 12px;">
-      Questa email è stata inviata da <a href="${APP_URL}" style="color: #4F46E5;">Interpreta i tuoi Sogni</a>.
-    </p>
-  `;
+<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin: 0; padding: 0; background-color: #050010; font-family: 'Segoe UI', Arial, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #050010; padding: 40px 0;">
+    <tr><td align="center">
+      <!-- Stars decoration -->
+      <p style="font-size: 18px; color: #c9a84c; letter-spacing: 12px; margin: 0 0 24px;">✦ ✧ ✦ ✧ ✦</p>
+
+      <!-- Main card -->
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%; background-color: #0a0318; border: 1px solid rgba(201,168,76,0.5); border-radius: 16px; overflow: hidden; box-shadow: 0 0 40px rgba(201,168,76,0.15);">
+        <!-- Header -->
+        <tr><td style="padding: 32px 40px 20px; text-align: center; border-bottom: 1px solid rgba(201,168,76,0.2);">
+          <p style="font-size: 36px; margin: 0 0 12px; line-height: 1;">${icon}</p>
+          <h1 style="color: #f5e6a3; font-size: 22px; font-weight: 600; margin: 0; letter-spacing: 0.5px;">${title}</h1>
+        </td></tr>
+
+        <!-- Content -->
+        <tr><td style="padding: 30px 40px;">
+          ${content}
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="padding: 20px 40px 28px; text-align: center; border-top: 1px solid rgba(201,168,76,0.2);">
+          <p style="font-size: 16px; color: #c9a84c; letter-spacing: 8px; margin: 0 0 10px;">✧ ✦ ✧</p>
+          <p style="color: #6b5f8a; font-size: 11px; margin: 0;">
+            <a href="${APP_URL}" style="color: #9b8fc4; text-decoration: none;">Interpreta i tuoi Sogni</a> · dreamalchemist.app
+          </p>
+        </td></tr>
+      </table>
+
+      <p style="font-size: 14px; color: #c9a84c; letter-spacing: 12px; margin: 24px 0 0;">✧ ✦ ✧ ✦ ✧</p>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 }
 
+function buildButton(text: string, href: string): string {
+  return `
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${href}" style="display: inline-block; background-color: #5636cd; color: #f5e6a3; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px; border: 1px solid rgba(201,168,76,0.4); letter-spacing: 0.3px;">
+        ${text}
+      </a>
+    </div>`;
+}
+
+// ─── Email Builders ───
+
 function buildProfessionalApprovedEmail(recipientName?: string): { subject: string; html: string } {
+  const content = `
+    <p style="color: #b8a9d4; font-size: 15px; line-height: 1.7; margin: 0 0 16px;">
+      Ciao <strong style="color: #f5e6a3;">${recipientName || "Professionista"}</strong>,
+    </p>
+    <p style="color: #b8a9d4; font-size: 15px; line-height: 1.7; margin: 0 0 16px;">
+      Siamo lieti di informarti che il tuo account professionale è stato <strong style="color: #c9a84c;">approvato</strong>!
+    </p>
+    <p style="color: #b8a9d4; font-size: 15px; line-height: 1.7; margin: 0 0 20px;">
+      Ora puoi ricevere sogni condivisi dagli utenti e fornire feedback professionali.
+    </p>
+    ${buildButton("Accedi alla Dashboard", `${APP_URL}/shared-dreams-received`)}
+    <p style="color: #9b8fc4; font-size: 13px; margin: 20px 0 0;">
+      Grazie per far parte della nostra community!
+    </p>`;
+
   return {
     subject: "✅ Congratulazioni! Il tuo account professionale è stato approvato",
-    html: `
-      <h1>Benvenuto in Interpreta i tuoi Sogni!</h1>
-      <p>Ciao ${recipientName || "Professionista"},</p>
-      <p>Siamo lieti di informarti che il tuo account professionale è stato <strong>approvato</strong>!</p>
-      <p>Ora puoi ricevere sogni condivisi dagli utenti e fornire feedback professionali.</p>
-      <p><a href="${APP_URL}/shared-dreams-received" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">Accedi alla Dashboard</a></p>
-      <br>
-      <p>Grazie per far parte della nostra community!</p>
-      <p>Il Team di Interpreta i tuoi Sogni</p>
-      ${buildEmailFooter()}
-    `,
+    html: buildEmailWrapper(content, "Account Approvato", "✅"),
   };
 }
 
 function buildDreamSharedEmail(recipientName?: string, data?: EmailNotificationRequest["data"]): { subject: string; html: string } {
+  const content = `
+    <p style="color: #b8a9d4; font-size: 15px; line-height: 1.7; margin: 0 0 16px;">
+      Ciao <strong style="color: #f5e6a3;">${recipientName || "Professionista"}</strong>,
+    </p>
+    <p style="color: #b8a9d4; font-size: 15px; line-height: 1.7; margin: 0 0 16px;">
+      <strong style="color: #c9a84c;">${data?.userName || "Un utente"}</strong> ha condiviso un sogno con te!
+    </p>
+    ${data?.dreamTitle ? `<div style="background-color: rgba(201,168,76,0.08); border-left: 3px solid #c9a84c; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 0 0 16px;">
+      <p style="color: #f5e6a3; font-size: 14px; margin: 0;"><strong>Titolo:</strong> ${data.dreamTitle}</p>
+    </div>` : ""}
+    ${data?.message ? `<p style="color: #9b8fc4; font-size: 14px; font-style: italic; margin: 0 0 16px;">"${data.message}"</p>` : ""}
+    ${buildButton("Visualizza il Sogno", `${APP_URL}/shared-dreams-received`)}`;
+
   return {
     subject: `🌙 Nuovo sogno condiviso con te${data?.dreamTitle ? `: "${data.dreamTitle}"` : ""}`,
-    html: `
-      <h1>Nuovo Sogno Condiviso</h1>
-      <p>Ciao ${recipientName || "Professionista"},</p>
-      <p><strong>${data?.userName || "Un utente"}</strong> ha condiviso un sogno con te!</p>
-      ${data?.dreamTitle ? `<p><strong>Titolo:</strong> ${data.dreamTitle}</p>` : ""}
-      ${data?.message ? `<p><strong>Messaggio:</strong> ${data.message}</p>` : ""}
-      <br>
-      <p><a href="${APP_URL}/shared-dreams-received" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">Visualizza il Sogno</a></p>
-      <p>Il Team di Interpreta i tuoi Sogni</p>
-      ${buildEmailFooter()}
-    `,
+    html: buildEmailWrapper(content, "Nuovo Sogno Condiviso", "🌙"),
   };
 }
 
 function buildNewCommentEmail(recipientName?: string, data?: EmailNotificationRequest["data"]): { subject: string; html: string } {
+  const content = `
+    <p style="color: #b8a9d4; font-size: 15px; line-height: 1.7; margin: 0 0 16px;">
+      Ciao <strong style="color: #f5e6a3;">${recipientName || "Utente"}</strong>,
+    </p>
+    <p style="color: #b8a9d4; font-size: 15px; line-height: 1.7; margin: 0 0 16px;">
+      <strong style="color: #c9a84c;">${data?.professionalName || "Un professionista"}</strong> ha lasciato un feedback sul tuo sogno!
+    </p>
+    ${data?.dreamTitle ? `<div style="background-color: rgba(201,168,76,0.08); border-left: 3px solid #c9a84c; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 0 0 16px;">
+      <p style="color: #f5e6a3; font-size: 14px; margin: 0;"><strong>Sogno:</strong> ${data.dreamTitle}</p>
+    </div>` : ""}
+    ${data?.commentContent ? `<div style="background-color: rgba(86,54,205,0.1); padding: 14px 16px; border-radius: 8px; margin: 0 0 16px;">
+      <p style="color: #b8a9d4; font-size: 14px; margin: 0; line-height: 1.6;">${data.commentContent.substring(0, 200)}${data.commentContent.length > 200 ? "..." : ""}</p>
+    </div>` : ""}
+    ${buildButton("Leggi il Feedback", `${APP_URL}/dream/${data?.dreamId || ""}`)}`;
+
   return {
     subject: `💬 Nuovo feedback sul tuo sogno${data?.dreamTitle ? `: "${data.dreamTitle}"` : ""}`,
-    html: `
-      <h1>Nuovo Feedback Ricevuto</h1>
-      <p>Ciao ${recipientName || "Utente"},</p>
-      <p><strong>${data?.professionalName || "Un professionista"}</strong> ha lasciato un feedback sul tuo sogno!</p>
-      ${data?.dreamTitle ? `<p><strong>Sogno:</strong> ${data.dreamTitle}</p>` : ""}
-      ${data?.commentContent ? `<p><strong>Feedback:</strong> ${data.commentContent.substring(0, 200)}${data.commentContent.length > 200 ? "..." : ""}</p>` : ""}
-      <br>
-      <p><a href="${APP_URL}/dream/${data?.dreamId || ""}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">Leggi il Feedback</a></p>
-      <p>Il Team di Interpreta i tuoi Sogni</p>
-      ${buildEmailFooter()}
-    `,
+    html: buildEmailWrapper(content, "Nuovo Feedback Ricevuto", "💬"),
   };
 }
 
 function buildDreamSharedUserRequestEmail(recipientName?: string, data?: EmailNotificationRequest["data"]): { subject: string; html: string } {
+  const content = `
+    <p style="color: #b8a9d4; font-size: 15px; line-height: 1.7; margin: 0 0 16px;">
+      Ciao <strong style="color: #f5e6a3;">${recipientName || "Utente"}</strong>,
+    </p>
+    <p style="color: #b8a9d4; font-size: 15px; line-height: 1.7; margin: 0 0 16px;">
+      <strong style="color: #c9a84c;">${data?.userName || "Un utente"}</strong> vorrebbe condividere un sogno con te!
+    </p>
+    ${data?.dreamTitle ? `<div style="background-color: rgba(201,168,76,0.08); border-left: 3px solid #c9a84c; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 0 0 16px;">
+      <p style="color: #f5e6a3; font-size: 14px; margin: 0;"><strong>Titolo:</strong> ${data.dreamTitle}</p>
+    </div>` : ""}
+    ${data?.message ? `<p style="color: #9b8fc4; font-size: 14px; font-style: italic; margin: 0 0 16px;">"${data.message}"</p>` : ""}
+    ${buildButton("Visualizza la Condivisione", `${APP_URL}/shared-dreams-received`)}
+    <p style="color: #9b8fc4; font-size: 13px; margin: 16px 0 0;">
+      Se non sei ancora registrato, <a href="${APP_URL}/auth" style="color: #c9a84c; text-decoration: underline;">iscriviti ora</a> per iniziare a ricevere sogni condivisi!
+    </p>`;
+
   return {
     subject: `🌙 ${data?.userName || "Un utente"} vuole condividere un sogno con te`,
-    html: `
-      <h1>Richiesta di Condivisione Sogno</h1>
-      <p>Ciao ${recipientName || "Utente"},</p>
-      <p><strong>${data?.userName || "Un utente"}</strong> vorrebbe condividere un sogno con te!</p>
-      ${data?.dreamTitle ? `<p><strong>Titolo sogno:</strong> ${data.dreamTitle}</p>` : ""}
-      ${data?.message ? `<p><strong>Messaggio:</strong> ${data.message}</p>` : ""}
-      <br>
-      <p><a href="${APP_URL}/shared-dreams-received" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">Visualizza la Condivisione</a></p>
-      <p>Se non sei ancora registrato, <a href="${APP_URL}/auth" style="color: #4F46E5;">iscriviti ora</a> per iniziare a ricevere sogni condivisi!</p>
-      <br>
-      <p>Il Team di Interpreta i tuoi Sogni</p>
-      ${buildEmailFooter()}
-    `,
+    html: buildEmailWrapper(content, "Richiesta di Condivisione", "🌙"),
   };
 }
 
 function buildUserInvitationEmail(data?: EmailNotificationRequest["data"]): { subject: string; html: string } {
+  const content = `
+    <p style="color: #b8a9d4; font-size: 15px; line-height: 1.7; margin: 0 0 16px;">
+      Ciao,
+    </p>
+    <p style="color: #b8a9d4; font-size: 15px; line-height: 1.7; margin: 0 0 16px;">
+      <strong style="color: #c9a84c;">${data?.inviterName || "Un utente"}</strong> vorrebbe condividere un sogno con te su <strong style="color: #f5e6a3;">Interpreta i tuoi Sogni</strong>!
+    </p>
+    ${data?.dreamTitle ? `<div style="background-color: rgba(201,168,76,0.08); border-left: 3px solid #c9a84c; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 0 0 16px;">
+      <p style="color: #f5e6a3; font-size: 14px; margin: 0;"><strong>Sogno:</strong> ${data.dreamTitle}</p>
+    </div>` : ""}
+    ${data?.message ? `<div style="background-color: rgba(86,54,205,0.1); padding: 14px 16px; border-radius: 8px; margin: 0 0 16px;">
+      <p style="color: #9b8fc4; font-size: 12px; margin: 0 0 6px; text-transform: uppercase; letter-spacing: 1px;">Messaggio personale</p>
+      <p style="color: #b8a9d4; font-size: 14px; margin: 0; line-height: 1.6;">${data.message}</p>
+    </div>` : ""}
+    <p style="color: #b8a9d4; font-size: 15px; line-height: 1.7; margin: 16px 0;">
+      Registrati per visualizzare il sogno e connetterti con ${data?.inviterName || "altri utenti"}.
+    </p>
+    ${buildButton("Registrati Ora", `${APP_URL}/auth`)}
+    <div style="background-color: rgba(201,168,76,0.06); padding: 16px; border-radius: 10px; margin: 20px 0 0;">
+      <p style="color: #f5e6a3; font-size: 13px; font-weight: 600; margin: 0 0 10px;">Con Interpreta i tuoi Sogni puoi:</p>
+      <p style="color: #b8a9d4; font-size: 13px; line-height: 2; margin: 0;">
+        ✨ Interpretare i sogni con l'intelligenza artificiale<br>
+        🌙 Condividere sogni con amici e professionisti<br>
+        🔮 Ottenere interpretazioni astrologiche personalizzate<br>
+        📊 Tracciare i pattern onirici nel tempo
+      </p>
+    </div>`;
+
   return {
     subject: `🌙 ${data?.inviterName || "Un utente"} ti invita a unirti a Interpreta i tuoi Sogni`,
-    html: `
-      <h1>Invito a Interpreta i tuoi Sogni</h1>
-      <p>Ciao,</p>
-      <p><strong>${data?.inviterName || "Un utente"}</strong> vorrebbe condividere un sogno con te su <strong>Interpreta i tuoi Sogni</strong>!</p>
-      ${data?.dreamTitle ? `<p><strong>Titolo del sogno:</strong> ${data.dreamTitle}</p>` : ""}
-      ${data?.message ? `
-        <div style="background-color: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0;">
-          <p style="margin: 0;"><strong>Messaggio personale:</strong></p>
-          <p style="margin: 8px 0 0 0;">${data.message}</p>
-        </div>
-      ` : ""}
-      <br>
-      <p>Per visualizzare questo sogno e connetterti con ${data?.inviterName || "altri utenti"}, registrati sulla nostra piattaforma.</p>
-      <br>
-      <div style="text-align: center; margin: 24px 0;">
-        <a href="${APP_URL}/auth" 
-           style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">
-          Registrati Ora
-        </a>
-      </div>
-      <br>
-      <p><strong>Interpreta i tuoi Sogni</strong> è una piattaforma dove puoi:</p>
-      <ul>
-        <li>✨ Registrare e interpretare i tuoi sogni con l'aiuto dell'intelligenza artificiale</li>
-        <li>🌙 Condividere sogni con amici e ricevere feedback</li>
-        <li>🔮 Ottenere interpretazioni astrologiche personalizzate</li>
-        <li>📊 Tenere traccia dei tuoi pattern onirici nel tempo</li>
-      </ul>
-      <br>
-      <p>Ti aspettiamo!</p>
-      <p>Il Team di Interpreta i tuoi Sogni</p>
-      ${buildEmailFooter()}
-    `,
+    html: buildEmailWrapper(content, "Invito a Interpreta i tuoi Sogni", "✨"),
   };
 }
+
+// ─── Handler ───
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -156,22 +214,15 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Verify JWT
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("Missing authorization header");
-    }
+    if (!authHeader) throw new Error("Missing authorization header");
 
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      throw new Error("Unauthorized");
-    }
+    if (authError || !user) throw new Error("Unauthorized");
 
     const { type, recipientEmail, recipientUserId, recipientName, data }: EmailNotificationRequest = await req.json();
 
-    // Resolve recipient email
     let finalRecipientEmail = recipientEmail;
     let finalRecipientName = recipientName;
 
@@ -187,11 +238,9 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    if (!finalRecipientEmail) {
-      throw new Error("Recipient email is required (either directly or via recipientUserId)");
-    }
+    if (!finalRecipientEmail) throw new Error("Recipient email is required");
 
-    console.log('[send-email] Request received:', { type, recipientEmail: finalRecipientEmail, recipientUserId, recipientName: finalRecipientName });
+    console.log('[send-email] Request:', { type, recipientEmail: finalRecipientEmail, recipientUserId, recipientName: finalRecipientName });
 
     let emailContent: { subject: string; html: string };
 
@@ -215,8 +264,8 @@ const handler = async (req: Request): Promise<Response> => {
         throw new Error("Invalid notification type");
     }
 
-    console.log('[send-email] Sending email via Resend, subject:', emailContent.subject);
-    
+    console.log('[send-email] Sending:', emailContent.subject);
+
     const emailResponse = await resend.emails.send({
       from: FROM_EMAIL,
       to: [finalRecipientEmail],
@@ -224,14 +273,14 @@ const handler = async (req: Request): Promise<Response> => {
       html: emailContent.html,
     });
 
-    console.log('[send-email] Email sent successfully:', JSON.stringify(emailResponse));
+    console.log('[send-email] Sent:', JSON.stringify(emailResponse));
 
     return new Response(
       JSON.stringify({ success: true, data: emailResponse }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (error: any) {
-    console.error('[send-email] FATAL ERROR:', error);
+    console.error('[send-email] ERROR:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
