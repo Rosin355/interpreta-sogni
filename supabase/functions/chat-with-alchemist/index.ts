@@ -38,6 +38,10 @@ serve(async (req) => {
       );
     }
 
+    // Use service role for knowledge base (RLS restricts to admin only)
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
     // Fetch dream
     const { data: dream, error: dreamError } = await supabase
       .from("dreams")
@@ -53,14 +57,39 @@ serve(async (req) => {
       );
     }
 
-    // Fetch conversation history
-    const { data: history } = await supabase
-      .from("dream_conversations")
-      .select("role, content")
-      .eq("dream_id", dreamId)
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: true })
-      .limit(50);
+    // Fetch conversation history, previous dreams, and knowledge base in parallel
+    const [historyResult, prevDreamsResult, knowledgeResult] = await Promise.all([
+      // Conversation history
+      supabase
+        .from("dream_conversations")
+        .select("role, content")
+        .eq("dream_id", dreamId)
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true })
+        .limit(50),
+
+      // Last 10 dreams for context
+      supabase
+        .from("dreams")
+        .select("title, content, mood, tags, alchemical_phase, dream_date, interpretation_summary")
+        .eq("user_id", user.id)
+        .neq("id", dreamId)
+        .order("dream_date", { ascending: false })
+        .limit(10),
+
+      // Knowledge base: search symbols matching dream tags
+      dream.tags?.length
+        ? supabaseAdmin
+            .from("dream_knowledge_base")
+            .select("symbol, interpretation, category, context")
+            .in("symbol", dream.tags.map((t: string) => t.toLowerCase()))
+            .limit(20)
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    const history = historyResult.data || [];
+    const prevDreams = prevDreamsResult.data || [];
+    const knowledgeEntries = knowledgeResult.data || [];
 
     // Save user message
     await supabase.from("dream_conversations").insert({
@@ -70,10 +99,39 @@ serve(async (req) => {
       content: message,
     });
 
-    // Build system prompt
-    const systemPrompt = `Sei L'Alchimista, un esperto e saggio interprete dei sogni che combina psicologia junghiana, simbolismo alchemico e intuizione profonda. Parli in italiano con tono caldo, misterioso ma accessibile.
+    // Calculate alchemical profile
+    const allDreams = [dream, ...prevDreams];
+    const phaseCounts: Record<string, number> = {};
+    for (const d of allDreams) {
+      if (d.alchemical_phase) {
+        phaseCounts[d.alchemical_phase] = (phaseCounts[d.alchemical_phase] || 0) + 1;
+      }
+    }
+    const dominantPhase = Object.entries(phaseCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "sconosciuta";
+    const phaseProfile = Object.entries(phaseCounts)
+      .map(([phase, count]) => `${phase}: ${count} sogni`)
+      .join(", ");
 
-Il sognatore sta discutendo con te il seguente sogno:
+    // Build previous dreams context
+    const prevDreamsContext = prevDreams.length > 0
+      ? prevDreams.map((d: any) => 
+          `- "${d.title}" (${d.dream_date})${d.alchemical_phase ? ` [${d.alchemical_phase}]` : ""}: ${(d.content || "").substring(0, 200)}...${d.interpretation_summary ? ` | Sintesi: ${d.interpretation_summary}` : ""}`
+        ).join("\n")
+      : "Nessun sogno precedente registrato.";
+
+    // Build knowledge base context
+    const knowledgeContext = knowledgeEntries.length > 0
+      ? knowledgeEntries.map((k: any) =>
+          `- **${k.symbol}** (${k.category}): ${k.interpretation}${k.context ? ` [Contesto: ${k.context}]` : ""}`
+        ).join("\n")
+      : "";
+
+    // Build system prompt
+    const systemPrompt = `Sei L'Alchimista, la guida personale del viaggio onirico e alchemico di questo sognatore. Combini psicologia junghiana, simbolismo alchemico, mitologia e intuizione profonda. Parli in italiano con tono caldo, misterioso ma accessibile.
+
+Sei la guida PERSONALE di questo sognatore — lo conosci attraverso i suoi sogni e il suo percorso. Non sei un generico interprete, ma il SUO Alchimista.
+
+## SOGNO CORRENTE
 
 **Titolo:** ${dream.title}
 **Data:** ${dream.dream_date}
@@ -83,20 +141,38 @@ ${dream.tags?.length ? `**Simboli/Tag:** ${dream.tags.join(", ")}` : ""}
 ${dream.alchemical_phase ? `**Fase Alchemica:** ${dream.alchemical_phase}` : ""}
 ${dream.interpretation ? `**Interpretazione AI precedente:** ${dream.interpretation}` : ""}
 
+## SOGNI PRECEDENTI (ultimi 10)
+
+${prevDreamsContext}
+
+## PROFILO ALCHEMICO DEL SOGNATORE
+
+- **Fase dominante:** ${dominantPhase}
+- **Distribuzione fasi:** ${phaseProfile || "non ancora determinata"}
+- **Numero sogni registrati:** ${allDreams.length}
+
+${knowledgeContext ? `## KNOWLEDGE BASE - SIMBOLI RILEVANTI\n\n${knowledgeContext}` : ""}
+
+## ISTRUZIONI DI COMPORTAMENTO
+
 Le tue risposte devono:
-- Esplorare i simboli e i significati nascosti del sogno
-- Collegare il sogno alla vita interiore del sognatore
-- Usare riferimenti alchemici (Nigredo, Albedo, Rubedo) quando pertinente
-- Fare domande che stimolino la riflessione
-- Essere empatiche e mai giudicanti
-- Essere concise ma profonde (max 300 parole per risposta)`;
+- Esplorare i simboli e i significati nascosti del sogno corrente
+- Collegare il sogno alla vita interiore del sognatore e ai suoi sogni precedenti quando pertinente
+- Identificare pattern ricorrenti tra i sogni (simboli, emozioni, temi)
+- Usare i riferimenti dalla knowledge base quando disponibili per arricchire l'interpretazione
+- Guidare il sognatore nel suo viaggio alchemico personale (Nigredo → Albedo → Citrinitas → Rubedo)
+- Suggerire come il sogno corrente si posiziona nel percorso alchemico complessivo
+- Fare domande che stimolino la riflessione e l'auto-esplorazione
+- Essere empatico e mai giudicante
+- Essere conciso ma profondo (max 300 parole per risposta)
+- Non ripetere informazioni già dette nella conversazione`;
 
     // Build messages for AI
     const aiMessages: Array<{ role: string; content: string }> = [
       { role: "system", content: systemPrompt },
     ];
 
-    if (history && history.length > 0) {
+    if (history.length > 0) {
       for (const msg of history) {
         aiMessages.push({ role: msg.role, content: msg.content });
       }
