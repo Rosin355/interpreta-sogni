@@ -162,7 +162,7 @@ const Astrology = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        <div className="pt-24 pb-16 px-6 container mx-auto">
+        <div className="pb-16 px-6 container mx-auto" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
