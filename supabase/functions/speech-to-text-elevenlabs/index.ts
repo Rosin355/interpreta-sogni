@@ -140,13 +140,15 @@ serve(async (req) => {
 
     console.log('[STT] Calling ElevenLabs STT API...');
 
-    const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text/convert', {
+    const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
       method: 'POST',
       headers: {
         'xi-api-key': ELEVENLABS_API_KEY,
       },
       body: formData,
     });
+
+    console.log('[STT] ElevenLabs response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
