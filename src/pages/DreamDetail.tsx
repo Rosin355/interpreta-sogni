@@ -12,7 +12,8 @@ import { ArrowLeft, Edit, Trash2, Sparkles, Image as ImageIcon, Share2, MessageS
 import ReactMarkdown from "react-markdown";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { VoiceNoteRecorder } from "@/components/VoiceNoteRecorder";
+import { AlchemistChat } from "@/components/AlchemistChat";
+import { DreamDiaryExport } from "@/components/DreamDiaryExport";
 import { TTSButton } from "@/components/TTSButton";
 import { ImageZoomModal } from "@/components/ImageZoomModal";
 import { ShareDreamUnified } from "@/components/ShareDreamUnified";
