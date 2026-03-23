@@ -159,7 +159,7 @@ export default function SharedDreamsReceived() {
     return (
       <>
         <Navigation />
-        <div className="container max-w-6xl mx-auto py-8 px-4 pt-24">
+        <div className="container max-w-6xl mx-auto py-8 px-4" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">Sogni Condivisi con Te</h1>
             <p className="text-muted-foreground">Visualizza e gestisci i sogni che altri utenti hanno condiviso con te</p>
@@ -177,7 +177,7 @@ export default function SharedDreamsReceived() {
   return (
     <>
       <Navigation />
-      <div className="container max-w-6xl mx-auto py-8 px-4 pt-24">
+      <div className="container max-w-6xl mx-auto py-8 px-4" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
           <Mail className="h-8 w-8" />

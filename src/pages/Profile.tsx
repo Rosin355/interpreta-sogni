@@ -284,7 +284,7 @@ export default function Profile() {
     <div className="min-h-screen bg-background">
       <Navigation />
       
-      <main className="container mx-auto px-4 py-8" style={{ marginTop: 'calc(5rem + var(--safe-area-inset-top, 0px))' }}>
+      <main className="container mx-auto px-4 py-8" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
         <div className="max-w-4xl mx-auto space-y-6">
           <div>
             <h1 className="text-3xl font-bold mb-2">Il Mio Profilo</h1>

@@ -66,7 +66,7 @@ const About = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       
-      <div className="relative z-10 pt-24" style={{ paddingTop: 'calc(6rem + var(--safe-area-inset-top, 0px))' }}>
+      <div className="relative z-10" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
         {/* Hero Section */}
         <section className="py-16 md:py-28 bg-background">
           <div className="mx-auto max-w-6xl space-y-2 px-6">

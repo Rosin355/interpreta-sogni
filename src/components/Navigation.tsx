@@ -77,9 +77,9 @@ const Navigation = () => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-      <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+      <div className="container mx-auto px-6 py-2 flex items-center justify-between">
         <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate(user ? "/dashboard" : "/")}>
-          <img src={dreamAlchemistLogo} alt="Dream Alchemist" className="w-[100px] h-[100px] object-contain" />
+          <img src={dreamAlchemistLogo} alt="Dream Alchemist" className="w-16 h-16 object-contain" />
           <span className="text-xl font-bold text-foreground">Dream Alchemist</span>
         </div>
         
