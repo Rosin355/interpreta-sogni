@@ -525,6 +525,44 @@ export class ElevenLabsTTS {
     }
   }
 
+  private mapErrorToUserFriendly(error: any): Error {
+    const msg = error?.message || error?.context?.body?.error || String(error);
+    return new Error(this.getUserFriendlyMessage(msg));
+  }
+
+  private getUserFriendlyMessage(msg: string): string {
+    const lower = msg.toLowerCase();
+    
+    if (lower.includes('dns') || lower.includes('network') || lower.includes('fetch') || lower.includes('failed to fetch') || lower.includes('networkerror')) {
+      return 'Problema di connessione. Controlla la tua connessione internet e riprova.';
+    }
+    if (lower.includes('429') || lower.includes('troppe richieste') || lower.includes('rate limit') || lower.includes('limite')) {
+      return 'Troppe richieste. Attendi qualche minuto e riprova.';
+    }
+    if (lower.includes('401') || lower.includes('sessione scaduta') || lower.includes('autenticazione') || lower.includes('unauthorized')) {
+      return 'Sessione scaduta. Accedi di nuovo per continuare.';
+    }
+    if (lower.includes('non configurato') || lower.includes('api key') || lower.includes('not configured')) {
+      return 'Servizio audio non configurato. Contatta l\'assistenza.';
+    }
+    if (lower.includes('500') || lower.includes('server') || lower.includes('non disponibile') || lower.includes('internal')) {
+      return 'Servizio audio temporaneamente non disponibile. Riprova tra poco.';
+    }
+    if (lower.includes('nessun audio') || lower.includes('empty') || lower.includes('non è stato possibile')) {
+      return 'Non è stato possibile generare l\'audio per questo testo.';
+    }
+    if (lower.includes('non valido') || lower.includes('validation')) {
+      return 'Il testo inserito non è valido. Verifica e riprova.';
+    }
+    
+    // If the message is already user-friendly (Italian), return as-is
+    if (/^[A-ZÀ-Ú]/.test(msg) && !lower.includes('error') && !lower.includes('exception')) {
+      return msg;
+    }
+    
+    return 'Errore durante la generazione audio. Riprova.';
+  }
+
   private base64ToBlob(base64: string, contentType: string): Blob {
     const byteCharacters = atob(base64);
     const byteNumbers = new Array(byteCharacters.length);
