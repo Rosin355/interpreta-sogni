@@ -37,6 +37,7 @@ interface Message {
 interface AlchemistChatProps {
   dreamId: string;
   hasInterpretation: boolean;
+  exportButton?: React.ReactNode;
 }
 
 function getSupportedMimeType(): string {
