@@ -852,8 +852,13 @@ const DreamDetail = () => {
             </Card>
           )}
 
-          {/* Voice Notes */}
-          <VoiceNoteRecorder dreamId={id!} />
+          {/* Chat with Alchemist */}
+          <AlchemistChat dreamId={id!} hasInterpretation={!!dream.interpretation} />
+
+          {/* Export single dream diary */}
+          <div className="flex justify-center">
+            <DreamDiaryExport mode="single" dream={dream} />
+          </div>
         </div>
       </div>
 

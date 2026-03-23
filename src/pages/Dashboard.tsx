@@ -136,16 +136,25 @@ const Dashboard = () => {
               <h1 className="text-4xl font-bold text-foreground mb-2">Dashboard</h1>
               <p className="text-muted-foreground">Benvenuto nel tuo diario dei sogni</p>
             </div>
-            <Button 
-              onClick={handleExportPDF} 
-              disabled={exporting || allDreams.length === 0}
-              className="gap-2"
-              size="default"
-            >
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">{exporting ? "Esportazione..." : "Esporta Report PDF"}</span>
-              <span className="sm:hidden">PDF</span>
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleExportPDF} 
+                disabled={exporting || allDreams.length === 0}
+                className="gap-2"
+                size="default"
+                variant="outline"
+              >
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">{exporting ? "Esportazione..." : "Report"}</span>
+              </Button>
+              {allDreams.length > 0 && (
+                <DreamDiaryExport 
+                  mode="all" 
+                  allDreams={allDreams}
+                  triggerLabel="Diario"
+                />
+              )}
+            </div>
           </div>
 
           {/* Statistiche */}
