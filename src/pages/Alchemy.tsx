@@ -151,7 +151,7 @@ const Alchemy = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        <div className="container mx-auto flex items-center justify-center px-4 pb-12 pt-24">
+        <div className="container mx-auto flex items-center justify-center px-4 pb-12" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </div>
