@@ -1,54 +1,66 @@
 
 
-## Piano: Potenziamento "Parla con l'Alchimista"
+## Piano: Allineare tutte le email Resend al design del sito
 
-### 1. CRUD messaggi individuali
+### Situazione attuale
 
-Aggiungere la possibilita di modificare ed eliminare singoli messaggi utente nella chat.
+- **1 email ben fatta**: `request-password-reset` — tema dark onirico con bordi dorati, perfettamente in linea col sito
+- **5 email senza stile**: `send-email-notification` — HTML basico, nessun branding (approvazione professionista, sogno condiviso, nuovo commento, richiesta condivisione, invito utente)
+- **1 email parziale**: `send-dream-diary` — sfondo bianco, colore primario corretto ma nessun wrapper onirico
 
-**Frontend (`AlchemistChat.tsx`):**
-- Aggiungere menu contestuale (long-press/hover) sui messaggi utente con opzioni "Modifica" e "Elimina"
-- Per "Elimina": conferma e cancellazione dal DB + aggiornamento stato locale
-- Per "Modifica": inline editing con salvataggio su DB
+### Obiettivo
 
-**Database:** La tabella `dream_conversations` non ha policy UPDATE. Serve una migrazione per aggiungere una RLS policy UPDATE per i messaggi dell'utente.
+Ricreare tutte le email con lo stesso linguaggio visivo della email OTP:
+- Sfondo scuro spaziale (`#050010` / `#0a0318`)
+- Bordi dorati (`#c9a84c`) con glow
+- Testo dorato (`#f5e6a3`) per titoli
+- Testo lavanda (`#b8a9d4`) per corpo
+- Card con bordo arrotondato e sfondo `#0a0318`
+- Elementi decorativi (stelle ✦ ✧, luna 🌙)
+- Footer brandizzato "Dream Alchemist"
 
-### 2. TTS sulle risposte dell'Alchimista
+### Modifiche
 
-Aggiungere il componente `TTSButton` sotto ogni messaggio dell'Alchimista, riusando lo stesso componente gia usato per le interpretazioni.
+**File 1: `supabase/functions/send-email-notification/index.ts`**
 
-**Frontend (`AlchemistChat.tsx`):**
-- Importare `TTSButton`
-- Renderizzare un `TTSButton` compatto sotto ogni messaggio con `role === "assistant"`
+Riscrivere le 5 funzioni di generazione HTML:
+- Creare un wrapper template condiviso (stessa struttura dell'email OTP)
+- Applicare il tema dark/gold a tutte le email
+- Sostituire i bottoni `#4F46E5` con bottoni dorati/viola in linea col brand
+- Aggiungere header con stelle decorative e icona contestuale per ogni tipo
+- Footer brandizzato coerente
 
-### 3. Contesto potenziato: sogni precedenti + knowledge base + guida personalizzata
+Email da restyling:
+1. `buildProfessionalApprovedEmail` — icona ✅ con tema onirico
+2. `buildDreamSharedEmail` — icona 🌙
+3. `buildNewCommentEmail` — icona 💬
+4. `buildDreamSharedUserRequestEmail` — icona 🌙
+5. `buildUserInvitationEmail` — icona ✨
 
-**Edge Function (`chat-with-alchemist/index.ts`):**
+**File 2: `supabase/functions/send-dream-diary/index.ts`**
 
-- **Sogni precedenti correlati**: Caricare gli ultimi 10 sogni dell'utente (titolo, contenuto troncato, mood, tags, fase alchemica, data) per dare contesto temporale e trovare pattern ricorrenti
-- **Knowledge base**: Estrarre simboli/tag dal sogno corrente, cercarli nella tabella `dream_knowledge_base` e includerli nel system prompt come riferimenti
-- **Guida alchemica personalizzata**: Calcolare la distribuzione delle fasi alchemiche dell'utente dai sogni recenti e includere nel prompt il profilo alchemico dell'utente (fase dominante, progressione, consigli)
-- **System prompt potenziato**: Riscrivere il prompt per configurare l'AI come guida personale del viaggio alchemico dell'utente, non solo interprete del singolo sogno
+Riscrivere il template HTML del diario:
+- Wrapper dark come le altre email
+- Header con stelle e titolo dorato
+- Sezioni sogno con card interne scure
+- Testo interpretazione e conversazione in stile coerente
 
 ### Dettaglio tecnico
 
-```text
-System Prompt Structure:
-├── Identita: L'Alchimista, guida personale
-├── Sogno corrente (completo)
-├── Sogni precedenti (ultimi 10, troncati)
-├── Knowledge base (simboli trovati nel sogno)
-├── Profilo alchemico utente (distribuzione fasi)
-└── Istruzioni di comportamento
-```
+Creazione di una funzione `buildEmailWrapper(content, title, icon)` condivisa in ogni file che genera la struttura HTML esterna (sfondo scuro, card con bordo dorato, header stelle, footer), e ogni email specifica fornisce solo il contenuto interno.
 
-**Migrazione DB:** Aggiungere policy UPDATE su `dream_conversations` per `role = 'user'`
+Palette colori dal sito:
+- Background: `#050010`
+- Card: `#0a0318`
+- Card border: `rgba(201,168,76,0.5)`
+- Gold text: `#f5e6a3`
+- Lavender text: `#b8a9d4`
+- Muted text: `#9b8fc4` / `#6b5f8a`
+- Primary purple: `#5636cd`
+- Gold accent: `#c9a84c`
+- Button: gradient o solid `#5636cd` con bordo dorato
 
-### File coinvolti
+### Deploy
 
-| File | Azione |
-|------|--------|
-| Migrazione DB | Policy UPDATE su dream_conversations |
-| `src/components/AlchemistChat.tsx` | CRUD messaggi + TTS su risposte |
-| `supabase/functions/chat-with-alchemist/index.ts` | Sogni precedenti, knowledge base, profilo alchemico |
+Re-deploy di entrambe le edge function dopo le modifiche.
 
