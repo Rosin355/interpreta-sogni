@@ -1,45 +1,47 @@
 
 
-## Piano: Sistemare navbar e padding pagine
+## Piano: Messaggi di errore user-friendly per TTS e edge functions
 
 ### Problema
 
-Il logo 100x100px rende la navbar alta ~132px, ma molte pagine usano `pt-24` (96px) o `calc(5rem)` (80px) come offset, causando il titolo che finisce sotto la navbar.
+Gli errori mostrati all'utente contengono messaggi tecnici come "dns error", "ElevenLabs API error: 429", stack trace, ecc. L'utente vede errori incomprensibili.
 
 ### Soluzione
 
-**1. Navbar (`Navigation.tsx`)**
-- Ridurre padding verticale da `py-4` a `py-2` per contenere meglio il logo
-- Ridurre logo da 100x100 a 64x64 per un navbar bilanciato (~80px totale)
-- Mantenere il testo "Dream Alchemist" accanto al logo
+Migliorare la gestione errori in due punti:
 
-**2. Standardizzare l'offset di tutte le pagine**
+**File 1: `src/utils/elevenlabsTTS.ts`**
 
-Usare `paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))'` come standard unico per tutte le pagine, garantendo spazio sufficiente sotto la navbar.
+Nel metodo `speak()` (riga 389-395 e 431-440), intercettare gli errori dalla edge function e mapparli a messaggi comprensibili:
 
-Pagine da aggiornare:
+- Errore rete/timeout → "Problema di connessione. Verifica la tua connessione internet e riprova."
+- Errore 429 (rate limit) → "Hai raggiunto il limite di richieste. Riprova tra qualche minuto."
+- Errore 401 → "Sessione scaduta. Effettua nuovamente l'accesso."
+- Errore 500 generico → "Il servizio audio non è al momento disponibile. Riprova tra poco."
+- Errore "Nessun audio ricevuto" → "Non è stato possibile generare l'audio. Riprova."
+- Aggiungere retry automatico (1 tentativo) per errori temporanei su singoli chunk, con messaggio "Nuovo tentativo per il blocco X..."
 
-| Pagina | Offset attuale | Nuovo offset |
-|--------|---------------|--------------|
-| `Explore.tsx` | `marginTop: calc(5rem + ...)` | `paddingTop: calc(7rem + ...)` |
-| `Profile.tsx` | `marginTop: calc(5rem + ...)` | `paddingTop: calc(7rem + ...)` |
-| `Settings.tsx` | `marginTop: calc(5rem + ...)` | `paddingTop: calc(7rem + ...)` |
-| `Timeline.tsx` | `marginTop: calc(5rem + ...)` | `paddingTop: calc(7rem + ...)` |
-| `Astrology.tsx` | `pt-24` | `paddingTop: calc(7rem + ...)` |
-| `Alchemy.tsx` | `pt-24` | `paddingTop: calc(7rem + ...)` |
-| `SharedDreams.tsx` | `pt-24` | `paddingTop: calc(7rem + ...)` |
-| `SharedDreamsReceived.tsx` | `pt-24` | `paddingTop: calc(7rem + ...)` |
-| `AdminDashboard.tsx` | `pt-24` | `paddingTop: calc(7rem + ...)` |
-| `ProfessionalVerification.tsx` | `pt-24` | `paddingTop: calc(7rem + ...)` |
-| `Dashboard.tsx` | `calc(8rem + ...)` | `calc(7rem + ...)` (gia ok, uniformare) |
-| `About.tsx` | `calc(6rem + ...)` | `calc(7rem + ...)` |
-| `Auth.tsx` | `calc(6rem + ...)` | `calc(7rem + ...)` |
-| `MyDreams.tsx` | `calc(6rem + ...)` | `calc(7rem + ...)` |
-| `DreamDetail.tsx` | `calc(6rem + ...)` | `calc(7rem + ...)` |
-| `EditDream.tsx` | `calc(6rem + ...)` | `calc(7rem + ...)` |
-| `NewDream.tsx` | `calc(6rem + ...)` | `calc(7rem + ...)` |
+**File 2: `supabase/functions/text-to-speech-elevenlabs/index.ts`**
 
-### File coinvolti
-- `src/components/Navigation.tsx` (logo 64x64, py-2)
-- 17 pagine in `src/pages/` (offset standardizzato)
+- CORS headers aggiornati (aggiungere header Supabase mancanti)
+- Messaggi di errore in italiano user-friendly nelle risposte JSON
+- Rate limiter wrappato in try-catch per evitare crash quando Upstash non è raggiungibile
+- `output_format` spostato nel query parameter dell'URL
+- Base64 encoding con `encode()` di Deno standard library invece di `btoa()`
+
+**File 3: `src/components/TTSButton.tsx`**
+
+- Nel catch di `handleSpeak` (riga 75-84), mappare i messaggi di errore a descrizioni user-friendly invece di mostrare `error.message` grezzo
+
+### Mappatura errori → messaggi utente
+
+| Errore tecnico | Messaggio utente |
+|---|---|
+| DNS/network/fetch failed | "Problema di connessione. Controlla internet e riprova." |
+| 429 rate limit | "Troppe richieste. Attendi qualche minuto e riprova." |
+| 401 auth | "Sessione scaduta. Accedi di nuovo per continuare." |
+| 500 server | "Servizio temporaneamente non disponibile. Riprova tra poco." |
+| Empty audio | "Non è stato possibile generare l'audio per questo testo." |
+| API key invalid | "Servizio audio non configurato. Contatta l'assistenza." |
+| Chunk failure | "Errore durante la generazione. Riprova." |
 
