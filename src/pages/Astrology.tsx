@@ -175,7 +175,7 @@ const Astrology = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        <div className="pt-24 pb-16 px-6 container mx-auto max-w-4xl">
+        <div className="pb-16 px-6 container mx-auto max-w-4xl" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
