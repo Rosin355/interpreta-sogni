@@ -8,6 +8,8 @@ const corsHeaders = {
 };
 
 function processBase64Chunks(base64String: string, chunkSize = 32768) {
+  // Ensure chunkSize is a multiple of 4 for valid base64 decoding
+  chunkSize = chunkSize - (chunkSize % 4);
   const chunks: Uint8Array[] = [];
   let position = 0;
   
@@ -128,8 +130,8 @@ serve(async (req) => {
     const formData = new FormData();
     const blob = new Blob([binaryAudio], { type: clientMimeType });
     formData.append('file', blob, `audio.${extension}`);
-    formData.append('model_id', 'scribe_v1');
-    formData.append('language_code', 'it');
+    formData.append('model_id', 'scribe_v2');
+    formData.append('language_code', 'ita');
 
     const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
     if (!ELEVENLABS_API_KEY) {
@@ -138,13 +140,15 @@ serve(async (req) => {
 
     console.log('[STT] Calling ElevenLabs STT API...');
 
-    const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text/convert', {
+    const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
       method: 'POST',
       headers: {
         'xi-api-key': ELEVENLABS_API_KEY,
       },
       body: formData,
     });
+
+    console.log('[STT] ElevenLabs response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
