@@ -89,12 +89,8 @@ export const TTSButton = ({
       setIsLoading(false);
       setIsPlaying(false);
       setIsPaused(false);
-      
-      toast({
-        title: "Errore lettura audio",
-        description: error.message || "Impossibile riprodurre l'audio. Riprova.",
-        variant: "destructive",
-      });
+      setGenerationProgress(null);
+      // Error toast is already shown by ElevenLabsTTS, no need to duplicate
     }
   };
 
