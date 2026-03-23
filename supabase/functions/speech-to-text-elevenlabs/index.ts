@@ -8,6 +8,8 @@ const corsHeaders = {
 };
 
 function processBase64Chunks(base64String: string, chunkSize = 32768) {
+  // Ensure chunkSize is a multiple of 4 for valid base64 decoding
+  chunkSize = chunkSize - (chunkSize % 4);
   const chunks: Uint8Array[] = [];
   let position = 0;
   
