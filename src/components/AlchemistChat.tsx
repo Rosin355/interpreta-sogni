@@ -319,6 +319,7 @@ export const AlchemistChat = ({ dreamId, hasInterpretation, exportButton }: Alch
               </AlertDialogContent>
             </AlertDialog>
           )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
