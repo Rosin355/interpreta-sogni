@@ -387,11 +387,11 @@ export class ElevenLabsTTS {
         });
 
         if (error) {
-          throw new Error(error.message || 'Errore nella generazione audio');
+          throw this.mapErrorToUserFriendly(error);
         }
 
         if (!data?.audioContent) {
-          throw new Error('Nessun audio ricevuto');
+          throw new Error('Non è stato possibile generare l\'audio per questo testo.');
         }
 
         const audioBlob = this.base64ToBlob(data.audioContent, 'audio/mpeg');
