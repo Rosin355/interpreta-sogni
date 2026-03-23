@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import UserMenu from "./UserMenu";
 import { Plus, Menu, X } from "lucide-react";
+import dreamAlchemistLogo from "@/assets/dreamalchemist_logo.png";
 import {
   Sheet,
   SheetContent,
@@ -78,9 +79,7 @@ const Navigation = () => {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="container mx-auto px-6 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate(user ? "/dashboard" : "/")}>
-          <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center rounded-none">
-            <span className="text-primary-foreground font-bold text-sm">🌙</span>
-          </div>
+          <img src={dreamAlchemistLogo} alt="Dream Alchemist" className="w-[100px] h-[100px] object-contain" />
           <span className="text-xl font-bold text-foreground">Dream Alchemist</span>
         </div>
         
