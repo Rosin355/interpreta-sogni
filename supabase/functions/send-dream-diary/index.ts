@@ -20,7 +20,7 @@ function buildEmailWrapper(content: string, title: string, icon: string): string
       <p style="font-size: 18px; color: #c9a84c; letter-spacing: 12px; margin: 0 0 24px;">✦ ✧ ✦ ✧ ✦</p>
       <table width="650" cellpadding="0" cellspacing="0" style="max-width: 650px; width: 100%; background-color: #0a0318; border: 1px solid rgba(201,168,76,0.5); border-radius: 16px; overflow: hidden; box-shadow: 0 0 40px rgba(201,168,76,0.15);">
         <tr><td style="padding: 32px 40px 20px; text-align: center; border-bottom: 1px solid rgba(201,168,76,0.2);">
-          <p style="font-size: 36px; margin: 0 0 12px; line-height: 1;">${icon}</p>
+          <img src="${APP_URL}/dreamalchemist_logo.png" alt="Dream Alchemist" width="64" height="64" style="width:64px;height:64px;border-radius:12px;display:inline-block;margin:0 0 12px;" />
           <h1 style="color: #f5e6a3; font-size: 24px; font-weight: 600; margin: 0; letter-spacing: 0.5px;">${title}</h1>
         </td></tr>
         <tr><td style="padding: 30px 40px;">
