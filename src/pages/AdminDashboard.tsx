@@ -239,7 +239,7 @@ const AdminDashboard = () => {
   return (
     <>
       <Navigation />
-      <div className="min-h-screen bg-background pt-24 px-4">
+      <div className="min-h-screen bg-background px-4" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
         <div className="container max-w-6xl mx-auto py-12">
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">Dashboard Amministratore</h1>

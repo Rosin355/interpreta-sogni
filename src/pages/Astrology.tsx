@@ -211,7 +211,7 @@ const Astrology = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <div className="pt-24 pb-16 px-6 container mx-auto">
+      <div className="pb-16 px-6 container mx-auto" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

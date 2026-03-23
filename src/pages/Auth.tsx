@@ -500,7 +500,7 @@ const Auth = () => {
   return (
     <>
       <Navigation />
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-dream-space to-background p-4" style={{ paddingTop: 'calc(6rem + var(--safe-area-inset-top, 0px))' }}>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-dream-space to-background p-4" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
       <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm border-border shadow-xl">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">

@@ -189,7 +189,7 @@ const Alchemy = () => {
         />
       )}
 
-      <div className="container mx-auto space-y-8 px-4 pb-12 pt-24">
+      <div className="container mx-auto space-y-8 px-4 pb-12" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
