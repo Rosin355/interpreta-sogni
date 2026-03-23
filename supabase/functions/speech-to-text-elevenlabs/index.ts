@@ -130,8 +130,8 @@ serve(async (req) => {
     const formData = new FormData();
     const blob = new Blob([binaryAudio], { type: clientMimeType });
     formData.append('file', blob, `audio.${extension}`);
-    formData.append('model_id', 'scribe_v1');
-    formData.append('language_code', 'it');
+    formData.append('model_id', 'scribe_v2');
+    formData.append('language_code', 'ita');
 
     const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
     if (!ELEVENLABS_API_KEY) {
