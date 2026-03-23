@@ -49,7 +49,7 @@ function getSupportedMimeType(): string {
   return "audio/webm";
 }
 
-export const AlchemistChat = ({ dreamId, hasInterpretation }: AlchemistChatProps) => {
+export const AlchemistChat = ({ dreamId, hasInterpretation, exportButton }: AlchemistChatProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
