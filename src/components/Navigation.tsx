@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import UserMenu from "./UserMenu";
 import { Plus, Menu, X } from "lucide-react";
+import dreamAlchemistLogo from "@/assets/dreamalchemist_logo.png";
 import {
   Sheet,
   SheetContent,
