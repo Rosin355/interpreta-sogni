@@ -238,7 +238,7 @@ const EditDream = () => {
     return (
       <>
         <Navigation />
-        <div className="min-h-screen bg-gradient-to-br from-background via-dream-space to-background flex items-center justify-center" style={{ paddingTop: 'calc(6rem + var(--safe-area-inset-top, 0px))' }}>
+        <div className="min-h-screen bg-gradient-to-br from-background via-dream-space to-background flex items-center justify-center" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-muted-foreground">Caricamento...</p>
