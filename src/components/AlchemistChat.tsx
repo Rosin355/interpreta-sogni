@@ -296,7 +296,9 @@ export const AlchemistChat = ({ dreamId, hasInterpretation, exportButton }: Alch
             <Sparkles className="h-5 w-5 text-primary" />
             Parla con l'Alchimista
           </CardTitle>
-          {messages.length > 0 && (
+          <div className="flex items-center gap-1">
+            {exportButton}
+            {messages.length > 0 && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive">
