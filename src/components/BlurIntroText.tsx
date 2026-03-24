@@ -25,7 +25,7 @@ const BlurIntroText = ({ lines, onComplete, className = "" }: BlurIntroTextProps
   const [lineOpacity, setLineOpacity] = useState(1);
   const [completed, setCompleted] = useState(false);
   const animFrameRef = useRef<number>();
-  const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const clearTimeouts = useCallback(() => {
     timeoutsRef.current.forEach(clearTimeout);
