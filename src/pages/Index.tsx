@@ -12,6 +12,15 @@ const Index = () => {
   const [introComplete, setIntroComplete] = useState(false);
 
   useEffect(() => {
+    // Clear intro flag on page load to allow re-viewing during development
+    // In production, the intro shows once per browser session
+    const urlParams = new URLSearchParams(window.location.search);
+    const forceIntro = urlParams.get("intro") === "1";
+    
+    if (forceIntro) {
+      sessionStorage.removeItem("intro_seen");
+    }
+    
     const seen = sessionStorage.getItem("intro_seen");
     if (!seen) {
       setShowIntro(true);
