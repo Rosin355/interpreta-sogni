@@ -1,7 +1,7 @@
-import React from 'react';
-import { StarsCanvas } from './stars-canvas';
+import React from "react";
+import { StarsCanvas } from "./stars-canvas";
+import BlurTextAnimation from "./blur-text-animation";
 
-// Types for component props
 interface HeroProps {
   trustBadge?: {
     text: string;
@@ -17,16 +17,17 @@ interface HeroProps {
   className?: string;
 }
 
-// Reusable Hero Component
 const Hero: React.FC<HeroProps> = ({
   trustBadge,
   headline,
   subtitle,
   buttons,
-  className = ""
+  className = "",
 }) => {
+  const introText = `${headline.line1} ${headline.specialWord ? `${headline.specialWord} ` : ""}${headline.line2}`.trim();
+
   return (
-    <div className={`relative w-full h-[85vh] md:h-screen overflow-hidden bg-background ${className}`}>
+    <div className={`relative w-full min-h-[100svh] overflow-hidden bg-background ${className}`}>
       <style>{`
         @keyframes fade-in-down {
           from {
@@ -70,34 +71,27 @@ const Hero: React.FC<HeroProps> = ({
         .animation-delay-600 {
           animation-delay: 0.6s;
         }
-        
-        .animation-delay-800 {
-          animation-delay: 0.8s;
-        }
       `}</style>
-      
-      <StarsCanvas 
+
+      <StarsCanvas
         maxStars={400}
         hue={260}
         brightness={0.8}
         speedMultiplier={0.5}
         twinkleIntensity={30}
       />
-      
-      {/* Gradient fade at the bottom for seamless transition */}
-      <div 
+
+      <div
         className="absolute bottom-0 left-0 right-0 h-48 pointer-events-none z-[5]"
         style={{
           background: "linear-gradient(to bottom, transparent 0%, hsl(var(--background)) 100%)",
         }}
       />
-      
-      {/* Hero Content Overlay */}
+
       <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-foreground">
-        {/* Trust Badge */}
         {trustBadge && (
-          <div className="mb-8 animate-fade-in-down">
-            <div className="flex items-center gap-2 px-6 py-3 bg-primary/10 backdrop-blur-md border border-primary/30 rounded-full text-sm">
+          <div className="mb-6 sm:mb-8 animate-fade-in-down">
+            <div className="flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-primary/10 backdrop-blur-md border border-primary/30 rounded-full text-xs sm:text-sm">
               {trustBadge.icons && (
                 <div className="flex">
                   {trustBadge.icons.map((icon, index) => (
@@ -112,30 +106,26 @@ const Hero: React.FC<HeroProps> = ({
           </div>
         )}
 
-        <div className="text-center space-y-6 max-w-5xl mx-auto px-4 hero-content">
-          {/* Main Heading with Animation */}
-          <div className="space-y-2">
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-foreground animate-fade-in-up animation-delay-200">
-              {headline.line1}{" "}
-              {headline.specialWord && (
-                <span className="bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto] animate-gradient-shift bg-clip-text text-transparent">
-                  {headline.specialWord}
-                </span>
-              )}{" "}
-              {headline.line2}
-            </h1>
+        <div className="w-full text-center space-y-4 sm:space-y-6 max-w-[96vw] sm:max-w-5xl mx-auto px-3 sm:px-4 hero-content">
+          <div className="animate-fade-in-up animation-delay-200">
+            <BlurTextAnimation
+              text={introText}
+              fullHeight={false}
+              className="w-full"
+              fontSize="text-[1.75rem] sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl"
+              textColor="text-foreground"
+              animationDelay={4000}
+            />
           </div>
-          
-          {/* Subtitle with Animation */}
-          <div className="max-w-3xl mx-auto animate-fade-in-up animation-delay-400">
-            <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground font-light leading-relaxed">
+
+          <div className="max-w-[92vw] sm:max-w-3xl mx-auto animate-fade-in-up animation-delay-400">
+            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground font-light leading-relaxed">
               {subtitle}
             </p>
           </div>
-          
-          {/* CTA Buttons with Animation */}
+
           {buttons && (
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10 animate-fade-in-up animation-delay-600 hero-buttons">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mt-6 sm:mt-10 animate-fade-in-up animation-delay-600 hero-buttons px-2">
               {buttons}
             </div>
           )}
