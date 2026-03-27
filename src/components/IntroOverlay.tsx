@@ -14,19 +14,27 @@ interface IntroOverlayProps {
   onComplete: () => void;
 }
 
+const markIntroSeen = () => {
+  try {
+    sessionStorage.setItem("intro_seen", "1");
+  } catch {
+    // Ignore storage failures so intro flow can still complete.
+  }
+};
+
 const IntroOverlay = ({ onComplete }: IntroOverlayProps) => {
   const [textDone, setTextDone] = useState(false);
   const [exiting, setExiting] = useState(false);
 
   const handleEnter = useCallback(() => {
     setExiting(true);
-    sessionStorage.setItem("intro_seen", "1");
+    markIntroSeen();
     // Wait for exit animation
     setTimeout(onComplete, 1200);
   }, [onComplete]);
 
   const handleSkip = useCallback(() => {
-    sessionStorage.setItem("intro_seen", "1");
+    markIntroSeen();
     setExiting(true);
     setTimeout(onComplete, 800);
   }, [onComplete]);

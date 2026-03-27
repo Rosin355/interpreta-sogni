@@ -1,11 +1,27 @@
 import { useState, useEffect, useCallback } from "react";
 import Navigation from "@/components/Navigation";
-import HomeHero from "@/components/HomeHero";
+import HeroSection from "@/components/HeroSection";
 import PillarsSection from "@/components/PillarsSection";
 import TransformationSection from "@/components/TransformationSection";
 import HomeCTA from "@/components/HomeCTA";
 import Footer from "@/components/Footer";
 import IntroOverlay from "@/components/IntroOverlay";
+
+const getIntroSeen = () => {
+  try {
+    return sessionStorage.getItem("intro_seen");
+  } catch {
+    return null;
+  }
+};
+
+const clearIntroSeen = () => {
+  try {
+    sessionStorage.removeItem("intro_seen");
+  } catch {
+    // Ignore storage failures and fallback to showing intro.
+  }
+};
 
 const Index = () => {
   const [showIntro, setShowIntro] = useState(false);
@@ -18,10 +34,10 @@ const Index = () => {
     const forceIntro = urlParams.get("intro") === "1";
     
     if (forceIntro) {
-      sessionStorage.removeItem("intro_seen");
+      clearIntroSeen();
     }
     
-    const seen = sessionStorage.getItem("intro_seen");
+    const seen = getIntroSeen();
     if (!seen) {
       setShowIntro(true);
     } else {
@@ -41,7 +57,7 @@ const Index = () => {
       {introComplete && (
         <div className="relative z-10" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
           <Navigation />
-          <HomeHero />
+          <HeroSection />
           <PillarsSection />
           <TransformationSection />
           <HomeCTA />
