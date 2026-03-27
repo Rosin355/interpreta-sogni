@@ -164,6 +164,7 @@ const Auth = () => {
   const [otpCode, setOtpCode] = useState("");
   const [otpTimer, setOtpTimer] = useState(0);
   const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
   
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [signupForm, setSignupForm] = useState({ email: "", password: "", confirmPassword: "" });
@@ -225,22 +226,74 @@ const Auth = () => {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
+  const invokeEdgeFunction = async (functionName: string, body: Record<string, unknown>) => {
+    return supabase.functions.invoke(functionName, { body });
+  };
+
+  const extractFunctionErrorPayload = async (
+    error: unknown
+  ): Promise<{ code?: string; message?: string }> => {
+    if (!error || typeof error !== "object") return {};
+
+    const maybeError = error as { message?: string; context?: Response };
+    const fallbackMessage = maybeError.message;
+
+    if (!maybeError.context) {
+      return { message: fallbackMessage };
+    }
+
+    try {
+      const payload = await maybeError.context.clone().json();
+      return {
+        code: typeof payload?.code === "string" ? payload.code : undefined,
+        message:
+          typeof payload?.message === "string"
+            ? payload.message
+            : typeof payload?.error === "string"
+              ? payload.error
+              : fallbackMessage,
+      };
+    } catch {
+      return { message: fallbackMessage };
+    }
+  };
+
+  const mapResetPasswordErrorMessage = (code?: string, backendMessage?: string): string => {
+    switch (code) {
+      case "PASSWORD_REUSED":
+        return "La nuova password non può essere uguale alla precedente.";
+      case "TOKEN_INVALID_OR_EXPIRED":
+        return "Codice non valido o scaduto. Richiedi un nuovo codice.";
+      case "TOKEN_ATTEMPTS_EXCEEDED":
+        return "Troppi tentativi. Richiedi un nuovo codice.";
+      case "TOKEN_MISMATCH":
+      case "VALIDATION_ERROR":
+      case "PASSWORD_POLICY_VIOLATION":
+        return backendMessage || "Dati non validi. Controlla i campi e riprova.";
+      default:
+        return "Impossibile aggiornare la password. Riprova più tardi.";
+    }
+  };
+
+  const isSuccessfulFunctionResponse = (data: unknown): boolean => {
+    return Boolean(
+      data &&
+      typeof data === "object" &&
+      "success" in data &&
+      (data as { success?: unknown }).success === true
+    );
+  };
+
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const validated = resetEmailSchema.parse({ email: resetEmail });
       setOtpSending(true);
-      const response = await fetch(
-        `https://zufsbpcgcvlcdtksrzhu.supabase.co/functions/v1/request-password-reset`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1ZnNicGNnY3ZsY2R0a3Nyemh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3MzQzMjgsImV4cCI6MjA3NjMxMDMyOH0.qiNGzng-uO87V6lGyVJKksRIfCNxdKwUgTvEucwUZHE' },
-          body: JSON.stringify({ email: validated.email.trim() }),
-        }
-      );
-      const data = await response.json();
-      if (!response.ok) {
-        toast({ title: "Errore", description: data.error || "Errore nell'invio.", variant: "destructive" });
+      const { error } = await invokeEdgeFunction("request-password-reset", {
+        email: validated.email.trim(),
+      });
+      if (error) {
+        toast({ title: "Errore", description: error.message || "Errore nell'invio.", variant: "destructive" });
       } else {
         toast({ title: "Codice inviato!", description: "Se l'email è registrata, riceverai un codice a 6 cifre." });
         setOtpStep(2);
@@ -259,14 +312,9 @@ const Auth = () => {
   const handleResendOTP = async () => {
     setOtpSending(true);
     try {
-      await fetch(
-        `https://zufsbpcgcvlcdtksrzhu.supabase.co/functions/v1/request-password-reset`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1ZnNicGNnY3ZsY2R0a3Nyemh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3MzQzMjgsImV4cCI6MjA3NjMxMDMyOH0.qiNGzng-uO87V6lGyVJKksRIfCNxdKwUgTvEucwUZHE' },
-          body: JSON.stringify({ email: resetEmail.trim() }),
-        }
-      );
+      await invokeEdgeFunction("request-password-reset", {
+        email: resetEmail.trim(),
+      });
       toast({ title: "Codice reinviato!", description: "Controlla la tua casella di posta." });
       setOtpTimer(900);
       setOtpCode("");
@@ -277,23 +325,70 @@ const Auth = () => {
     }
   };
 
+  const handleVerifyOTPCode = async () => {
+    if (otpCode.length !== 6 || otpTimer <= 0) return;
+
+    try {
+      setOtpVerifying(true);
+      const { data, error } = await invokeEdgeFunction("verify-reset-token", {
+        email: resetEmail.trim(),
+        code: otpCode,
+        mode: "verify",
+      });
+
+      if (error) {
+        const parsedError = await extractFunctionErrorPayload(error);
+        const message = mapResetPasswordErrorMessage(parsedError.code, parsedError.message);
+        toast({ title: "Errore", description: message, variant: "destructive" });
+        return;
+      }
+
+      if (!isSuccessfulFunctionResponse(data)) {
+        toast({
+          title: "Errore",
+          description: "Verifica del codice non riuscita. Riprova.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setOtpStep(3);
+    } finally {
+      setOtpVerifying(false);
+    }
+  };
+
   const handleVerifyOTPAndReset = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const validated = newPasswordSchema.parse(newPasswordForm);
       setLoading(true);
-      const response = await fetch(
-        `https://zufsbpcgcvlcdtksrzhu.supabase.co/functions/v1/verify-reset-token`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1ZnNicGNnY3ZsY2R0a3Nyemh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3MzQzMjgsImV4cCI6MjA3NjMxMDMyOH0.qiNGzng-uO87V6lGyVJKksRIfCNxdKwUgTvEucwUZHE' },
-          body: JSON.stringify({ email: resetEmail.trim(), code: otpCode, newPassword: validated.password }),
+      const { data, error } = await invokeEdgeFunction("verify-reset-token", {
+        email: resetEmail.trim(),
+        code: otpCode,
+        newPassword: validated.password,
+        mode: "reset",
+      });
+      if (error) {
+        const parsedError = await extractFunctionErrorPayload(error);
+        const message = mapResetPasswordErrorMessage(parsedError.code, parsedError.message);
+        if (
+          parsedError.code === "TOKEN_INVALID_OR_EXPIRED" ||
+          parsedError.code === "TOKEN_ATTEMPTS_EXCEEDED" ||
+          parsedError.code === "TOKEN_MISMATCH"
+        ) {
+          setOtpStep(2);
         }
-      );
-      const data = await response.json();
-      if (!response.ok) {
-        toast({ title: "Errore", description: data.error, variant: "destructive" });
+        toast({ title: "Errore", description: message, variant: "destructive" });
       } else {
+        if (!isSuccessfulFunctionResponse(data)) {
+          toast({
+            title: "Errore",
+            description: "Impossibile aggiornare la password. Riprova più tardi.",
+            variant: "destructive",
+          });
+          return;
+        }
         toast({ title: "Password aggiornata!", description: "Ora puoi accedere con la nuova password." });
         setShowForgotPassword(false);
         setOtpStep(1);
@@ -605,10 +700,12 @@ const Auth = () => {
                       </div>
                       <Button 
                         className="w-full" 
-                        disabled={otpCode.length !== 6}
-                        onClick={() => setOtpStep(3)}
+                        disabled={otpCode.length !== 6 || otpTimer <= 0 || otpVerifying}
+                        onClick={handleVerifyOTPCode}
                       >
-                        Verifica codice
+                        {otpVerifying ? (
+                          <><Loader2 className="h-4 w-4 animate-spin mr-2" />Verifica in corso...</>
+                        ) : "Verifica codice"}
                       </Button>
                       <button
                         type="button"

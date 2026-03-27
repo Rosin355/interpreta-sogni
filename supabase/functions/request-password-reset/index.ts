@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { APP_URL } from '../_shared/public-config.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -55,7 +56,7 @@ function getOTPEmailHTML(code: string): string {
 
 <!-- Logo -->
 <tr><td align="center" style="padding:15px;">
-  <img src="https://interpreta-sogni.lovable.app/dreamalchemist_logo.png" alt="Dream Alchemist" width="76" height="76" style="width:76px;height:76px;border-radius:12px;display:inline-block;" />
+  <img src="${APP_URL}/dreamalchemist_logo.png" alt="Dream Alchemist" width="76" height="76" style="width:76px;height:76px;border-radius:12px;display:inline-block;" />
 </td></tr>
 
 <!-- Title -->

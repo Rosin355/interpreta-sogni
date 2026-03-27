@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { buildWhatsAppUrl } from "@/config/publicConfig";
 
 const contactFormSchema = z.object({
   name: z.string().trim().min(1, { message: "Il nome è obbligatorio" }).max(100, { message: "Il nome deve essere massimo 100 caratteri" }),
@@ -51,7 +52,7 @@ const About = () => {
       const message = `*Nuovo messaggio da Dream Alchemist*%0A%0A*Nome:* ${encodeURIComponent(values.name)}%0A*Email:* ${encodeURIComponent(values.email)}%0A*Oggetto:* ${encodeURIComponent(values.subject)}%0A%0A*Messaggio:*%0A${encodeURIComponent(values.message)}`;
       
       // Open WhatsApp with pre-filled message (replace with Jessica's number)
-      window.open(`https://wa.me/393425855361?text=${message}`, '_blank');
+      window.open(buildWhatsAppUrl(message), '_blank');
       
       toast.success("Messaggio preparato! Verrai reindirizzato a WhatsApp.");
       form.reset();
