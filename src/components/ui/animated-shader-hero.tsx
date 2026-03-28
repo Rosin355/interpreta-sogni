@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useState } from "react";
 import { StarsCanvas } from "./stars-canvas";
 import BlurTextAnimation from "./blur-text-animation";
 
@@ -12,6 +12,7 @@ interface HeroProps {
     specialWord?: string;
     line2: string;
   };
+  animatedPhrases?: readonly string[];
   subtitle: string;
   buttons?: React.ReactNode;
   className?: string;
@@ -20,11 +21,26 @@ interface HeroProps {
 const Hero: React.FC<HeroProps> = ({
   trustBadge,
   headline,
+  animatedPhrases,
   subtitle,
   buttons,
   className = "",
 }) => {
   const introText = `${headline.line1} ${headline.specialWord ? `${headline.specialWord} ` : ""}${headline.line2}`.trim();
+  const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
+
+  const phrases = animatedPhrases?.length ? animatedPhrases : [introText];
+  const activePhrase = phrases[Math.min(currentPhraseIndex, phrases.length - 1)];
+
+  const handlePhraseComplete = useCallback(() => {
+    setCurrentPhraseIndex((currentIndex) => {
+      if (currentIndex >= phrases.length - 1) {
+        return currentIndex;
+      }
+
+      return currentIndex + 1;
+    });
+  }, [phrases.length]);
 
   return (
     <div className={`relative w-full min-h-[100svh] overflow-hidden bg-background ${className}`}>
@@ -109,12 +125,18 @@ const Hero: React.FC<HeroProps> = ({
         <div className="w-full text-center space-y-4 sm:space-y-6 max-w-[96vw] sm:max-w-5xl mx-auto px-3 sm:px-4 hero-content">
           <div className="animate-fade-in-up animation-delay-200">
             <BlurTextAnimation
+              key={currentPhraseIndex}
               text={introText}
+              phrases={phrases}
+              activePhraseIndex={currentPhraseIndex}
               fullHeight={false}
               className="w-full"
               fontSize="text-[1.75rem] sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl"
               textColor="text-foreground"
-              animationDelay={4000}
+              loop={false}
+              freezeOnComplete
+              onAnimationComplete={handlePhraseComplete}
+              staticText={activePhrase}
             />
           </div>
 

@@ -3,15 +3,19 @@ import { RainbowButton } from "@/components/ui/rainbow-button";
 import Hero from "@/components/ui/animated-shader-hero";
 import { useNavigate } from "react-router-dom";
 
+const HERO_PHRASES = [
+  "Attraverso l'Alchimia della trasformazione, intrecciamo",
+  "il tuo Tema Natale ai simboli onirici della psiche.",
+  "Impara a decifrare come i pianeti al momento della tua nascita si riflettono nel tuo mondo interiore,",
+  "trasformando ogni visione notturna in pura consapevolezza.",
+  "🌙 Inizia ora ad annotare i tuoi sogni e lascia che L'Alchimista li interpreti. Continua la conversazione ed estrai la formula dell'oro filosofale! ⚗️✨",
+] as const;
+
 const HeroSection = () => {
   const navigate = useNavigate();
   return (
     <Hero
-      headline={{
-        line1: "Esplora l'",
-        specialWord: "Universo",
-        line2: "dei Tuoi Sogni"
-      }}
+      animatedPhrases={HERO_PHRASES}
       subtitle="Registra, analizza e scopri i pattern nei tuoi sogni mentre contribuisci a una ricerca rivoluzionaria sui sogni."
       buttons={
         <>
