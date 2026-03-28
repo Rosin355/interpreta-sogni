@@ -100,6 +100,35 @@ const Hero: React.FC<HeroProps> = ({
         .animation-delay-600 {
           animation-delay: 0.6s;
         }
+
+        @keyframes cinematic-blur-in {
+          from {
+            opacity: 0;
+            filter: blur(16px) brightness(0.65);
+            transform: translateY(20px) scale(0.96) rotateX(-10deg);
+          }
+          to {
+            opacity: 1;
+            filter: blur(0px) brightness(1);
+            transform: translateY(0) scale(1) rotateX(0deg);
+          }
+        }
+
+        .animate-cinematic-blur-in {
+          animation: cinematic-blur-in 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+          opacity: 0;
+          will-change: filter, transform, opacity;
+          transform-style: preserve-3d;
+          backface-visibility: hidden;
+        }
+
+        .animation-delay-300 {
+          animation-delay: 0.3s;
+        }
+
+        .animation-delay-500 {
+          animation-delay: 0.5s;
+        }
       `}</style>
 
       <StarsCanvas
@@ -135,7 +164,11 @@ const Hero: React.FC<HeroProps> = ({
           </div>
         )}
 
-        <div className="w-full text-center space-y-5 sm:space-y-6 max-w-[94vw] sm:max-w-4xl lg:max-w-5xl mx-auto px-4 sm:px-6 hero-content">
+        <div
+          className={`w-full text-center max-w-[94vw] sm:max-w-4xl lg:max-w-5xl mx-auto px-4 sm:px-6 hero-content ${
+            isFinalPhrase ? "space-y-5 sm:space-y-6" : "space-y-0"
+          }`}
+        >
           <div className="animate-fade-in-up animation-delay-200">
             <BlurTextAnimation
               key={safePhraseIndex}
@@ -155,16 +188,20 @@ const Hero: React.FC<HeroProps> = ({
             />
           </div>
 
-          <div className="max-w-[92vw] sm:max-w-2xl lg:max-w-3xl mx-auto animate-fade-in-up animation-delay-400">
-            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground font-light leading-relaxed">
-              {subtitle}
-            </p>
-          </div>
+          {isFinalPhrase && (
+            <>
+              <div className="max-w-[92vw] sm:max-w-2xl lg:max-w-3xl mx-auto animate-cinematic-blur-in animation-delay-300">
+                <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground font-light leading-relaxed">
+                  {subtitle}
+                </p>
+              </div>
 
-          {buttons && (
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mt-7 sm:mt-9 animate-fade-in-up animation-delay-600 hero-buttons px-2">
-              {buttons}
-            </div>
+              {buttons && (
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mt-7 sm:mt-9 hero-buttons px-2 animate-cinematic-blur-in animation-delay-500">
+                  {buttons}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
