@@ -134,7 +134,7 @@ const Hero: React.FC<HeroProps> = ({
           </div>
         )}
 
-        <div className="w-full text-center space-y-4 sm:space-y-6 max-w-[96vw] sm:max-w-5xl mx-auto px-3 sm:px-4 hero-content">
+        <div className="w-full text-center space-y-5 sm:space-y-6 max-w-[94vw] sm:max-w-4xl lg:max-w-5xl mx-auto px-4 sm:px-6 hero-content">
           <div className="animate-fade-in-up animation-delay-200">
             <BlurTextAnimation
               key={safePhraseIndex}
@@ -143,7 +143,7 @@ const Hero: React.FC<HeroProps> = ({
               activePhraseIndex={safePhraseIndex}
               fullHeight={false}
               className="w-full"
-              fontSize="text-[1.75rem] sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl"
+              fontSize="text-[1.25rem] sm:text-[1.6rem] md:text-[2rem] lg:text-[2.55rem] xl:text-[3rem]"
               textColor="text-foreground"
               loop={false}
               freezeOnComplete
@@ -152,14 +152,14 @@ const Hero: React.FC<HeroProps> = ({
             />
           </div>
 
-          <div className="max-w-[92vw] sm:max-w-3xl mx-auto animate-fade-in-up animation-delay-400">
-            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground font-light leading-relaxed">
+          <div className="max-w-[92vw] sm:max-w-2xl lg:max-w-3xl mx-auto animate-fade-in-up animation-delay-400">
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground font-light leading-relaxed">
               {subtitle}
             </p>
           </div>
 
           {buttons && (
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mt-6 sm:mt-10 animate-fade-in-up animation-delay-600 hero-buttons px-2">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mt-7 sm:mt-9 animate-fade-in-up animation-delay-600 hero-buttons px-2">
               {buttons}
             </div>
           )}

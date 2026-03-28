@@ -151,6 +151,12 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+
+  h1,
+  h2,
+  h3 {
+    font-family: "Bodoni Moda", serif;
+  }
 }
 
 /* Mystic utility classes */

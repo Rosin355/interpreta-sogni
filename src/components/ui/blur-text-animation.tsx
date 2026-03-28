@@ -42,6 +42,7 @@ export default function BlurTextAnimation({
   onAnimationComplete,
 }: BlurTextAnimationProps) {
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isFrozen, setIsFrozen] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const hasCompletedRef = useRef(false);
   const animationTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
@@ -76,6 +77,7 @@ export default function BlurTextAnimation({
   useEffect(() => {
     hasCompletedRef.current = false;
     setIsAnimating(false);
+    setIsFrozen(false);
   }, [resolvedText]);
 
   useEffect(() => {
@@ -91,6 +93,9 @@ export default function BlurTextAnimation({
   useEffect(() => {
     if (prefersReducedMotion) {
       setIsAnimating(true);
+      if (freezeOnComplete) {
+        setIsFrozen(true);
+      }
       if (!hasCompletedRef.current) {
         hasCompletedRef.current = true;
         onAnimationComplete?.();
@@ -127,6 +132,8 @@ export default function BlurTextAnimation({
 
         if (!freezeOnComplete) {
           setIsAnimating(false);
+        } else {
+          setIsFrozen(true);
         }
 
         completeTimeoutRef.current = setTimeout(markComplete, 150);
@@ -143,7 +150,7 @@ export default function BlurTextAnimation({
     };
   }, [textWords, animationDelay, prefersReducedMotion, loop, freezeOnComplete, onAnimationComplete]);
 
-  const renderedWords = freezeOnComplete && !isAnimating && staticText
+  const renderedWords = freezeOnComplete && isFrozen && staticText
     ? staticText.split(" ").filter(Boolean).map((word) => ({
         text: word,
         duration: 0,
@@ -163,18 +170,18 @@ export default function BlurTextAnimation({
             <span
               key={index}
               className={`inline-block transition-all ${
-                isAnimating || (freezeOnComplete && staticText) ? "opacity-100" : "opacity-0"
+                isAnimating || isFrozen ? "opacity-100" : "opacity-0"
               }`}
               style={{
                 transitionDuration: `${word.duration}s`,
                 transitionDelay: `${word.delay}s`,
                 transitionTimingFunction: "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
                 filter:
-                  isAnimating || (freezeOnComplete && staticText)
+                  isAnimating || isFrozen
                     ? "blur(0px) brightness(1)"
                     : `blur(${word.blur}px) brightness(0.6)`,
                 transform:
-                  isAnimating || (freezeOnComplete && staticText)
+                  isAnimating || isFrozen
                   ? "translateY(0) scale(1) rotateX(0deg)"
                   : `translateY(20px) scale(${word.scale || 1}) rotateX(-15deg)`,
                 marginRight: "0.35em",
@@ -182,7 +189,7 @@ export default function BlurTextAnimation({
                 transformStyle: "preserve-3d",
                 backfaceVisibility: "hidden",
                 textShadow:
-                  isAnimating || (freezeOnComplete && staticText)
+                  isAnimating || isFrozen
                   ? "0 2px 8px rgba(255,255,255,0.1)"
                   : "0 0 40px rgba(255,255,255,0.4)",
               }}
