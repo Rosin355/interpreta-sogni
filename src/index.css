@@ -156,7 +156,13 @@ All colors MUST be HSL.
   h2,
   h3 {
     font-family: "Bodoni Moda", serif;
+    font-optical-sizing: auto;
   }
+}
+
+.font-bodoni-heading {
+  font-family: "Bodoni Moda", serif;
+  font-optical-sizing: auto;
 }
 
 /* Mystic utility classes */

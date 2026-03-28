@@ -43,6 +43,7 @@ const Hero: React.FC<HeroProps> = ({
   const phrases = animatedPhrases?.length ? animatedPhrases : [headline ?? fallbackText];
   const safePhraseIndex = Math.min(Math.max(currentPhraseIndex, 0), phrases.length - 1);
   const activePhrase = getPhraseText(phrases[safePhraseIndex]) || fallbackText;
+  const isFinalPhrase = safePhraseIndex === phrases.length - 1;
 
   const handlePhraseComplete = useCallback(() => {
     setCurrentPhraseIndex((currentIndex) => {
@@ -138,15 +139,17 @@ const Hero: React.FC<HeroProps> = ({
           <div className="animate-fade-in-up animation-delay-200">
             <BlurTextAnimation
               key={safePhraseIndex}
+              as="h1"
               text={fallbackText}
               phrases={phrases.map((phrase) => getPhraseText(phrase) || fallbackText)}
               activePhraseIndex={safePhraseIndex}
               fullHeight={false}
               className="w-full"
               fontSize="text-[1.25rem] sm:text-[1.6rem] md:text-[2rem] lg:text-[2.55rem] xl:text-[3rem]"
+              fontFamily="font-bodoni-heading"
               textColor="text-foreground"
               loop={false}
-              freezeOnComplete
+              freezeOnComplete={isFinalPhrase}
               onAnimationComplete={handlePhraseComplete}
               staticText={activePhrase}
             />

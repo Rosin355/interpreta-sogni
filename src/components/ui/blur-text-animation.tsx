@@ -13,6 +13,7 @@ interface BlurTextAnimationProps {
   words?: WordData[];
   phrases?: readonly string[];
   activePhraseIndex?: number;
+  as?: React.ElementType;
   className?: string;
   fontSize?: string;
   fontFamily?: string;
@@ -30,6 +31,7 @@ export default function BlurTextAnimation({
   words,
   phrases,
   activePhraseIndex = 0,
+  as: ElementTag = "p",
   className = "",
   fontSize = "text-4xl md:text-5xl lg:text-6xl",
   fontFamily = "font-['Avenir_Next',_'Avenir',_system-ui,_sans-serif]",
@@ -132,10 +134,11 @@ export default function BlurTextAnimation({
 
         if (!freezeOnComplete) {
           setIsAnimating(false);
-        } else {
-          setIsFrozen(true);
+          completeTimeoutRef.current = setTimeout(markComplete, Math.max(450, Math.round((maxTime + 0.2) * 1000)));
+          return;
         }
 
+        setIsFrozen(true);
         completeTimeoutRef.current = setTimeout(markComplete, 150);
       }, (maxTime + 1) * 1000);
     };
@@ -163,7 +166,7 @@ export default function BlurTextAnimation({
   return (
     <div className={`flex items-center justify-center ${fullHeight ? "min-h-screen" : "min-h-0"} ${className}`}>
       <div className="text-center max-w-[92vw] sm:max-w-3xl lg:max-w-5xl px-4 sm:px-6 md:px-8">
-        <p
+        <ElementTag
           className={`${textColor} ${fontSize} ${fontFamily} font-light leading-[1.2] sm:leading-[1.25] md:leading-[1.3] tracking-wide break-words`}
         >
           {renderedWords.map((word, index) => (
@@ -197,7 +200,7 @@ export default function BlurTextAnimation({
               {word.text}
             </span>
           ))}
-        </p>
+        </ElementTag>
       </div>
     </div>
   );
