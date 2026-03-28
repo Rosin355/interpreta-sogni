@@ -2,21 +2,32 @@ import React, { useCallback, useState } from "react";
 import { StarsCanvas } from "./stars-canvas";
 import BlurTextAnimation from "./blur-text-animation";
 
+interface HeadlinePhrase {
+  line1: string;
+  specialWord?: string;
+  line2: string;
+}
+
+type HeroPhrase = string | HeadlinePhrase;
+
 interface HeroProps {
   trustBadge?: {
     text: string;
     icons?: string[];
   };
-  headline: {
-    line1: string;
-    specialWord?: string;
-    line2: string;
-  };
-  animatedPhrases?: readonly string[];
+  headline?: HeadlinePhrase;
+  animatedPhrases?: readonly HeroPhrase[];
   subtitle: string;
   buttons?: React.ReactNode;
   className?: string;
 }
+
+const getPhraseText = (phrase?: HeroPhrase) => {
+  if (!phrase) return "";
+  if (typeof phrase === "string") return phrase;
+
+  return `${phrase.line1} ${phrase.specialWord ? `${phrase.specialWord} ` : ""}${phrase.line2}`.trim();
+};
 
 const Hero: React.FC<HeroProps> = ({
   trustBadge,
@@ -26,11 +37,12 @@ const Hero: React.FC<HeroProps> = ({
   buttons,
   className = "",
 }) => {
-  const introText = `${headline.line1} ${headline.specialWord ? `${headline.specialWord} ` : ""}${headline.line2}`.trim();
+  const fallbackText = getPhraseText(headline) || "Esplora l' Universo dei Tuoi Sogni";
   const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
 
-  const phrases = animatedPhrases?.length ? animatedPhrases : [introText];
-  const activePhrase = phrases[Math.min(currentPhraseIndex, phrases.length - 1)];
+  const phrases = animatedPhrases?.length ? animatedPhrases : [headline ?? fallbackText];
+  const safePhraseIndex = Math.min(Math.max(currentPhraseIndex, 0), phrases.length - 1);
+  const activePhrase = getPhraseText(phrases[safePhraseIndex]) || fallbackText;
 
   const handlePhraseComplete = useCallback(() => {
     setCurrentPhraseIndex((currentIndex) => {
@@ -125,10 +137,10 @@ const Hero: React.FC<HeroProps> = ({
         <div className="w-full text-center space-y-4 sm:space-y-6 max-w-[96vw] sm:max-w-5xl mx-auto px-3 sm:px-4 hero-content">
           <div className="animate-fade-in-up animation-delay-200">
             <BlurTextAnimation
-              key={currentPhraseIndex}
-              text={introText}
-              phrases={phrases}
-              activePhraseIndex={currentPhraseIndex}
+              key={safePhraseIndex}
+              text={fallbackText}
+              phrases={phrases.map((phrase) => getPhraseText(phrase) || fallbackText)}
+              activePhraseIndex={safePhraseIndex}
               fullHeight={false}
               className="w-full"
               fontSize="text-[1.75rem] sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl"
