@@ -84,10 +84,10 @@ const Navigation = () => {
             <span className="text-lg font-bodoni-heading uppercase tracking-[0.18em] text-foreground whitespace-nowrap sm:text-lg">
               Dream Alchemist
             </span>
-            <div className="mt-1.5 flex items-center justify-center gap-3 w-full">
-              <span className="h-px w-10 sm:w-16 bg-foreground/40 rounded-full" />
+            <div className="mt-1.5 flex items-center justify-center gap-2 w-full">
+              <span className="h-px flex-1 bg-foreground/40 rounded-full" />
               <span className="text-foreground/60 text-xs sm:text-sm leading-none select-none">☾</span>
-              <span className="h-px w-10 sm:w-16 bg-foreground/40 rounded-full" />
+              <span className="h-px flex-1 bg-foreground/40 rounded-full" />
             </div>
           </div>
         </div>
