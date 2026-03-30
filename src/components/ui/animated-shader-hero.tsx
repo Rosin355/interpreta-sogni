@@ -191,7 +191,7 @@ const Hero: React.FC<HeroProps> = ({
           {isFinalPhrase && (
             <>
               <div className="max-w-[92vw] sm:max-w-2xl lg:max-w-3xl mx-auto animate-cinematic-blur-in animation-delay-300">
-                <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground font-light leading-relaxed">
+                <p className="text-base sm:text-base md:text-lg lg:text-xl text-muted-foreground font-light leading-relaxed">
                   {subtitle}
                 </p>
               </div>
