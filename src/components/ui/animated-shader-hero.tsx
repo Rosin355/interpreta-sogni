@@ -166,7 +166,7 @@ const Hero: React.FC<HeroProps> = ({
 
         <div
           className={`w-full text-center max-w-[94vw] sm:max-w-4xl lg:max-w-5xl mx-auto px-4 sm:px-6 hero-content ${
-            isFinalPhrase ? "space-y-5 sm:space-y-6" : "space-y-0"
+            isFinalPhrase ? "space-y-4 sm:space-y-6" : "space-y-0"
           }`}
         >
           <div className="animate-fade-in-up animation-delay-200">
