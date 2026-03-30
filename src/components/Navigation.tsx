@@ -78,15 +78,17 @@ const Navigation = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="container mx-auto px-6 py-2 flex items-center justify-between">
-        <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate(user ? "/dashboard" : "/")}>
+        <div className="flex items-center gap-4 cursor-pointer" onClick={() => navigate(user ? "/dashboard" : "/")}>
           <img src={dreamAlchemistLogo} alt="Dream Alchemist" className="w-16 h-16 object-contain" />
-          <div className="flex flex-col items-start leading-tight">
-            <span className="text-lg sm:text-xl font-bodoni-heading uppercase tracking-[0.15em] text-foreground">
+          <div className="flex flex-col items-center justify-center leading-none">
+            <span className="text-lg sm:text-xl font-bodoni-heading uppercase tracking-[0.18em] text-foreground whitespace-nowrap">
               Dream Alchemist
             </span>
-            <span className="text-[10px] sm:text-xs text-muted-foreground/60 tracking-[0.3em] w-full text-center select-none">
-              ───── ☾ ─────
-            </span>
+            <div className="mt-1.5 flex items-center justify-center gap-3 w-full">
+              <span className="h-px w-10 sm:w-16 bg-foreground/40 rounded-full" />
+              <span className="text-foreground/60 text-xs sm:text-sm leading-none select-none">☾</span>
+              <span className="h-px w-10 sm:w-16 bg-foreground/40 rounded-full" />
+            </div>
           </div>
         </div>
         
