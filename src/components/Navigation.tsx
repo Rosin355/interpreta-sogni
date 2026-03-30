@@ -80,7 +80,14 @@ const Navigation = () => {
       <div className="container mx-auto px-6 py-2 flex items-center justify-between">
         <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate(user ? "/dashboard" : "/")}>
           <img src={dreamAlchemistLogo} alt="Dream Alchemist" className="w-16 h-16 object-contain" />
-          <span className="text-xl font-bold text-foreground">Dream Alchemist</span>
+          <div className="flex flex-col items-start leading-tight">
+            <span className="text-lg sm:text-xl font-bodoni-heading uppercase tracking-[0.15em] text-foreground">
+              Dream Alchemist
+            </span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground/60 tracking-[0.3em] w-full text-center select-none">
+              ───── ☾ ─────
+            </span>
+          </div>
         </div>
         
         {user ?
