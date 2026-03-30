@@ -1,31 +1,45 @@
 
 
-## Plan: Apply Two-Line Brand Lockup to Navigation.tsx
+## Piano: Ingrandire i testi hero su mobile e ottimizzare la 5ª frase
 
-### Change
-Replace line 83 in `src/components/Navigation.tsx`:
+### Problema
+- Su mobile (390px) i testi delle frasi animate sono troppo piccoli
+- Nella 5ª frase (finale) c'è troppo spazio vuoto in basso — titolo e sottotitolo devono essere più grandi e proporzionati
 
-```tsx
-<span className="text-xl font-bold text-foreground">Dream Alchemist</span>
+### Modifiche — solo `src/components/ui/animated-shader-hero.tsx`
+
+**1. Font size titolo (frasi animate) — riga 181**
+
+Attuale:
+```
+text-[1.25rem] sm:text-[1.6rem] md:text-[2rem] lg:text-[2.55rem] xl:text-[3rem]
 ```
 
-With a stacked two-line lockup:
-
-```tsx
-<div className="flex flex-col items-start leading-tight">
-  <span className="text-lg sm:text-xl font-bodoni-heading uppercase tracking-[0.15em] text-foreground">
-    Dream Alchemist
-  </span>
-  <span className="text-[10px] sm:text-xs text-muted-foreground/60 tracking-[0.3em] w-full text-center select-none">
-    ───── ☾ ─────
-  </span>
-</div>
+Nuovo (mobile più grande):
+```
+text-[1.55rem] sm:text-[1.6rem] md:text-[2rem] lg:text-[2.55rem] xl:text-[3rem]
 ```
 
-### Details
-- **Line 1**: `font-bodoni-heading`, uppercase, wide letter-spacing (`tracking-[0.15em]`), responsive text size
-- **Line 2**: Small decorative crescent line, muted color at 60% opacity, extra-wide tracking, centered
-- **Container**: `flex-col` with `items-start` and `leading-tight` for compact vertical stacking
-- Logo icon unchanged, parent `flex items-center` keeps vertical alignment
-- Only `src/components/Navigation.tsx` modified (line 83 replacement)
+**2. Font size sottotitolo (riga 194) — più grande su mobile**
+
+Attuale:
+```
+text-sm sm:text-base md:text-lg lg:text-xl
+```
+
+Nuovo:
+```
+text-base sm:text-base md:text-lg lg:text-xl
+```
+
+**3. Ridurre spazio verticale nella 5ª frase (riga 169)**
+
+Attuale: `space-y-5 sm:space-y-6`
+Nuovo: `space-y-4 sm:space-y-6`
+
+### Riepilogo
+- Solo `src/components/ui/animated-shader-hero.tsx` viene modificato
+- Mobile: titolo da `1.25rem` → `1.55rem`, sottotitolo da `text-sm` → `text-base`
+- Desktop: invariato
+- Spazio verticale finale ridotto su mobile
 
