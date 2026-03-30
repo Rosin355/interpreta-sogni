@@ -81,7 +81,7 @@ const Navigation = () => {
         <div className="flex items-center gap-4 cursor-pointer" onClick={() => navigate(user ? "/dashboard" : "/")}>
           <img src={dreamAlchemistLogo} alt="Dream Alchemist" className="w-16 h-16 object-contain" />
           <div className="flex flex-col items-center justify-center leading-none">
-            <span className="text-lg sm:text-xl font-bodoni-heading uppercase tracking-[0.18em] text-foreground whitespace-nowrap">
+            <span className="text-lg font-bodoni-heading uppercase tracking-[0.18em] text-foreground whitespace-nowrap sm:text-lg">
               Dream Alchemist
             </span>
             <div className="mt-1.5 flex items-center justify-center gap-3 w-full">
