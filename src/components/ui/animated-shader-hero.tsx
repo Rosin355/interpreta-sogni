@@ -166,7 +166,7 @@ const Hero: React.FC<HeroProps> = ({
 
         <div
           className={`w-full text-center max-w-[94vw] sm:max-w-4xl lg:max-w-5xl mx-auto px-4 sm:px-6 hero-content ${
-            isFinalPhrase ? "space-y-5 sm:space-y-6" : "space-y-0"
+            isFinalPhrase ? "space-y-4 sm:space-y-6" : "space-y-0"
           }`}
         >
           <div className="animate-fade-in-up animation-delay-200">
@@ -178,7 +178,7 @@ const Hero: React.FC<HeroProps> = ({
               activePhraseIndex={safePhraseIndex}
               fullHeight={false}
               className="w-full"
-              fontSize="text-[1.25rem] sm:text-[1.6rem] md:text-[2rem] lg:text-[2.55rem] xl:text-[3rem]"
+              fontSize="text-[1.55rem] sm:text-[1.6rem] md:text-[2rem] lg:text-[2.55rem] xl:text-[3rem]"
               fontFamily="font-bodoni-heading"
               textColor="text-foreground"
               loop={false}
@@ -191,7 +191,7 @@ const Hero: React.FC<HeroProps> = ({
           {isFinalPhrase && (
             <>
               <div className="max-w-[92vw] sm:max-w-2xl lg:max-w-3xl mx-auto animate-cinematic-blur-in animation-delay-300">
-                <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground font-light leading-relaxed">
+                <p className="text-base sm:text-base md:text-lg lg:text-xl text-muted-foreground font-light leading-relaxed">
                   {subtitle}
                 </p>
               </div>
