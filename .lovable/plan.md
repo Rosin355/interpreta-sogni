@@ -1,33 +1,31 @@
 
-Obiettivo: allineare la Home alla versione “main” che mostra la hero con le 5 frasi animate (quella di `HeroSection`), senza toccare rotte o logiche core.
 
-1) Verifica mismatch reale (già emerso dal codice)
-- `src/pages/Index.tsx` oggi monta `HomeHero + PillarsSection + TransformationSection + HomeCTA + IntroOverlay`.
-- Le 5 frasi esistono in `src/components/HeroSection.tsx` (`HERO_PHRASES`) ma non vengono renderizzate in Home.
+## Plan: Apply Two-Line Brand Lockup to Navigation.tsx
 
-2) Ripristino Home alla versione con 5 frasi (modifica solo `src/pages/Index.tsx`)
-- Sostituire la composizione attuale della Home con quella che usa `HeroSection`.
-- Ripristinare le sezioni della homepage “main” in ordine classico (senza cambiare altre pagine):
-  - `Navigation`
-  - `HeroSection` (5 frasi animate)
-  - sezioni home già presenti nel progetto (es. `FeaturesSection`, `ResearchSection`, `ExperienceSection`, `CTASection`)
-  - `Footer`
-- Rimuovere dall’Index la logica intro overlay/sessionStorage solo se non presente nella versione main da ripristinare.
+### Change
+Replace line 83 in `src/components/Navigation.tsx`:
 
-3) Vincoli di sicurezza/ambito
-- Nessuna modifica a:
-  - routing (`App.tsx`)
-  - auth
-  - dashboard
-  - dream CRUD
-  - Supabase functions/types/client
-- Nessun refactor fuori dalla Home page.
+```tsx
+<span className="text-xl font-bold text-foreground">Dream Alchemist</span>
+```
 
-4) Verifica finale in preview
-- Confermare su `/` la presenza della hero con testo animato a 5 frasi (quella di `HeroSection`).
-- Confermare che navigazione e CTA portano alle stesse rotte attuali.
-- Smoke check rapido: `/auth`, `/my-dreams`, `/dashboard` devono risultare invariati funzionalmente.
+With a stacked two-line lockup:
 
-5) Output di consegna
-- File cambiati: solo `src/pages/Index.tsx`.
-- Conferma esplicita che la preview ora corrisponde alla home “main” con le 5 frasi.
+```tsx
+<div className="flex flex-col items-start leading-tight">
+  <span className="text-lg sm:text-xl font-bodoni-heading uppercase tracking-[0.15em] text-foreground">
+    Dream Alchemist
+  </span>
+  <span className="text-[10px] sm:text-xs text-muted-foreground/60 tracking-[0.3em] w-full text-center select-none">
+    ───── ☾ ─────
+  </span>
+</div>
+```
+
+### Details
+- **Line 1**: `font-bodoni-heading`, uppercase, wide letter-spacing (`tracking-[0.15em]`), responsive text size
+- **Line 2**: Small decorative crescent line, muted color at 60% opacity, extra-wide tracking, centered
+- **Container**: `flex-col` with `items-start` and `leading-tight` for compact vertical stacking
+- Logo icon unchanged, parent `flex items-center` keeps vertical alignment
+- Only `src/components/Navigation.tsx` modified (line 83 replacement)
+
