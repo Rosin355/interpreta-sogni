@@ -29,6 +29,8 @@ const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const SharedDreams = lazy(() => import("./pages/SharedDreams"));
 const SharedDreamsReceived = lazy(() => import("./pages/SharedDreamsReceived"));
 const SharedDreamPublic = lazy(() => import("./pages/SharedDreamPublic"));
+const AudioLibrary = lazy(() => import("./pages/AudioLibrary"));
+const AudioAdmin = lazy(() => import("./pages/AudioAdmin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Mystic loading fallback component
@@ -65,6 +67,8 @@ const App = () => (
               <Route path="/shared-dreams" element={<SharedDreams />} />
               <Route path="/shared-with-me" element={<SharedDreamsReceived />} />
               <Route path="/dream/shared/:token" element={<SharedDreamPublic />} />
+              <Route path="/audio-library" element={<AudioLibrary />} />
+              <Route path="/admin/audio" element={<AudioAdmin />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
