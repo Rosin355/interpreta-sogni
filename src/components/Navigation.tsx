@@ -127,6 +127,12 @@ const Navigation = () => {
                 Sogni Condivisi
               </button>
               <button
+              onClick={() => navigate("/audio-library")}
+              className="text-muted-foreground hover:text-foreground transition-colors">
+              
+                Percorsi Audio
+              </button>
+              <button
               onClick={() => navigate("/about")}
               className="text-muted-foreground hover:text-foreground transition-colors">
               
@@ -242,6 +248,15 @@ const Navigation = () => {
                   className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors">
                   
                     Sogni Condivisi
+                  </button>
+                  <button
+                  onClick={() => {
+                    navigate("/audio-library");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="text-left px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors">
+                  
+                    Percorsi Audio
                   </button>
                   <button
                   onClick={() => {
