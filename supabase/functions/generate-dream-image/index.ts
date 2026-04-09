@@ -40,14 +40,13 @@ serve(async (req) => {
       );
     }
 
-    // Extract JWT token from Authorization header
-    const token = authHeader.replace('Bearer ', '');
-    
     console.log(`[${requestId}] Authenticating user...`);
 
-    // Create client and verify user with the token
-    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    // Create client with auth header for automatic JWT signing key support
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     
     if (authError) {
       console.error(`[${requestId}] Auth error:`, authError.message);
