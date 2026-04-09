@@ -241,11 +241,17 @@ const AdminDashboard = () => {
       <Navigation />
       <div className="min-h-screen bg-background px-4" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
         <div className="container max-w-6xl mx-auto py-12">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">Dashboard Amministratore</h1>
-            <p className="text-muted-foreground">
-              Gestisci le richieste di registrazione dei professionisti
-            </p>
+          <div className="mb-8 flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Dashboard Amministratore</h1>
+              <p className="text-muted-foreground">
+                Gestisci le richieste di registrazione dei professionisti
+              </p>
+            </div>
+            <Button variant="outline" onClick={() => navigate('/admin/audio')} className="gap-2 shrink-0">
+              <Music className="h-4 w-4" />
+              Gestione Audio
+            </Button>
           </div>
 
           {professionals.length === 0 ? (
