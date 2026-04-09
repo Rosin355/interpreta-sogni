@@ -55,7 +55,7 @@ const App = () => (
               <Route path="/dreams/new" element={<NewDream />} />
               <Route path="/dreams/:id/edit" element={<EditDream />} />
               <Route path="/dreams/:id" element={<DreamDetail />} />
-              <Route path="/dream/:id" element={<DreamDetail />} />
+              
               <Route path="/explore" element={<Explore />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/settings" element={<Settings />} />
