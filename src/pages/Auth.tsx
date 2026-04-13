@@ -1,960 +1,150 @@
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { z } from "zod";
 import Navigation from "@/components/Navigation";
-import { Eye, EyeOff, ArrowLeft, Check, X, Loader2 } from "lucide-react";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-
-const loginSchema = z.object({
-  email: z.string().email("Email non valida").max(255, "Email troppo lunga"),
-  password: z.string().min(1, "Password richiesta"),
-});
-
-const signupSchema = z.object({
-  email: z.string().email("Email non valida").max(255, "Email troppo lunga"),
-  password: z.string().min(8, "La password deve contenere almeno 8 caratteri"),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Le password non coincidono",
-  path: ["confirmPassword"],
-});
-
-const professionalSignupSchema = z.object({
-  email: z.string().email("Email non valida").max(255, "Email troppo lunga"),
-  password: z.string().min(8, "La password deve contenere almeno 8 caratteri"),
-  confirmPassword: z.string(),
-  specialization: z.string().min(3, "La specializzazione deve essere di almeno 3 caratteri").max(200),
-  licenseNumber: z.string().optional(),
-  yearsOfExperience: z.number().min(0, "Gli anni di esperienza devono essere >= 0").max(70).optional(),
-  bio: z.string().max(1000, "La biografia deve essere massimo 1000 caratteri").optional(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Le password non coincidono",
-  path: ["confirmPassword"],
-});
-
-const resetEmailSchema = z.object({
-  email: z.string().email("Email non valida").max(255, "Email troppo lunga"),
-});
-
-const newPasswordSchema = z.object({
-  password: z.string().min(8, "La password deve contenere almeno 8 caratteri"),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Le password non coincidono",
-  path: ["confirmPassword"],
-});
-
-// Password validation helpers (outside component to avoid re-creation)
-const getPasswordValidation = (password: string) => ({
-  hasMinLength: password.length >= 8,
-  hasUppercase: /[A-Z]/.test(password),
-  hasNumber: /[0-9]/.test(password),
-});
-
-const isPasswordValid = (password: string) => {
-  const validation = getPasswordValidation(password);
-  return validation.hasMinLength && validation.hasUppercase && validation.hasNumber;
-};
-
-const PasswordRequirements = ({ password }: { password: string }) => {
-  const validation = getPasswordValidation(password);
-  
-  if (!password) return null;
-  
-  const requirements = [
-    { met: validation.hasMinLength, label: "Almeno 8 caratteri" },
-    { met: validation.hasUppercase, label: "Almeno una lettera maiuscola" },
-    { met: validation.hasNumber, label: "Almeno un numero" },
-  ];
-  
-  return (
-    <div className="mt-2 space-y-1">
-      {requirements.map((req, index) => (
-        <div 
-          key={index} 
-          className={`flex items-center gap-2 text-xs transition-colors ${
-            req.met ? "text-green-500" : "text-muted-foreground"
-          }`}
-        >
-          {req.met ? (
-            <Check className="h-3 w-3" />
-          ) : (
-            <X className="h-3 w-3" />
-          )}
-          <span>{req.label}</span>
-        </div>
-      ))}
-    </div>
-  );
-};
-
-const PasswordInput = ({ 
-  id, 
-  value, 
-  onChange, 
-  show, 
-  onToggle, 
-  placeholder = "••••••••",
-  disabled = false,
-  showRequirements = false
-}: {
-  id: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  show: boolean;
-  onToggle: () => void;
-  placeholder?: string;
-  disabled?: boolean;
-  showRequirements?: boolean;
-}) => (
-  <div>
-    <div className="relative">
-      <Input
-        id={id}
-        type={show ? "text" : "password"}
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        required
-        disabled={disabled}
-        className="pr-10"
-      />
-      <button
-        type="button"
-        onClick={onToggle}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-        tabIndex={-1}
-      >
-        {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-      </button>
-    </div>
-    {showRequirements && <PasswordRequirements password={value} />}
-  </div>
-);
-
+import LoginForm from "@/components/auth/LoginForm";
+import SignupForm from "@/components/auth/SignupForm";
+import ProfessionalSignupForm from "@/components/auth/ProfessionalSignupForm";
+import usePasswordReset from "@/hooks/usePasswordReset";
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(searchParams.get("mode") === "signup" ? "signup" : "login");
-  
-  // Password visibility states
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showSignupConfirmPassword, setShowSignupConfirmPassword] = useState(false);
   const [showProfessionalPassword, setShowProfessionalPassword] = useState(false);
   const [showProfessionalConfirmPassword, setShowProfessionalConfirmPassword] = useState(false);
-  const [showResetPassword, setShowResetPassword] = useState(false);
-  const [showResetConfirmPassword, setShowResetConfirmPassword] = useState(false);
-  
-  // Password recovery states  
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [isResetMode, setIsResetMode] = useState(false);
-  const [resetEmail, setResetEmail] = useState("");
-  const [newPasswordForm, setNewPasswordForm] = useState({ password: "", confirmPassword: "" });
-  const [otpStep, setOtpStep] = useState<1 | 2 | 3>(1); // 1=email, 2=OTP, 3=new password
-  const [otpCode, setOtpCode] = useState("");
-  const [otpTimer, setOtpTimer] = useState(0);
-  const [otpSending, setOtpSending] = useState(false);
-  const [otpVerifying, setOtpVerifying] = useState(false);
-  
+  const passwordResetProps = usePasswordReset(setLoading, navigate);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [signupForm, setSignupForm] = useState({ email: "", password: "", confirmPassword: "" });
-  const [professionalForm, setProfessionalForm] = useState({ 
-    email: "", 
-    password: "", 
-    confirmPassword: "",
-    specialization: "",
-    licenseNumber: "",
-    yearsOfExperience: undefined as number | undefined,
-    bio: ""
-  });
-
+  const [professionalForm, setProfessionalForm] = useState({ email: "", password: "", confirmPassword: "", specialization: "", licenseNumber: "", yearsOfExperience: undefined as number | undefined, bio: "" });
   useEffect(() => {
-    // Check if user is already logged in
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate("/dashboard");
-      }
+      if (session) navigate("/dashboard");
     };
     checkSession();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        navigate("/dashboard");
-      }
-    });
-
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => { if (session) navigate("/dashboard"); });
     return () => subscription.unsubscribe();
   }, [navigate]);
-
   useEffect(() => {
     const mode = searchParams.get("mode");
-    if (mode === "reset") {
-      setIsResetMode(true);
-    } else if (mode === "signup" || mode === "login" || mode === "professional") {
-      setActiveTab(mode);
-    }
-  }, [searchParams]);
-
+    if (mode === "reset") passwordResetProps.setIsResetMode(true);
+    else if (mode === "signup" || mode === "login" || mode === "professional") setActiveTab(mode);
+  }, [searchParams, passwordResetProps.setIsResetMode]);
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     setSearchParams({ mode: value });
-    setShowForgotPassword(false);
+    passwordResetProps.setShowForgotPassword(false);
   };
-
-  // OTP countdown timer
-  useEffect(() => {
-    if (otpTimer <= 0) return;
-    const interval = setInterval(() => setOtpTimer(t => t - 1), 1000);
-    return () => clearInterval(interval);
-  }, [otpTimer]);
-
-  const formatTimer = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
-
-  const invokeEdgeFunction = async (functionName: string, body: Record<string, unknown>) => {
-    return supabase.functions.invoke(functionName, { body });
-  };
-
-  const extractFunctionErrorPayload = async (
-    error: unknown
-  ): Promise<{ code?: string; message?: string }> => {
-    if (!error || typeof error !== "object") return {};
-
-    const maybeError = error as { message?: string; context?: Response };
-    const fallbackMessage = maybeError.message;
-
-    if (!maybeError.context) {
-      return { message: fallbackMessage };
-    }
-
-    try {
-      const payload = await maybeError.context.clone().json();
-      return {
-        code: typeof payload?.code === "string" ? payload.code : undefined,
-        message:
-          typeof payload?.message === "string"
-            ? payload.message
-            : typeof payload?.error === "string"
-              ? payload.error
-              : fallbackMessage,
-      };
-    } catch {
-      return { message: fallbackMessage };
-    }
-  };
-
-  const mapResetPasswordErrorMessage = (code?: string, backendMessage?: string): string => {
-    switch (code) {
-      case "PASSWORD_REUSED":
-        return "La nuova password non può essere uguale alla precedente.";
-      case "TOKEN_INVALID_OR_EXPIRED":
-        return "Codice non valido o scaduto. Richiedi un nuovo codice.";
-      case "TOKEN_ATTEMPTS_EXCEEDED":
-        return "Troppi tentativi. Richiedi un nuovo codice.";
-      case "TOKEN_MISMATCH":
-      case "VALIDATION_ERROR":
-      case "PASSWORD_POLICY_VIOLATION":
-        return backendMessage || "Dati non validi. Controlla i campi e riprova.";
-      default:
-        return "Impossibile aggiornare la password. Riprova più tardi.";
-    }
-  };
-
-  const isSuccessfulFunctionResponse = (data: unknown): boolean => {
-    return Boolean(
-      data &&
-      typeof data === "object" &&
-      "success" in data &&
-      (data as { success?: unknown }).success === true
-    );
-  };
-
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const validated = resetEmailSchema.parse({ email: resetEmail });
-      setOtpSending(true);
-      const { error } = await invokeEdgeFunction("request-password-reset", {
-        email: validated.email.trim(),
-      });
-      if (error) {
-        toast({ title: "Errore", description: error.message || "Errore nell'invio.", variant: "destructive" });
-      } else {
-        toast({ title: "Codice inviato!", description: "Se l'email è registrata, riceverai un codice a 6 cifre." });
-        setOtpStep(2);
-        setOtpTimer(900);
-        setOtpCode("");
-      }
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast({ title: "Errore", description: error.errors[0].message, variant: "destructive" });
-      }
-    } finally {
-      setOtpSending(false);
-    }
-  };
-
-  const handleResendOTP = async () => {
-    setOtpSending(true);
-    try {
-      await invokeEdgeFunction("request-password-reset", {
-        email: resetEmail.trim(),
-      });
-      toast({ title: "Codice reinviato!", description: "Controlla la tua casella di posta." });
-      setOtpTimer(900);
-      setOtpCode("");
-    } catch {
-      toast({ title: "Errore", description: "Impossibile reinviare il codice.", variant: "destructive" });
-    } finally {
-      setOtpSending(false);
-    }
-  };
-
-  const handleVerifyOTPCode = async () => {
-    if (otpCode.length !== 6 || otpTimer <= 0) return;
-
-    try {
-      setOtpVerifying(true);
-      const { data, error } = await invokeEdgeFunction("verify-reset-token", {
-        email: resetEmail.trim(),
-        code: otpCode,
-        mode: "verify",
-      });
-
-      if (error) {
-        const parsedError = await extractFunctionErrorPayload(error);
-        const message = mapResetPasswordErrorMessage(parsedError.code, parsedError.message);
-        toast({ title: "Errore", description: message, variant: "destructive" });
-        return;
-      }
-
-      if (!isSuccessfulFunctionResponse(data)) {
-        toast({
-          title: "Errore",
-          description: "Verifica del codice non riuscita. Riprova.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setOtpStep(3);
-    } finally {
-      setOtpVerifying(false);
-    }
-  };
-
-  const handleVerifyOTPAndReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const validated = newPasswordSchema.parse(newPasswordForm);
-      setLoading(true);
-      const { data, error } = await invokeEdgeFunction("verify-reset-token", {
-        email: resetEmail.trim(),
-        code: otpCode,
-        newPassword: validated.password,
-        mode: "reset",
-      });
-      if (error) {
-        const parsedError = await extractFunctionErrorPayload(error);
-        const message = mapResetPasswordErrorMessage(parsedError.code, parsedError.message);
-        if (
-          parsedError.code === "TOKEN_INVALID_OR_EXPIRED" ||
-          parsedError.code === "TOKEN_ATTEMPTS_EXCEEDED" ||
-          parsedError.code === "TOKEN_MISMATCH"
-        ) {
-          setOtpStep(2);
-        }
-        toast({ title: "Errore", description: message, variant: "destructive" });
-      } else {
-        if (!isSuccessfulFunctionResponse(data)) {
-          toast({
-            title: "Errore",
-            description: "Impossibile aggiornare la password. Riprova più tardi.",
-            variant: "destructive",
-          });
-          return;
-        }
-        toast({ title: "Password aggiornata!", description: "Ora puoi accedere con la nuova password." });
-        setShowForgotPassword(false);
-        setOtpStep(1);
-        setOtpCode("");
-        setResetEmail("");
-        setNewPasswordForm({ password: "", confirmPassword: "" });
-      }
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast({ title: "Errore", description: error.errors[0].message, variant: "destructive" });
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     try {
+      const loginSchema = z.object({ email: z.string().email("Email non valida").max(255, "Email troppo lunga"), password: z.string().min(1, "Password richiesta") });
       const validated = loginSchema.parse(loginForm);
       setLoading(true);
-
-      const { error } = await supabase.auth.signInWithPassword({
-        email: validated.email.trim(),
-        password: validated.password,
-      });
-
+      const { error } = await supabase.auth.signInWithPassword({ email: validated.email.trim(), password: validated.password });
       if (error) {
-        if (error.message.includes("Invalid login credentials")) {
-          toast({
-            title: "Errore",
-            description: "Email o password non corrette",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Errore",
-            description: error.message,
-            variant: "destructive",
-          });
-        }
-      } else {
-        toast({
-          title: "Accesso effettuato!",
-          description: "Benvenuto!",
-        });
-      }
+        if (error.message.includes("Invalid login credentials")) toast({ title: "Errore", description: "Email o password non corrette", variant: "destructive" });
+        else toast({ title: "Errore", description: error.message, variant: "destructive" });
+      } else toast({ title: "Accesso effettuato!", description: "Benvenuto!" });
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast({
-          title: "Errore di validazione",
-          description: error.errors[0].message,
-          variant: "destructive",
-        });
-      }
+      if (error instanceof z.ZodError) toast({ title: "Errore di validazione", description: error.errors[0].message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
-
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     try {
+      const signupSchema = z.object({ email: z.string().email("Email non valida").max(255, "Email troppo lunga"), password: z.string().min(8, "La password deve contenere almeno 8 caratteri"), confirmPassword: z.string() }).refine((data) => data.password === data.confirmPassword, { message: "Le password non coincidono", path: ["confirmPassword"] });
       const validated = signupSchema.parse(signupForm);
       setLoading(true);
-
-      const { error } = await supabase.auth.signUp({
-        email: validated.email.trim(),
-        password: validated.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-        },
-      });
-
+      const { error } = await supabase.auth.signUp({ email: validated.email.trim(), password: validated.password, options: { emailRedirectTo: `${import.meta.env.VITE_SITE_URL || window.location.origin}/` } });
       if (error) {
-        if (error.message.includes("already registered")) {
-          toast({
-            title: "Errore",
-            description: "Questo indirizzo email è già registrato",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Errore",
-            description: error.message,
-            variant: "destructive",
-          });
-        }
+        if (error.message.includes("already registered")) toast({ title: "Errore", description: "Questo indirizzo email è già registrato", variant: "destructive" });
+        else toast({ title: "Errore", description: error.message, variant: "destructive" });
       } else {
-        toast({
-          title: "Registrazione completata!",
-          description: "Controlla la tua email per confermare l'account",
-        });
+        toast({ title: "Registrazione completata!", description: "Controlla la tua email per confermare l'account" });
         setSignupForm({ email: "", password: "", confirmPassword: "" });
       }
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast({
-          title: "Errore di validazione",
-          description: error.errors[0].message,
-          variant: "destructive",
-        });
-      }
+      if (error instanceof z.ZodError) toast({ title: "Errore di validazione", description: error.errors[0].message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
-
   const handleProfessionalSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     try {
+      const professionalSignupSchema = z.object({ email: z.string().email("Email non valida").max(255, "Email troppo lunga"), password: z.string().min(8, "La password deve contenere almeno 8 caratteri"), confirmPassword: z.string(), specialization: z.string().min(3, "La specializzazione deve essere di almeno 3 caratteri").max(200), licenseNumber: z.string().optional(), yearsOfExperience: z.number().min(0, "Gli anni di esperienza devono essere >= 0").max(70).optional(), bio: z.string().max(1000, "La biografia deve essere massimo 1000 caratteri").optional() }).refine((data) => data.password === data.confirmPassword, { message: "Le password non coincidono", path: ["confirmPassword"] });
       const validated = professionalSignupSchema.parse(professionalForm);
       setLoading(true);
-
-      // First, create the user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: validated.email.trim(),
-        password: validated.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/professional-verification`,
-        },
-      });
-
+      const { data: authData, error: authError } = await supabase.auth.signUp({ email: validated.email.trim(), password: validated.password, options: { emailRedirectTo: `${import.meta.env.VITE_SITE_URL || window.location.origin}/professional-verification` } });
       if (authError) {
-        if (authError.message.includes("already registered")) {
-          toast({
-            title: "Errore",
-            description: "Questo indirizzo email è già registrato",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Errore",
-            description: authError.message,
-            variant: "destructive",
-          });
-        }
+        if (authError.message.includes("already registered")) toast({ title: "Errore", description: "Questo indirizzo email è già registrato", variant: "destructive" });
+        else toast({ title: "Errore", description: authError.message, variant: "destructive" });
         setLoading(false);
         return;
       }
-
       if (!authData.user) {
-        toast({
-          title: "Errore",
-          description: "Errore durante la registrazione",
-          variant: "destructive",
-        });
+        toast({ title: "Errore", description: "Errore durante la registrazione", variant: "destructive" });
         setLoading(false);
         return;
       }
-
-      // Then create the professional profile
-      const { error: profileError } = await supabase
-        .from('professional_profiles')
-        .insert({
-          user_id: authData.user.id,
-          specialization: validated.specialization,
-          license_number: validated.licenseNumber || null,
-          years_of_experience: validated.yearsOfExperience || null,
-          bio: validated.bio || null,
-          status: 'pending'
-        });
-
+      const { error: profileError } = await supabase.from("professional_profiles").insert({
+        user_id: authData.user.id,
+        specialization: validated.specialization,
+        license_number: validated.licenseNumber || null,
+        years_of_experience: validated.yearsOfExperience || null,
+        bio: validated.bio || null,
+        status: "pending",
+      });
       if (profileError) {
-        console.error('Error creating professional profile:', profileError);
-        toast({
-          title: "Errore",
-          description: "Errore nella creazione del profilo professionale",
-          variant: "destructive",
-        });
+        console.error("Error creating professional profile:", profileError);
+        toast({ title: "Errore", description: "Errore nella creazione del profilo professionale", variant: "destructive" });
       } else {
-        toast({
-          title: "Registrazione completata!",
-          description: "Controlla la tua email e attendi l'approvazione del tuo profilo",
-        });
-        setProfessionalForm({ 
-          email: "", 
-          password: "", 
-          confirmPassword: "",
-          specialization: "",
-          licenseNumber: "",
-          yearsOfExperience: undefined,
-          bio: ""
-        });
-        navigate('/professional-verification');
+        toast({ title: "Registrazione completata!", description: "Controlla la tua email e attendi l'approvazione del tuo profilo" });
+        setProfessionalForm({ email: "", password: "", confirmPassword: "", specialization: "", licenseNumber: "", yearsOfExperience: undefined, bio: "" });
+        navigate("/professional-verification");
       }
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast({
-          title: "Errore di validazione",
-          description: error.errors[0].message,
-          variant: "destructive",
-        });
-      }
+      if (error instanceof z.ZodError) toast({ title: "Errore di validazione", description: error.errors[0].message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
-
   return (
     <>
       <Navigation />
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-dream-space to-background p-4" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
-      <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm border-border shadow-xl">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-4">
-            <img src="/dreamalchemist_logo.png" alt="Dream Alchemist" className="w-12 h-12 rounded-lg object-contain" />
-          </div>
-          <CardTitle className="text-2xl text-center text-foreground">
-            Dream Alchemist
-          </CardTitle>
-          <CardDescription className="text-center text-muted-foreground">
-            Accedi o registrati per iniziare
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6">
-              <TabsTrigger value="login">Accedi</TabsTrigger>
-              <TabsTrigger value="signup">Registrati</TabsTrigger>
-              <TabsTrigger value="professional">Professionista</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="login">
-              {showForgotPassword ? (
-                <div className="space-y-4">
-                  <button
-                    type="button"
-                    onClick={() => { setShowForgotPassword(false); setOtpStep(1); setOtpCode(""); }}
-                    className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                    Torna al login
-                  </button>
-
-                  {/* Step indicator */}
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    {[1, 2, 3].map((step) => (
-                      <div key={step} className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                          otpStep >= step 
-                            ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30' 
-                            : 'bg-muted text-muted-foreground'
-                        }`}>
-                          {otpStep > step ? <Check className="h-4 w-4" /> : step}
-                        </div>
-                        {step < 3 && <div className={`w-8 h-0.5 ${otpStep > step ? 'bg-primary' : 'bg-muted'}`} />}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Step 1: Email */}
-                  {otpStep === 1 && (
-                    <form onSubmit={handleForgotPassword} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="reset-email">Email</Label>
-                        <Input
-                          id="reset-email"
-                          type="email"
-                          placeholder="tua@email.com"
-                          value={resetEmail}
-                          onChange={(e) => setResetEmail(e.target.value)}
-                          required
-                          disabled={otpSending}
-                        />
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Inserisci la tua email per ricevere un codice di verifica a 6 cifre.
-                      </p>
-                      <Button type="submit" className="w-full" disabled={otpSending}>
-                        {otpSending ? (
-                          <><Loader2 className="h-4 w-4 animate-spin mr-2" />Invio in corso...</>
-                        ) : "Invia codice di verifica"}
-                      </Button>
-                    </form>
-                  )}
-
-                  {/* Step 2: OTP Code */}
-                  {otpStep === 2 && (
-                    <div className="space-y-4">
-                      <div className="text-center space-y-2">
-                        <p className="text-sm text-muted-foreground">
-                          Abbiamo inviato un codice a 6 cifre a <strong className="text-foreground">{resetEmail}</strong>
-                        </p>
-                        {otpTimer > 0 && (
-                          <p className="text-xs text-muted-foreground">
-                            Il codice scade tra <span className="text-primary font-semibold">{formatTimer(otpTimer)}</span>
-                          </p>
-                        )}
-                        {otpTimer <= 0 && (
-                          <p className="text-xs text-destructive font-medium">Codice scaduto</p>
-                        )}
-                      </div>
-                      <div className="flex justify-center">
-                        <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode}>
-                          <InputOTPGroup>
-                            <InputOTPSlot index={0} />
-                            <InputOTPSlot index={1} />
-                            <InputOTPSlot index={2} />
-                            <InputOTPSlot index={3} />
-                            <InputOTPSlot index={4} />
-                            <InputOTPSlot index={5} />
-                          </InputOTPGroup>
-                        </InputOTP>
-                      </div>
-                      <Button 
-                        className="w-full" 
-                        disabled={otpCode.length !== 6 || otpTimer <= 0 || otpVerifying}
-                        onClick={handleVerifyOTPCode}
-                      >
-                        {otpVerifying ? (
-                          <><Loader2 className="h-4 w-4 animate-spin mr-2" />Verifica in corso...</>
-                        ) : "Verifica codice"}
-                      </Button>
-                      <button
-                        type="button"
-                        onClick={handleResendOTP}
-                        disabled={otpSending}
-                        className="w-full text-sm text-primary hover:underline disabled:opacity-50"
-                      >
-                        {otpSending ? "Invio in corso..." : "Reinvia codice"}
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Step 3: New Password */}
-                  {otpStep === 3 && (
-                    <form onSubmit={handleVerifyOTPAndReset} className="space-y-4">
-                      <p className="text-sm text-muted-foreground text-center">
-                        Inserisci la tua nuova password
-                      </p>
-                      <div className="space-y-2">
-                        <Label htmlFor="new-password">Nuova Password</Label>
-                        <PasswordInput
-                          id="new-password"
-                          value={newPasswordForm.password}
-                          onChange={(e) => setNewPasswordForm({ ...newPasswordForm, password: e.target.value })}
-                          show={showResetPassword}
-                          onToggle={() => setShowResetPassword(!showResetPassword)}
-                          placeholder="Minimo 8 caratteri"
-                          disabled={loading}
-                          showRequirements={true}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="confirm-new-password">Conferma Password</Label>
-                        <PasswordInput
-                          id="confirm-new-password"
-                          value={newPasswordForm.confirmPassword}
-                          onChange={(e) => setNewPasswordForm({ ...newPasswordForm, confirmPassword: e.target.value })}
-                          show={showResetConfirmPassword}
-                          onToggle={() => setShowResetConfirmPassword(!showResetConfirmPassword)}
-                          placeholder="Ripeti la password"
-                          disabled={loading}
-                        />
-                      </div>
-                      <Button 
-                        type="submit" 
-                        className="w-full" 
-                        disabled={loading || !isPasswordValid(newPasswordForm.password)}
-                      >
-                        {loading ? (
-                          <><Loader2 className="h-4 w-4 animate-spin mr-2" />Aggiornamento...</>
-                        ) : "Aggiorna Password"}
-                      </Button>
-                    </form>
-                  )}
-                </div>
-              ) : (
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="tua@email.com"
-                      value={loginForm.email}
-                      onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">Password</Label>
-                    <PasswordInput
-                      id="login-password"
-                      value={loginForm.password}
-                      onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                      show={showLoginPassword}
-                      onToggle={() => setShowLoginPassword(!showLoginPassword)}
-                      disabled={loading}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowForgotPassword(true)}
-                    className="text-sm text-primary hover:underline"
-                  >
-                    Password dimenticata?
-                  </button>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Accesso in corso..." : "Accedi"}
-                  </Button>
-                </form>
-              )}
-            </TabsContent>
-
-            <TabsContent value="signup">
-              <form onSubmit={handleSignup} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="tua@email.com"
-                    value={signupForm.email}
-                    onChange={(e) => setSignupForm({ ...signupForm, email: e.target.value })}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
-                  <PasswordInput
-                    id="signup-password"
-                    value={signupForm.password}
-                    onChange={(e) => setSignupForm({ ...signupForm, password: e.target.value })}
-                    show={showSignupPassword}
-                    onToggle={() => setShowSignupPassword(!showSignupPassword)}
-                    placeholder="Minimo 8 caratteri"
-                    disabled={loading}
-                    showRequirements={true}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-confirm">Conferma Password</Label>
-                  <PasswordInput
-                    id="signup-confirm"
-                    value={signupForm.confirmPassword}
-                    onChange={(e) => setSignupForm({ ...signupForm, confirmPassword: e.target.value })}
-                    show={showSignupConfirmPassword}
-                    onToggle={() => setShowSignupConfirmPassword(!showSignupConfirmPassword)}
-                    placeholder="Ripeti la password"
-                    disabled={loading}
-                  />
-                </div>
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={loading || !isPasswordValid(signupForm.password)}
-                >
-                  {loading ? "Registrazione in corso..." : "Registrati"}
-                </Button>
-              </form>
-            </TabsContent>
-
-            <TabsContent value="professional">
-              <form onSubmit={handleProfessionalSignup} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="professional-email">Email</Label>
-                  <Input
-                    id="professional-email"
-                    type="email"
-                    placeholder="tua@email.com"
-                    value={professionalForm.email}
-                    onChange={(e) => setProfessionalForm({ ...professionalForm, email: e.target.value })}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="professional-password">Password</Label>
-                  <PasswordInput
-                    id="professional-password"
-                    value={professionalForm.password}
-                    onChange={(e) => setProfessionalForm({ ...professionalForm, password: e.target.value })}
-                    show={showProfessionalPassword}
-                    onToggle={() => setShowProfessionalPassword(!showProfessionalPassword)}
-                    placeholder="Minimo 8 caratteri"
-                    disabled={loading}
-                    showRequirements={true}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="professional-confirm">Conferma Password</Label>
-                  <PasswordInput
-                    id="professional-confirm"
-                    value={professionalForm.confirmPassword}
-                    onChange={(e) => setProfessionalForm({ ...professionalForm, confirmPassword: e.target.value })}
-                    show={showProfessionalConfirmPassword}
-                    onToggle={() => setShowProfessionalConfirmPassword(!showProfessionalConfirmPassword)}
-                    placeholder="Ripeti la password"
-                    disabled={loading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="specialization">Specializzazione *</Label>
-                  <Input
-                    id="specialization"
-                    type="text"
-                    placeholder="Es: Psicologo, Psicoterapeuta, Counselor..."
-                    value={professionalForm.specialization}
-                    onChange={(e) => setProfessionalForm({ ...professionalForm, specialization: e.target.value })}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="license-number">Numero Albo (opzionale)</Label>
-                  <Input
-                    id="license-number"
-                    type="text"
-                    placeholder="Il tuo numero di iscrizione all'albo"
-                    value={professionalForm.licenseNumber}
-                    onChange={(e) => setProfessionalForm({ ...professionalForm, licenseNumber: e.target.value })}
-                    disabled={loading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="years-experience">Anni di Esperienza (opzionale)</Label>
-                  <Input
-                    id="years-experience"
-                    type="number"
-                    min="0"
-                    max="70"
-                    placeholder="Anni di esperienza professionale"
-                    value={professionalForm.yearsOfExperience || ''}
-                    onChange={(e) => setProfessionalForm({ 
-                      ...professionalForm, 
-                      yearsOfExperience: e.target.value ? parseInt(e.target.value) : undefined 
-                    })}
-                    disabled={loading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bio">Biografia (opzionale)</Label>
-                  <Textarea
-                    id="bio"
-                    placeholder="Descrivi brevemente la tua esperienza e competenze..."
-                    value={professionalForm.bio}
-                    onChange={(e) => setProfessionalForm({ ...professionalForm, bio: e.target.value })}
-                    disabled={loading}
-                    className="min-h-[100px]"
-                  />
-                </div>
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={loading || !isPasswordValid(professionalForm.password)}
-                >
-                  {loading ? "Registrazione in corso..." : "Registrati come Professionista"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
-
-
-        </CardContent>
-      </Card>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-dream-space to-background p-4" style={{ paddingTop: "calc(7rem + var(--safe-area-inset-top, 0px))" }}>
+        <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm border-border shadow-xl">
+          <CardHeader className="space-y-1">
+            <div className="flex items-center justify-center mb-4"><img src="/dreamalchemist_logo.png" alt="Dream Alchemist" className="w-12 h-12 rounded-lg object-contain" /></div>
+            <CardTitle className="text-2xl text-center text-foreground">Dream Alchemist</CardTitle>
+            <CardDescription className="text-center text-muted-foreground">Accedi o registrati per iniziare</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
+                <TabsTrigger value="login">Accedi</TabsTrigger>
+                <TabsTrigger value="signup">Registrati</TabsTrigger>
+                <TabsTrigger value="professional">Professionista</TabsTrigger>
+              </TabsList>
+              <TabsContent value="login"><LoginForm loading={loading} loginForm={loginForm} setLoginForm={setLoginForm} handleLogin={handleLogin} passwordResetProps={passwordResetProps} showLoginPassword={showLoginPassword} setShowLoginPassword={setShowLoginPassword} /></TabsContent>
+              <TabsContent value="signup"><SignupForm loading={loading} signupForm={signupForm} setSignupForm={setSignupForm} handleSignup={handleSignup} showSignupPassword={showSignupPassword} setShowSignupPassword={setShowSignupPassword} showSignupConfirmPassword={showSignupConfirmPassword} setShowSignupConfirmPassword={setShowSignupConfirmPassword} /></TabsContent>
+              <TabsContent value="professional"><ProfessionalSignupForm loading={loading} professionalForm={professionalForm} setProfessionalForm={setProfessionalForm} handleProfessionalSignup={handleProfessionalSignup} showProfessionalPassword={showProfessionalPassword} setShowProfessionalPassword={setShowProfessionalPassword} showProfessionalConfirmPassword={showProfessionalConfirmPassword} setShowProfessionalConfirmPassword={setShowProfessionalConfirmPassword} /></TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
       </div>
     </>
   );
 };
-
 export default Auth;

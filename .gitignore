@@ -31,3 +31,4 @@ dist-ssr
 # Bun lockfiles - project uses npm
 bun.lock
 bun.lockb
+node_modules_old*/
