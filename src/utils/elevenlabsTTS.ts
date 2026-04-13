@@ -387,6 +387,15 @@ export class ElevenLabsTTS {
         });
 
         if (error) {
+          // Check for 401 specifically
+          const errMsg = error?.message || '';
+          if (errMsg.includes('non-2xx') || errMsg.includes('401') || errMsg.includes('Unauthorized')) {
+            // Try to read the response body for details
+            const bodyError = (error as any)?.context?.body?.error || '';
+            if (bodyError.toLowerCase().includes('sessione') || errMsg.includes('401')) {
+              throw new Error('Devi effettuare l\'accesso per usare la lettura audio.');
+            }
+          }
           throw this.mapErrorToUserFriendly(error);
         }
 
