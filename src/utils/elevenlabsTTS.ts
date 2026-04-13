@@ -387,6 +387,15 @@ export class ElevenLabsTTS {
         });
 
         if (error) {
+          // Check for 401 specifically
+          const errMsg = error?.message || '';
+          if (errMsg.includes('non-2xx') || errMsg.includes('401') || errMsg.includes('Unauthorized')) {
+            // Try to read the response body for details
+            const bodyError = (error as any)?.context?.body?.error || '';
+            if (bodyError.toLowerCase().includes('sessione') || errMsg.includes('401')) {
+              throw new Error('Devi effettuare l\'accesso per usare la lettura audio.');
+            }
+          }
           throw this.mapErrorToUserFriendly(error);
         }
 
@@ -539,8 +548,8 @@ export class ElevenLabsTTS {
     if (lower.includes('429') || lower.includes('troppe richieste') || lower.includes('rate limit') || lower.includes('limite')) {
       return 'Troppe richieste. Attendi qualche minuto e riprova.';
     }
-    if (lower.includes('401') || lower.includes('sessione scaduta') || lower.includes('autenticazione') || lower.includes('unauthorized')) {
-      return 'Sessione scaduta. Accedi di nuovo per continuare.';
+    if (lower.includes('401') || lower.includes('sessione scaduta') || lower.includes('autenticazione') || lower.includes('unauthorized') || lower.includes('accesso')) {
+      return 'Devi effettuare l\'accesso per usare la lettura audio.';
     }
     if (lower.includes('non configurato') || lower.includes('api key') || lower.includes('not configured')) {
       return 'Servizio audio non configurato. Contatta l\'assistenza.';

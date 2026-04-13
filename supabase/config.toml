@@ -25,10 +25,10 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.text-to-speech-elevenlabs]
-verify_jwt = true
+verify_jwt = false
 
 [functions.speech-to-text-elevenlabs]
-verify_jwt = true
+verify_jwt = false
 
 [functions.send-email-notification]
 verify_jwt = true
