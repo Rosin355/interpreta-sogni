@@ -387,6 +387,59 @@ export type Database = {
         }
         Relationships: []
       }
+      error_logs: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          dream_id: string | null
+          error_code: string
+          error_message_technical: string
+          error_message_user: string
+          function_name: string | null
+          id: string
+          metadata: Json | null
+          resolution_note: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          dream_id?: string | null
+          error_code: string
+          error_message_technical: string
+          error_message_user: string
+          function_name?: string | null
+          id?: string
+          metadata?: Json | null
+          resolution_note?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          dream_id?: string | null
+          error_code?: string
+          error_message_technical?: string
+          error_message_user?: string
+          function_name?: string | null
+          id?: string
+          metadata?: Json | null
+          resolution_note?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "error_logs_dream_id_fkey"
+            columns: ["dream_id"]
+            isOneToOne: false
+            referencedRelation: "dreams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           created_at: string
