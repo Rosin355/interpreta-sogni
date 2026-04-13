@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, Square, Loader2, Check, X, Edit } from "lucide-react";
+import { Mic, Square, Loader2, Check, X, Edit, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -11,6 +11,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 
 interface VoiceRecorderProps {
@@ -23,7 +33,7 @@ function getSupportedMimeType(): string {
     if (MediaRecorder.isTypeSupported('audio/mp4')) return 'audio/mp4';
     if (MediaRecorder.isTypeSupported('audio/ogg')) return 'audio/ogg';
   }
-  return 'audio/webm'; // fallback
+  return 'audio/webm';
 }
 
 function blobToBase64(blob: Blob): Promise<string> {
@@ -42,6 +52,7 @@ export const VoiceRecorder = ({ onTranscription }: VoiceRecorderProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [transcribedText, setTranscribedText] = useState("");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -140,99 +151,157 @@ export const VoiceRecorder = ({ onTranscription }: VoiceRecorderProps) => {
     });
   };
 
-  const handleCancelTranscription = () => {
+  // Chiamato quando l'utente vuole annullare (bottone Annulla o tentativo di chiusura)
+  const handleRequestCancel = () => {
+    if (transcribedText.trim()) {
+      setShowCancelConfirm(true);
+    } else {
+      // Testo vuoto: chiudi direttamente
+      setShowPreview(false);
+      setTranscribedText("");
+    }
+  };
+
+  // Conferma definitiva dell'annullamento
+  const handleConfirmCancel = () => {
+    setShowCancelConfirm(false);
     setShowPreview(false);
     setTranscribedText("");
   };
 
   return (
     <>
-    <div className="flex gap-2">
-      {!isRecording && !isTranscribing && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={startRecording}
-          className="gap-2"
-        >
-          <Mic className="h-4 w-4" />
-          Registra Vocalmente
-        </Button>
-      )}
-
-      {isRecording && (
-        <Button
-          type="button"
-          variant="destructive"
-          size="sm"
-          onClick={stopRecording}
-          className="gap-2 animate-pulse"
-        >
-          <Square className="h-4 w-4" />
-          Stop Registrazione
-        </Button>
-      )}
-
-      {isTranscribing && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled
-          className="gap-2"
-        >
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Trascrizione in corso...
-        </Button>
-      )}
-    </div>
-
-    <Dialog open={showPreview} onOpenChange={setShowPreview}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Edit className="h-5 w-5" />
-            Anteprima Trascrizione
-          </DialogTitle>
-          <DialogDescription>
-            Rivedi e modifica il testo trascritto prima di aggiungerlo al sogno
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4 py-4">
-          <Textarea
-            value={transcribedText}
-            onChange={(e) => setTranscribedText(e.target.value)}
-            rows={10}
-            placeholder="Modifica la trascrizione qui..."
-            className="resize-none"
-          />
-          <p className="text-xs text-muted-foreground">
-            Puoi modificare o eliminare parti del testo prima di aggiungerlo
-          </p>
-        </div>
-
-        <DialogFooter className="gap-2 sm:gap-0">
+      <div className="flex gap-2">
+        {!isRecording && !isTranscribing && (
           <Button
+            type="button"
             variant="outline"
-            onClick={handleCancelTranscription}
+            size="sm"
+            onClick={startRecording}
             className="gap-2"
           >
-            <X className="h-4 w-4" />
-            Annulla
+            <Mic className="h-4 w-4" />
+            Registra Vocalmente
           </Button>
+        )}
+
+        {isRecording && (
           <Button
-            onClick={handleConfirmTranscription}
-            disabled={!transcribedText.trim()}
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={stopRecording}
+            className="gap-2 animate-pulse"
+          >
+            <Square className="h-4 w-4" />
+            Stop Registrazione
+          </Button>
+        )}
+
+        {isTranscribing && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled
             className="gap-2"
           >
-            <Check className="h-4 w-4" />
-            Aggiungi al Sogno
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Trascrizione in corso...
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        )}
+      </div>
+
+      {/* Dialog anteprima trascrizione — senza X nativa, chiusura solo tramite bottoni */}
+      <Dialog
+        open={showPreview}
+        onOpenChange={(open) => {
+          // Intercetta ogni tentativo di chiusura (swipe, ESC, click fuori)
+          if (!open) handleRequestCancel();
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-[600px]"
+          // Rimuove la X in alto a destra
+          hideCloseButton
+          // Blocca chiusura cliccando fuori dal dialog
+          onInteractOutside={(e) => e.preventDefault()}
+          // Blocca chiusura con ESC (gestita da handleRequestCancel)
+          onEscapeKeyDown={(e) => {
+            e.preventDefault();
+            handleRequestCancel();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Anteprima Trascrizione
+            </DialogTitle>
+            <DialogDescription>
+              Rivedi e modifica il testo trascritto prima di aggiungerlo al sogno
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <Textarea
+              value={transcribedText}
+              onChange={(e) => setTranscribedText(e.target.value)}
+              rows={10}
+              placeholder="Modifica la trascrizione qui..."
+              className="resize-none"
+            />
+            <p className="text-xs text-muted-foreground">
+              Puoi modificare o eliminare parti del testo prima di aggiungerlo
+            </p>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={handleRequestCancel}
+              className="gap-2"
+            >
+              <X className="h-4 w-4" />
+              Annulla
+            </Button>
+            <Button
+              onClick={handleConfirmTranscription}
+              disabled={!transcribedText.trim()}
+              className="gap-2"
+            >
+              <Check className="h-4 w-4" />
+              Aggiungi al Sogno
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Alert di conferma annullamento */}
+      <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Scartare la trascrizione?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Stai per perdere il testo trascritto dalla tua registrazione vocale.
+              Questa azione non può essere annullata e dovrai registrare di nuovo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowCancelConfirm(false)}>
+              Torna alla trascrizione
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmCancel}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sì, scarta il testo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
