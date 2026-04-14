@@ -1,99 +1,35 @@
 
 
-## Piano: Biblioteca Audio Rituale — "Percorsi per il Sogno"
+# Plan: Fix interpretation AI errors and VoiceRecorder build error
 
-Implementazione incrementale di una libreria audio guidata per la preparazione al sonno e ai sogni.
+## Root Causes Identified
 
-### Fase 1 — Database e Storage
+1. **Build error (PROBLEMA 2)**: `VoiceRecorder.tsx` uses `hideCloseButton` prop on `DialogContent`, but the `dialog.tsx` component doesn't support that prop. This is blocking the build/preview.
 
-**Migration SQL:**
-- Creare tabella `audio_tracks` con: `id`, `title`, `slug`, `description`, `category`, `cover_image_url`, `audio_path`, `duration_seconds`, `access_tier` (text: 'free'/'subscriber'), `is_published`, `is_featured`, `sort_order`, `created_by` (uuid), `created_at`, `updated_at`
-- Creare bucket storage `ritual-audio` (privato, per MP3) e `ritual-audio-covers` (pubblico, per cover)
-- RLS su `audio_tracks`:
-  - SELECT: tutti gli utenti autenticati possono vedere i track pubblicati (`is_published = true`); admin/super_admin vedono tutto
-  - INSERT/UPDATE/DELETE: solo admin/super_admin (via `is_admin(auth.uid())`)
-- RLS storage: admin può upload/delete; utenti autenticati possono leggere
+2. **Interpretation AI error (PROBLEMA 1)**: Two issues found:
+   - **NewDream.tsx line 241-245**: The call to `interpret-dream-with-astrology` is missing `dreamId` in the body. The edge function requires it (line 336-338 throws "Dream ID is required").
+   - **config.toml**: `interpret-dream-with-astrology` is NOT configured with `verify_jwt = false`, unlike other functions. Per project memory, this causes 401 errors due to signing key discrepancies. It needs `verify_jwt = false` (auth is validated in-code via `getUser()`).
 
-**Categorie predefinite:** Addormentamento, Rilassamento profondo, Visualizzazione guidata, Preparazione al sogno, Risveglio consapevole, Ricordo dei sogni, Rituali del sonno
+## Changes
 
-### Fase 2 — Tipi e Hook
+### 1. Fix `src/components/ui/dialog.tsx` — add `hideCloseButton` support
+Add an optional `hideCloseButton?: boolean` prop to `DialogContent`. When true, skip rendering the close X button. This fixes the TS2322 build error in VoiceRecorder.tsx.
 
-**Nuovi file:**
-- `src/types/audio-tracks.ts` — interfaccia TypeScript per AudioTrack
-- `src/hooks/useAudioTracks.ts` — fetch tracks, filtro categoria, logica accesso tier
-- `src/hooks/useAudioPlayer.ts` — stato player (play/pause/seek/progress), ref Audio HTML5
-- `src/hooks/useAudioAdmin.ts` — CRUD admin (upload MP3, upload cover, create/update/delete track)
+### 2. Fix `src/pages/NewDream.tsx` — pass `dreamId` to interpretation call
+Change lines 241-245 to include `dreamId: data.id` in the body sent to `interpret-dream-with-astrology`.
 
-### Fase 3 — Componenti
+### 3. Fix `supabase/config.toml` — add `verify_jwt = false` for `interpret-dream-with-astrology`
+Add the missing function config entry, consistent with the other functions that validate JWT in-code.
 
-**Nuovi componenti isolati in `src/components/audio/`:**
-- `AudioTrackCard.tsx` — card con cover, titolo, categoria, badge Free/Premium, stato locked
-- `AudioPlayer.tsx` — player elegante: play/pause, progress bar, tempo, cover, titolo
-- `AudioCategoryFilter.tsx` — filtro per categoria
-- `AudioFeaturedSection.tsx` — sezione tracks in evidenza
-- `AudioHero.tsx` — hero area con titolo "Percorsi per il Sogno" e sottotitolo evocativo
-- `AudioLockedOverlay.tsx` — overlay per contenuti premium con CTA upgrade
+### 4. Improve error handling in `src/pages/DreamDetail.tsx`
+Make the error toast show the actual server error message instead of a generic one, following the pattern already used elsewhere.
 
-### Fase 4 — Pagine
+### Files changed
+- `src/components/ui/dialog.tsx` — add `hideCloseButton` prop
+- `src/pages/NewDream.tsx` — add missing `dreamId` field
+- `supabase/config.toml` — add interpret-dream-with-astrology config
+- `src/pages/DreamDetail.tsx` — improve error message in toast
 
-**`src/pages/AudioLibrary.tsx`** — pagina utente `/audio-library`:
-- Navigation esistente
-- AudioHero
-- AudioFeaturedSection (se ci sono track featured)
-- AudioCategoryFilter + griglia AudioTrackCard
-- AudioPlayer (bottom sticky o inline)
-- Design: sfondo scuro, toni calm/mystical, coerente col design system esistente
-
-**`src/pages/AudioAdmin.tsx`** — pagina admin `/admin/audio`:
-- Protezione admin (pattern identico a AdminDashboard)
-- Lista tracks con edit/delete
-- Form upload: titolo, descrizione, categoria, tier, cover image, MP3 file
-- Toggle published/featured
-
-### Fase 5 — Routing e Navigazione
-
-**`src/App.tsx`** — aggiungere:
-- `<Route path="/audio-library" element={<AudioLibrary />} />`
-- `<Route path="/admin/audio" element={<AudioAdmin />} />`
-
-**`src/components/Navigation.tsx`** — aggiungere link "Percorsi Audio" nel menu desktop e mobile (per utenti loggati)
-
-### Dettagli tecnici
-
-- Audio MP3 serviti via signed URL da bucket privato `ritual-audio` (sicurezza)
-- Cover images da bucket pubblico `ritual-audio-covers`
-- Nessuna modifica a pagine esistenti (dream, astrology, alchemy, dashboard)
-- Player usa HTML5 `<audio>` element, no librerie esterne
-- Accesso tier: confronto semplice client-side (track.access_tier === 'free' || userIsSubscriber || userIsAdmin)
-- Per ora nessun sistema di subscription reale — tutti vedono i track premium come "locked" a meno che non siano admin
-
-### Raccomandazioni Fase 2 futura
-
-- Playlist personalizzate / percorsi multi-track
-- Preferiti / cronologia ascolto
-- Timer sonno (auto-stop dopo N minuti)
-- Statistiche ascolto per admin
-- Integrazione con subscription/pagamento reale
-
-### File coinvolti (solo nuovi)
-
-| File | Tipo |
-|------|------|
-| Migration SQL | Tabella + storage + RLS |
-| `src/types/audio-tracks.ts` | Tipi |
-| `src/hooks/useAudioTracks.ts` | Hook |
-| `src/hooks/useAudioPlayer.ts` | Hook |
-| `src/hooks/useAudioAdmin.ts` | Hook |
-| `src/components/audio/AudioHero.tsx` | Componente |
-| `src/components/audio/AudioTrackCard.tsx` | Componente |
-| `src/components/audio/AudioPlayer.tsx` | Componente |
-| `src/components/audio/AudioCategoryFilter.tsx` | Componente |
-| `src/components/audio/AudioFeaturedSection.tsx` | Componente |
-| `src/components/audio/AudioLockedOverlay.tsx` | Componente |
-| `src/pages/AudioLibrary.tsx` | Pagina |
-| `src/pages/AudioAdmin.tsx` | Pagina |
-
-**File modificati (minimali):**
-- `src/App.tsx` — 2 route aggiunte
-- `src/components/Navigation.tsx` — 1 link aggiunto (desktop + mobile)
+### No changes to
+- Auth flows, Supabase edge functions code, routing, dashboard, or any unrelated files
 
