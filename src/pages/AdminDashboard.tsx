@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdminStatsCards from "@/components/admin/AdminStatsCards";
 import AdminUsersList from "@/components/admin/AdminUsersList";
 import AdminProfessionalApprovals from "@/components/admin/AdminProfessionalApprovals";
+import AdminErrorsList from "@/components/admin/AdminErrorsList";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -73,6 +74,7 @@ const AdminDashboard = () => {
             <TabsList className="mb-6">
               <TabsTrigger value="professionals">Professionisti</TabsTrigger>
               <TabsTrigger value="users">Utenti</TabsTrigger>
+              <TabsTrigger value="errors">Errori</TabsTrigger>
             </TabsList>
 
             <TabsContent value="professionals">
@@ -81,6 +83,10 @@ const AdminDashboard = () => {
 
             <TabsContent value="users">
               <AdminUsersList />
+            </TabsContent>
+
+            <TabsContent value="errors">
+              <AdminErrorsList />
             </TabsContent>
           </Tabs>
         </div>
