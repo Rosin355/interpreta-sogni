@@ -259,10 +259,32 @@ const DreamDetail = () => {
       });
 
       if (error) {
-        console.error('Errore nell\'interpretazione:', error);
+        // Estrai il messaggio reale dall'errore della Edge Function
+        let errorMessage = error.message || "Impossibile interpretare il sogno";
+        try {
+          const errBody = error.context ? await error.context.json() : null;
+          if (errBody?.error) errorMessage = errBody.error;
+          else if (errBody?.message) errorMessage = errBody.message;
+        } catch {}
+        console.error('Interpretation error details:', errorMessage, error);
+
+        // Logga l'errore nella tabella error_logs
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('error_logs').insert({
+            user_id: user.id,
+            error_code: 'INTERPRETATION_FAILED',
+            error_message_user: errorMessage,
+            error_message_technical: JSON.stringify({ message: error.message, context: errorMessage }),
+            function_name: 'interpret-dream-with-astrology',
+            dream_id: id,
+            metadata: { dreamId: id }
+          });
+        }
+
         toast({
-          title: "Errore",
-          description: error.message || "Impossibile interpretare il sogno",
+          title: "Errore nell'interpretazione",
+          description: errorMessage,
           variant: "destructive",
         });
       } else if (data?.interpretation) {
@@ -280,11 +302,24 @@ const DreamDetail = () => {
             : "Interpretazione generata con successo!",
         });
       }
-    } catch (error) {
-      console.error('Errore:', error);
+    } catch (error: any) {
+      console.error('Errore interpretazione:', error);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('error_logs').insert({
+          user_id: user.id,
+          error_code: 'INTERPRETATION_EXCEPTION',
+          error_message_user: error?.message || "Errore sconosciuto",
+          error_message_technical: String(error),
+          function_name: 'interpret-dream-with-astrology',
+          dream_id: id,
+        });
+      }
+
       toast({
         title: "Errore",
-        description: "Si è verificato un errore durante l'interpretazione",
+        description: error?.message || "Si è verificato un errore durante l'interpretazione",
         variant: "destructive",
       });
     } finally {
