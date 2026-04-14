@@ -239,6 +239,7 @@ const NewDream = () => {
           'interpret-dream-with-astrology',
           {
             body: {
+              dreamId: data.id,
               dreamContent: formData.content,
               dreamTags: tagsArray,
               dreamMood: formData.mood
