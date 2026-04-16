@@ -11,7 +11,9 @@ const FROM_EMAIL = "Interpreta i tuoi Sogni <noreply@dreamalchemist.app>";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Max-Age": "86400",
 };
 
 interface EmailNotificationRequest {
@@ -210,7 +212,7 @@ const handler = async (req: Request): Promise<Response> => {
   console.log('[send-email] === REQUEST START ===', req.method);
 
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { status: 200, headers: corsHeaders });
   }
 
   try {
