@@ -207,6 +207,8 @@ function buildUserInvitationEmail(data?: EmailNotificationRequest["data"]): { su
 // ─── Handler ───
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log('[send-email] === REQUEST START ===', req.method);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -216,20 +218,30 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
+    console.log('[send-email] Env check:', {
+      hasUrl: !!supabaseUrl,
+      hasServiceKey: !!supabaseServiceKey,
+      hasAnonKey: !!supabaseAnonKey,
+      hasResendKey: !!Deno.env.get("RESEND_API_KEY"),
+    });
+
     const authHeader = req.headers.get("Authorization");
+    console.log('[send-email] Auth header present:', !!authHeader);
     if (!authHeader) throw new Error("Missing authorization header");
 
-    // Verify JWT using anon key client with auth header for signing key support
     const authClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
+    console.log('[send-email] Calling auth.getUser()...');
     const { data: { user }, error: authError } = await authClient.auth.getUser();
-    if (authError || !user) throw new Error("Unauthorized");
+    console.log('[send-email] auth.getUser() result:', { hasUser: !!user, authError: authError?.message });
+    if (authError || !user) throw new Error(`Unauthorized: ${authError?.message || 'no user'}`);
 
-    // Service role client for admin operations (user lookup, etc.)
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { type, recipientEmail, recipientUserId, recipientName, data }: EmailNotificationRequest = await req.json();
+    const body = await req.json();
+    console.log('[send-email] Body parsed:', { type: body.type, hasRecipientEmail: !!body.recipientEmail });
+    const { type, recipientEmail, recipientUserId, recipientName, data }: EmailNotificationRequest = body;
 
     let finalRecipientEmail = recipientEmail;
     let finalRecipientName = recipientName;
@@ -248,7 +260,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!finalRecipientEmail) throw new Error("Recipient email is required");
 
-    console.log('[send-email] Request:', { type, recipientEmail: finalRecipientEmail, recipientUserId, recipientName: finalRecipientName });
+    console.log('[send-email] Request:', { type, recipientEmail: finalRecipientEmail });
 
     let emailContent: { subject: string; html: string };
 
