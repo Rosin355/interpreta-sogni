@@ -1,59 +1,48 @@
 
 
-## Diagnosi dei tre problemi
+## Diagnosi
 
-### Problema 1 — Link "pagina non trovata"
-Il link inviato è `https://dreamalchemist.app/dream/4dc5f27e-...`. Ma in `App.tsx` la rotta canonica è `/dreams/:id` (plurale). Esistono solo due rotte con `/dream/`: `/dream/shared/:token` (link pubblico). La rotta `/dream/:id` (singolare) non esiste — quindi cade su `NotFound`.
+L'utente mostra il dashboard Resend filtrato su "Last 15 days": appaiono solo email "Confirm Your Signup" (auth Supabase). NESSUN invio di `send-email-notification` è registrato → la edge function NON sta chiamando Resend con successo. Le email a `jessicaommarin@gmail.com` e `romesh.singhabahu@gmail.com` non sono mai partite.
 
-**Causa**: nella edge function `send-email-notification`, `buildNewCommentEmail` usa `${APP_URL}/dream/${data?.dreamId}` (singolare). Inoltre `buildDreamSharedEmail` e `buildDreamSharedUserRequestEmail` puntano a `/shared-dreams-received`, ma in `App.tsx` la rotta è `/shared-with-me`. Tutti i link nelle email sono rotti.
+Cause più probabili (da verificare nei log della edge function):
 
-In più `APP_URL` è hardcoded a `https://interpreta-sogni.lovable.app` invece del dominio attivo `https://dreamalchemist.app`.
+1. **`RESEND_API_KEY` mancante o invalida** nei secrets di Supabase per la funzione `send-email-notification`. La funzione fallirebbe ma il client mostra comunque un toast generico (anche se ora abbiamo aggiunto il logging in `error_logs`, solo i nuovi tentativi vengono tracciati).
 
-### Problema 2 — Email non recapitata a jessicaommarin@gmail.com
-Il toast mostra "inviato" perché `supabase.functions.invoke` non attende l'esito reale di Resend (e non logga niente lato client). Possibili cause da verificare nei log Resend:
-- Account Resend in modalità test (può inviare solo all'email del proprietario)
-- Bounce / classificazione spam
-- Dominio `dreamalchemist.app` non completamente verificato su Resend
+2. **Dominio `dreamalchemist.app` non verificato su Resend** → Resend rifiuta gli invii con `from: noreply@dreamalchemist.app`. Il dashboard mostra che il progetto Resend si chiama "dreamalchemistapp" ma nella sidebar serve controllare la sezione **Domains** per lo stato di verifica.
 
-Non posso "risolvere" questo dalla codebase senza i log Resend, ma posso (a) restituire e mostrare l'errore reale al mittente, (b) loggarlo in `error_logs` con il pattern unificato, (c) verificare che `RESEND_API_KEY` e dominio siano configurati correttamente.
+3. **Edge function va in errore prima di chiamare Resend** (es. `auth.getUser()` fallisce) — ma in tal caso vedremmo gli errori in `error_logs`.
 
-### Problema 3 — Counter dei tab a 0 nel pannello del ricevente
-In `SharedDreamsReceived.tsx` la query filtra su `shared_with_user_id`. La INSERT in `TabEmail` (`ShareDreamUnified.tsx` riga 162-164) imposta correttamente `shared_with_user_id: recipientId`. Quindi i record dovrebbero esserci.
+Per risolvere serve:
+- Leggere i log reali della edge function `send-email-notification` per vedere l'errore esatto
+- Verificare lo stato del dominio su Resend
+- Verificare che `RESEND_API_KEY` sia configurata
 
-Ma Jessica nel suo pannello "vede i sogni condivisi" — quindi la query funziona. Il problema dei counter nasce dal fatto che `filteredShares(status)` viene chiamato dentro il render della TabsList **prima** che `shares` sia popolato (oppure tutti hanno `status` ≠ pending/accepted/declined). Più probabile: gli `status` salvati hanno valore atteso ma la realtime subscription scatena un re-render dove `shares` resta sincronizzato. Devo ispezionare lo stato reale via console — ma il bug più plausibile è che il record di Jessica abbia `shared_with_user_id = null` perché il lookup `find_user_by_email` non l'ha trovata (Jessica non era ancora registrata al momento del primo invio) → è entrata nel ramo `user_invitation` invece di creare il record `dream_shares`. Quando poi si è registrata, i sogni "che vede" sono in realtà quelli condivisi via altro canale.
+## Piano
 
-Per il counter serve verifica diretta a runtime; il fix che propongo è aggiungere logging visibile + assicurarsi che lo stato `status` letto dalla DB sia esattamente uno tra `pending|accepted|declined`.
+### Step 1 — Diagnostica (lettura log)
+Leggere i log recenti della edge function `send-email-notification` per identificare la causa esatta del fallimento (chiave mancante, dominio non verificato, errore di parsing, ecc).
 
----
+Query la tabella `error_logs` filtrando su `function_name = 'send-email-notification'` per vedere se i nuovi tentativi (post-fix precedente) hanno generato log strutturati.
 
-## Fix proposti (atomici, nessuna feature nuova)
+### Step 2 — In base al risultato
+- **Se `RESEND_API_KEY` manca/invalida** → chiedere all'utente di aggiungerla/rigenerarla nei Supabase Edge Function Secrets (l'agente non può scrivere secrets).
+- **Se dominio non verificato** → istruire l'utente a completare la verifica DNS (SPF/DKIM/DMARC) sul dashboard Resend → Domains, oppure cambiare temporaneamente `FROM_EMAIL` a `onboarding@resend.dev` per testare.
+- **Se errore di codice** → patchare la edge function.
 
-### File 1 — `supabase/functions/send-email-notification/index.ts`
-- Cambiare `APP_URL` in `https://dreamalchemist.app`
-- `buildDreamSharedEmail`: link → `${APP_URL}/shared-with-me`
-- `buildDreamSharedUserRequestEmail`: link → `${APP_URL}/shared-with-me`
-- `buildNewCommentEmail`: link → `${APP_URL}/dreams/${data?.dreamId}` (plurale)
-- `buildProfessionalApprovedEmail`: link → `${APP_URL}/shared-dreams`
-- Già logga su console; lascio com'è.
+### Step 3 — Hardening della edge function `send-email-notification`
+Indipendentemente dalla causa, migliorare la funzione per restituire errori PIÙ chiari al client:
+- Logging esplicito quando `RESEND_API_KEY` è assente
+- Catturare e ritornare l'errore reale di `resend.emails.send()` (oggi viene loggato in console ma non sempre rilanciato come 500 strutturato)
+- Aggiungere `errorCode` strutturato (`RESEND_KEY_MISSING`, `RESEND_DOMAIN_UNVERIFIED`, `RESEND_API_ERROR`) così il client mostra messaggi precisi nel toast
 
-### File 2 — `src/components/ShareDreamUnified.tsx`
-- In `TabEmail.handleShare` e `TabProfessional.handleShare`: catturare `error` da `supabase.functions.invoke('send-email-notification', ...)` e:
-  - Estrarre il messaggio reale via `await error.context?.json()`
-  - Mostrare toast con warning "Sogno condiviso ma email non recapitata: <motivo>"
-  - Loggare in `error_logs` con `function_name: 'send-email-notification'`, `dream_id`, metadata (recipient, type)
-- Così Jessica e l'admin vedranno subito perché l'email non è arrivata.
-
-### File 3 — `src/pages/SharedDreamsReceived.tsx`
-- Aggiungere `console.log` di debug in `loadShares` per stampare l'array `shares` con tutti gli `status` (utile per la diagnosi runtime di Jessica). Verrà rimosso dopo conferma.
-- Nessun cambio funzionale ai counter (la logica `filteredShares` è corretta — il bug, se esiste, è nei dati).
-
-### Verifica esterna richiesta all'utente (dopo il fix)
-1. Aprire **Resend dashboard → Logs** e cercare l'email a `jessicaommarin@gmail.com`: confermare che sia stata accettata, che il dominio `dreamalchemist.app` sia `verified` (SPF/DKIM/DMARC ok), e che non sia stata classificata come bounce/spam.
-2. Se Resend è in modalità **test**, può inviare solo all'email del proprietario dell'account → in tal caso bisogna verificare il dominio.
+### File toccati
+- `supabase/functions/send-email-notification/index.ts` — gestione errori Resend strutturata + check `RESEND_API_KEY`
 
 ### File NON toccati
-- `App.tsx` (rotte già corrette)
-- DB schema, RLS policies
-- Altre edge function
-- Auth, dashboard admin
+- Schema DB, RLS, altre edge function, UI
+
+### Verifiche richieste all'utente (dopo il fix)
+1. Su **Resend Dashboard → Domains**: confermare che `dreamalchemist.app` sia in stato **Verified** (verde) con SPF/DKIM ok. Screenshot.
+2. Su **Lovable Cloud → Edge Functions → send-email-notification → Secrets**: confermare che `RESEND_API_KEY` sia presente.
+3. Provare di nuovo a condividere un sogno e controllare la tab "Errori" in Admin Dashboard per il log strutturato `EMAIL_DELIVERY_FAILED` con il `errorCode` reale.
 
