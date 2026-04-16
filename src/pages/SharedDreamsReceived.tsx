@@ -93,6 +93,7 @@ export default function SharedDreamsReceived() {
         })
       );
 
+      console.log("[SharedDreamsReceived] Loaded shares:", enrichedData.map(s => ({ id: s.id, status: s.status, shared_with_user_id: (s as any).shared_with_user_id, dream_id: s.dream_id })));
       setShares(enrichedData);
     } catch (error: any) {
       console.error("Error loading shares:", error);
