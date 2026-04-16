@@ -18,6 +18,7 @@ import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { getCategoryFromTag } from "@/utils/dream-categories";
 import { CustomPromptInput, isCustomPromptValid } from "@/components/CustomPromptInput";
+import { buildErrorReportAction } from "@/utils/error-toast-action";
 
 const EditDream = () => {
   const { id } = useParams();

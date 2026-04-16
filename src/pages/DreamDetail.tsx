@@ -19,6 +19,7 @@ import { ImageZoomModal } from "@/components/ImageZoomModal";
 import { ShareDreamUnified } from "@/components/ShareDreamUnified";
 import { ProfessionalCommentForm } from "@/components/ProfessionalCommentForm";
 import { CustomPromptInput, isCustomPromptValid } from "@/components/CustomPromptInput";
+import { buildErrorReportAction } from "@/utils/error-toast-action";
 import { AlchemicalBadge } from "@/components/AlchemicalBadge";
 import { cn } from "@/lib/utils";
 import {
@@ -398,6 +399,13 @@ const DreamDetail = () => {
           title: "Errore Generazione Immagine",
           description: errorMessage,
           variant: "destructive",
+          action: buildErrorReportAction({
+            errorCode: errorCode || 'IMAGE_GENERATION_FAILED',
+            functionName: 'generate-dream-image',
+            userMessage: errorMessage,
+            technicalMessage: JSON.stringify({ message: error.message, body: errBody }),
+            dreamId: id,
+          }),
         });
       } else if (data?.error) {
         const errorMessage = mapImageErrorCode(data.errorCode, data.error, data.details);
@@ -419,6 +427,13 @@ const DreamDetail = () => {
           title: "Errore Generazione Immagine",
           description: errorMessage,
           variant: "destructive",
+          action: buildErrorReportAction({
+            errorCode: data.errorCode || 'IMAGE_GENERATION_FAILED',
+            functionName: 'generate-dream-image',
+            userMessage: errorMessage,
+            technicalMessage: JSON.stringify(data),
+            dreamId: id,
+          }),
         });
       } else if (data?.image_url) {
         setDream({ 
