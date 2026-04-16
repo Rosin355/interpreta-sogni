@@ -7,7 +7,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.generate-dream-image]
-verify_jwt = true
+verify_jwt = false
 
 [functions.suggest-tags]
 verify_jwt = true

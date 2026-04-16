@@ -289,17 +289,49 @@ const EditDream = () => {
           title: "Successo",
           description: "Immagine generata con successo",
         });
+      } else {
+        const fallbackMessage = "Risposta non valida dal server. Riprova.";
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('error_logs').insert({
+            user_id: user.id,
+            error_code: 'IMAGE_GENERATION_INVALID_RESPONSE',
+            error_message_user: fallbackMessage,
+            error_message_technical: JSON.stringify(data ?? null),
+            function_name: 'generate-dream-image',
+            dream_id: id,
+            metadata: { imageStyle: effectiveStyle, autoStyle: effectiveAutoStyle, hasCustomPrompt }
+          });
+        }
+
+        toast({
+          title: "Errore",
+          description: fallbackMessage,
+          variant: "destructive",
+        });
       }
     } catch (error: any) {
       console.error('Errore:', error);
+
+      let errBody: any = null;
+      try {
+        errBody = error?.context ? await error.context.json() : null;
+      } catch {}
+
+      const errorCode = errBody?.errorCode || 'IMAGE_GENERATION_EXCEPTION';
+      const errorMessage = mapImageErrorCode(
+        errBody?.errorCode,
+        errBody?.error || errBody?.message || error?.message || "Si è verificato un errore durante la generazione",
+        errBody?.details
+      );
 
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase.from('error_logs').insert({
           user_id: user.id,
-          error_code: 'IMAGE_GENERATION_EXCEPTION',
-          error_message_user: error?.message || "Errore sconosciuto",
-          error_message_technical: String(error),
+          error_code: errorCode,
+          error_message_user: errorMessage,
+          error_message_technical: JSON.stringify({ message: String(error), body: errBody }),
           function_name: 'generate-dream-image',
           dream_id: id,
           metadata: { imageStyle: effectiveStyle, autoStyle: effectiveAutoStyle, hasCustomPrompt }
@@ -308,7 +340,7 @@ const EditDream = () => {
 
       toast({
         title: "Errore",
-        description: error?.message || "Si è verificato un errore durante la generazione",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
