@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
-const APP_URL = "https://interpreta-sogni.lovable.app";
+const APP_URL = "https://dreamalchemist.app";
 const FROM_EMAIL = "Interpreta i tuoi Sogni <noreply@dreamalchemist.app>";
 
 const corsHeaders = {
@@ -91,7 +91,7 @@ function buildProfessionalApprovedEmail(recipientName?: string): { subject: stri
     <p style="color: #b8a9d4; font-size: 15px; line-height: 1.7; margin: 0 0 20px;">
       Ora puoi ricevere sogni condivisi dagli utenti e fornire feedback professionali.
     </p>
-    ${buildButton("Accedi alla Dashboard", `${APP_URL}/shared-dreams-received`)}
+    ${buildButton("Accedi alla Dashboard", `${APP_URL}/shared-dreams`)}
     <p style="color: #9b8fc4; font-size: 13px; margin: 20px 0 0;">
       Grazie per far parte della nostra community!
     </p>`;
@@ -114,7 +114,7 @@ function buildDreamSharedEmail(recipientName?: string, data?: EmailNotificationR
       <p style="color: #f5e6a3; font-size: 14px; margin: 0;"><strong>Titolo:</strong> ${data.dreamTitle}</p>
     </div>` : ""}
     ${data?.message ? `<p style="color: #9b8fc4; font-size: 14px; font-style: italic; margin: 0 0 16px;">"${data.message}"</p>` : ""}
-    ${buildButton("Visualizza il Sogno", `${APP_URL}/shared-dreams-received`)}`;
+    ${buildButton("Visualizza il Sogno", `${APP_URL}/shared-with-me`)}`;
 
   return {
     subject: `🌙 Nuovo sogno condiviso con te${data?.dreamTitle ? `: "${data.dreamTitle}"` : ""}`,
@@ -136,7 +136,7 @@ function buildNewCommentEmail(recipientName?: string, data?: EmailNotificationRe
     ${data?.commentContent ? `<div style="background-color: rgba(86,54,205,0.1); padding: 14px 16px; border-radius: 8px; margin: 0 0 16px;">
       <p style="color: #b8a9d4; font-size: 14px; margin: 0; line-height: 1.6;">${data.commentContent.substring(0, 200)}${data.commentContent.length > 200 ? "..." : ""}</p>
     </div>` : ""}
-    ${buildButton("Leggi il Feedback", `${APP_URL}/dream/${data?.dreamId || ""}`)}`;
+    ${buildButton("Leggi il Feedback", `${APP_URL}/dreams/${data?.dreamId || ""}`)}`;
 
   return {
     subject: `💬 Nuovo feedback sul tuo sogno${data?.dreamTitle ? `: "${data.dreamTitle}"` : ""}`,
@@ -156,7 +156,7 @@ function buildDreamSharedUserRequestEmail(recipientName?: string, data?: EmailNo
       <p style="color: #f5e6a3; font-size: 14px; margin: 0;"><strong>Titolo:</strong> ${data.dreamTitle}</p>
     </div>` : ""}
     ${data?.message ? `<p style="color: #9b8fc4; font-size: 14px; font-style: italic; margin: 0 0 16px;">"${data.message}"</p>` : ""}
-    ${buildButton("Visualizza la Condivisione", `${APP_URL}/shared-dreams-received`)}
+    ${buildButton("Visualizza la Condivisione", `${APP_URL}/shared-with-me`)}
     <p style="color: #9b8fc4; font-size: 13px; margin: 16px 0 0;">
       Se non sei ancora registrato, <a href="${APP_URL}/auth" style="color: #c9a84c; text-decoration: underline;">iscriviti ora</a> per iniziare a ricevere sogni condivisi!
     </p>`;

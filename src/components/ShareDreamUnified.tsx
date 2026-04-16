@@ -78,14 +78,32 @@ function TabProfessional({ dreamId, dreamTitle, onDone }: { dreamId: string; dre
       }
 
       const prof = professionals.find((p) => p.user_id === selected);
-      await supabase.functions.invoke("send-email-notification", {
+      const { error: emailErr } = await supabase.functions.invoke("send-email-notification", {
         body: {
           type: "dream_shared", recipientUserId: selected, recipientName: prof?.profiles?.username,
           data: { dreamTitle, dreamId, userName: user.user_metadata?.username || user.email, message: message.trim() || undefined },
         },
       });
 
-      toast({ title: "✅ Sogno condiviso!", description: "Il professionista riceverà una notifica" });
+      if (emailErr) {
+        let detail = emailErr.message || "errore sconosciuto";
+        try {
+          const ctx = await (emailErr as any).context?.json?.();
+          if (ctx?.error) detail = ctx.error;
+        } catch {}
+        await supabase.from("error_logs").insert({
+          user_id: user.id,
+          dream_id: dreamId,
+          function_name: "send-email-notification",
+          error_code: "EMAIL_DELIVERY_FAILED",
+          error_message_user: "Email al professionista non recapitata",
+          error_message_technical: detail,
+          metadata: { type: "dream_shared", recipient_user_id: selected } as any,
+        });
+        toast({ title: "⚠️ Sogno condiviso ma email non recapitata", description: detail, variant: "destructive" });
+      } else {
+        toast({ title: "✅ Sogno condiviso!", description: "Il professionista riceverà una notifica" });
+      }
       setMessage(""); setSelected(""); onDone();
     } catch (e: any) {
       toast({ title: "Errore", description: e.message || "Impossibile condividere", variant: "destructive" });
@@ -149,11 +167,34 @@ function TabEmail({ dreamId, dreamTitle, onDone }: { dreamId: string; dreamTitle
       const { data: recipientId, error: lookupErr } = await supabase.rpc("find_user_by_email", { user_email: email });
       if (lookupErr) throw new Error("Errore nella ricerca utente");
 
+      const logEmailFailure = async (emailErr: any, type: string) => {
+        let detail = emailErr.message || "errore sconosciuto";
+        try {
+          const ctx = await emailErr?.context?.json?.();
+          if (ctx?.error) detail = ctx.error;
+        } catch {}
+        await supabase.from("error_logs").insert({
+          user_id: user.id,
+          dream_id: dreamId,
+          function_name: "send-email-notification",
+          error_code: "EMAIL_DELIVERY_FAILED",
+          error_message_user: "Email di condivisione non recapitata",
+          error_message_technical: detail,
+          metadata: { type, recipient_email: email } as any,
+        });
+        return detail;
+      };
+
       if (!recipientId) {
-        await supabase.functions.invoke("send-email-notification", {
+        const { error: inviteErr } = await supabase.functions.invoke("send-email-notification", {
           body: { type: "user_invitation", recipientEmail: email, data: { dreamTitle, userName: profile?.username || "Un utente", message: message || "", inviterName: profile?.username || "Un utente" } },
         });
-        toast({ title: "Invito inviato", description: "L'utente non è registrato. Gli è stato inviato un invito." });
+        if (inviteErr) {
+          const detail = await logEmailFailure(inviteErr, "user_invitation");
+          toast({ title: "⚠️ Invito non recapitato", description: detail, variant: "destructive" });
+        } else {
+          toast({ title: "Invito inviato", description: "L'utente non è registrato. Gli è stato inviato un invito." });
+        }
         onDone(); setEmail(""); setMessage(""); return;
       }
 
@@ -164,11 +205,16 @@ function TabEmail({ dreamId, dreamTitle, onDone }: { dreamId: string; dreamTitle
       });
       if (shareErr) throw shareErr;
 
-      await supabase.functions.invoke("send-email-notification", {
+      const { error: emailErr } = await supabase.functions.invoke("send-email-notification", {
         body: { type: "dream_shared_user_request", recipientEmail: email, data: { dreamTitle, dreamId, userName: profile?.username || "Un utente", message: message || "" } },
       });
 
-      toast({ title: "Richiesta inviata", description: "L'utente ha ricevuto un'email di notifica." });
+      if (emailErr) {
+        const detail = await logEmailFailure(emailErr, "dream_shared_user_request");
+        toast({ title: "⚠️ Sogno condiviso ma email non recapitata", description: detail, variant: "destructive" });
+      } else {
+        toast({ title: "Richiesta inviata", description: "L'utente ha ricevuto un'email di notifica." });
+      }
       onDone(); setEmail(""); setMessage("");
     } catch (e: any) {
       toast({ title: "Errore", description: e.message || "Impossibile condividere", variant: "destructive" });
