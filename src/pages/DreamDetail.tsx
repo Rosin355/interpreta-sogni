@@ -333,56 +333,92 @@ const DreamDetail = () => {
     setImageGenerating(true);
     setDialogOpen(false);
 
+    const effectiveStyle = style || regenerateStyle;
+    const effectiveAutoStyle = !style && !regenerateStyle;
+    const hasCustomPrompt = !useAiAutoPrompt && !!customPrompt;
+
+    const mapImageErrorCode = (code?: string, fallback?: string, details?: string) => {
+      switch (code) {
+        case 'AI_RATE_LIMIT':
+        case 'RATE_LIMIT':
+          return "Limite richieste raggiunto. Attendi qualche minuto e riprova.";
+        case 'AI_CREDITS_EXHAUSTED':
+          return "Crediti AI esauriti. Contatta il supporto per assistenza.";
+        case 'IMAGE_SAFETY_BLOCKED':
+          return "L'immagine è stata bloccata dai filtri di sicurezza. Prova a modificare la descrizione del sogno.";
+        case 'VALIDATION_ERROR':
+          return `Dati non validi: ${details || 'Verifica il contenuto del sogno'}`;
+        case 'FORBIDDEN':
+          return "Non sei autorizzato a generare immagini per questo sogno.";
+        case 'DREAM_NOT_FOUND':
+          return "Sogno non trovato. Ricarica la pagina.";
+        default:
+          return fallback || "Impossibile generare l'immagine";
+      }
+    };
+
     try {
       const { data, error } = await supabase.functions.invoke('generate-dream-image', {
         body: {
           dreamId: id,
           content: dream.content,
           mood: dream.mood,
-          imageStyle: style || regenerateStyle,
-          autoStyle: !style && !regenerateStyle,
+          imageStyle: effectiveStyle,
+          autoStyle: effectiveAutoStyle,
           customPrompt: useAiAutoPrompt ? undefined : (customPrompt || undefined)
         }
       });
 
       if (error) {
-        console.error('Errore generazione immagine:', error);
-        
-        // Parse error for better messages
-        let errorMessage = "Impossibile generare l'immagine";
-        const errorCode = data?.errorCode || error?.message;
-        
-        if (errorCode?.includes('RATE_LIMIT') || errorCode?.includes('AI_RATE_LIMIT')) {
-          errorMessage = "Limite richieste raggiunto. Attendi qualche minuto e riprova.";
-        } else if (errorCode?.includes('AI_CREDITS_EXHAUSTED') || error?.message?.includes('402')) {
-          errorMessage = "Crediti AI esauriti. Contatta il supporto per assistenza.";
-        } else if (errorCode?.includes('VALIDATION_ERROR')) {
-          errorMessage = `Dati non validi: ${data?.details || 'Verifica il contenuto del sogno'}`;
-        } else if (errorCode?.includes('FORBIDDEN')) {
-          errorMessage = "Non sei autorizzato a generare immagini per questo sogno.";
-        } else if (errorCode?.includes('DREAM_NOT_FOUND')) {
-          errorMessage = "Sogno non trovato. Ricarica la pagina.";
-        } else if (error?.message) {
-          errorMessage = error.message;
+        // Estrai il body reale dell'errore dalla Edge Function
+        let errBody: any = null;
+        try {
+          errBody = error.context ? await error.context.json() : null;
+        } catch {}
+
+        const errorCode = errBody?.errorCode;
+        const serverError = errBody?.error || errBody?.message || error.message;
+        const errorMessage = mapImageErrorCode(errorCode, serverError, errBody?.details);
+
+        console.error('Errore generazione immagine:', { errorCode, serverError, error });
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('error_logs').insert({
+            user_id: user.id,
+            error_code: errorCode || 'IMAGE_GENERATION_FAILED',
+            error_message_user: errorMessage,
+            error_message_technical: JSON.stringify({ message: error.message, body: errBody }),
+            function_name: 'generate-dream-image',
+            dream_id: id,
+            metadata: { imageStyle: effectiveStyle, autoStyle: effectiveAutoStyle, hasCustomPrompt }
+          });
         }
-        
+
         toast({
           title: "Errore Generazione Immagine",
           description: errorMessage,
           variant: "destructive",
         });
       } else if (data?.error) {
-        // Handle error returned in data (non-throwing errors)
-        let errorMessage = data.error;
-        
-        if (data.errorCode === 'AI_RATE_LIMIT') {
-          errorMessage = "Limite richieste AI raggiunto. Attendi qualche minuto.";
-        } else if (data.errorCode === 'AI_CREDITS_EXHAUSTED') {
-          errorMessage = "Crediti AI esauriti. Contatta il supporto.";
+        // Errore restituito nel body con status 200
+        const errorMessage = mapImageErrorCode(data.errorCode, data.error, data.details);
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('error_logs').insert({
+            user_id: user.id,
+            error_code: data.errorCode || 'IMAGE_GENERATION_FAILED',
+            error_message_user: errorMessage,
+            error_message_technical: JSON.stringify(data),
+            function_name: 'generate-dream-image',
+            dream_id: id,
+            metadata: { imageStyle: effectiveStyle, autoStyle: effectiveAutoStyle, hasCustomPrompt }
+          });
         }
-        
+
         toast({
-          title: "Errore",
+          title: "Errore Generazione Immagine",
           description: errorMessage,
           variant: "destructive",
         });
@@ -405,6 +441,20 @@ const DreamDetail = () => {
       }
     } catch (error: any) {
       console.error('Errore inaspettato:', error);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('error_logs').insert({
+          user_id: user.id,
+          error_code: 'IMAGE_GENERATION_EXCEPTION',
+          error_message_user: error?.message || "Errore sconosciuto",
+          error_message_technical: String(error),
+          function_name: 'generate-dream-image',
+          dream_id: id,
+          metadata: { imageStyle: effectiveStyle, autoStyle: effectiveAutoStyle, hasCustomPrompt }
+        });
+      }
+
       toast({
         title: "Errore",
         description: error?.message || "Si è verificato un errore imprevisto durante la generazione",
