@@ -1,35 +1,31 @@
 
 
-# Plan: Fix interpretation AI errors and VoiceRecorder build error
+## Problem
+The image generation error handling in `DreamDetail.tsx` (and `EditDream.tsx`) doesn't use the same robust pattern as the interpretation flow. Specifically:
 
-## Root Causes Identified
+1. **No `error.context.json()` extraction**: When `supabase.functions.invoke('generate-dream-image')` returns a non-2xx (e.g. 429, 402, 500), the JS client wraps it as `FunctionsHttpError` and `data` is `null`. The current code reads `data?.errorCode`, which is always undefined → falls through to a generic message.
+2. **No error logging**: errors aren't written to `error_logs`, so they don't appear in the admin Errors tab.
+3. **`EditDream.tsx`** has an even more basic handler with no parsing at all.
 
-1. **Build error (PROBLEMA 2)**: `VoiceRecorder.tsx` uses `hideCloseButton` prop on `DialogContent`, but the `dialog.tsx` component doesn't support that prop. This is blocking the build/preview.
+## Fix — mirror the interpretation pattern
 
-2. **Interpretation AI error (PROBLEMA 1)**: Two issues found:
-   - **NewDream.tsx line 241-245**: The call to `interpret-dream-with-astrology` is missing `dreamId` in the body. The edge function requires it (line 336-338 throws "Dream ID is required").
-   - **config.toml**: `interpret-dream-with-astrology` is NOT configured with `verify_jwt = false`, unlike other functions. Per project memory, this causes 401 errors due to signing key discrepancies. It needs `verify_jwt = false` (auth is validated in-code via `getUser()`).
+### 1. `src/pages/DreamDetail.tsx` — `handleGenerateImage`
+Replace the error branch (lines ~348–388) to:
+- Extract real error from `error.context.json()` → `errBody.error` / `errBody.errorCode` / `errBody.details`.
+- Map known `errorCode` values (`AI_RATE_LIMIT`, `AI_CREDITS_EXHAUSTED`, `IMAGE_SAFETY_BLOCKED`, `VALIDATION_ERROR`, `FORBIDDEN`, `DREAM_NOT_FOUND`, `RATE_LIMIT`) to friendly Italian messages.
+- Insert into `error_logs` with `error_code`, `error_message_user`, `error_message_technical`, `function_name: 'generate-dream-image'`, `dream_id: id`, plus metadata (style, autoStyle, hasCustomPrompt).
+- Show destructive toast with the real message.
+- Same logging in the `catch` block (unexpected exceptions).
 
-## Changes
-
-### 1. Fix `src/components/ui/dialog.tsx` — add `hideCloseButton` support
-Add an optional `hideCloseButton?: boolean` prop to `DialogContent`. When true, skip rendering the close X button. This fixes the TS2322 build error in VoiceRecorder.tsx.
-
-### 2. Fix `src/pages/NewDream.tsx` — pass `dreamId` to interpretation call
-Change lines 241-245 to include `dreamId: data.id` in the body sent to `interpret-dream-with-astrology`.
-
-### 3. Fix `supabase/config.toml` — add `verify_jwt = false` for `interpret-dream-with-astrology`
-Add the missing function config entry, consistent with the other functions that validate JWT in-code.
-
-### 4. Improve error handling in `src/pages/DreamDetail.tsx`
-Make the error toast show the actual server error message instead of a generic one, following the pattern already used elsewhere.
+### 2. `src/pages/EditDream.tsx` — `handleRegenerateImage`
+Apply the exact same parse + log + toast pattern.
 
 ### Files changed
-- `src/components/ui/dialog.tsx` — add `hideCloseButton` prop
-- `src/pages/NewDream.tsx` — add missing `dreamId` field
-- `supabase/config.toml` — add interpret-dream-with-astrology config
-- `src/pages/DreamDetail.tsx` — improve error message in toast
+- `src/pages/DreamDetail.tsx` — rewrite the error/catch branches of `handleGenerateImage`
+- `src/pages/EditDream.tsx` — rewrite the error/catch branches of `handleRegenerateImage`
 
-### No changes to
-- Auth flows, Supabase edge functions code, routing, dashboard, or any unrelated files
+### Not touched
+- Edge function `generate-dream-image` (already returns structured `{ error, errorCode, details }`)
+- `NewDream.tsx` (image generation there is best-effort, silent — out of scope)
+- Admin Errors tab, dialog, auth, supabase config
 
