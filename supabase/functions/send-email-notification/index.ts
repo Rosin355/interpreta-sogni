@@ -270,7 +270,20 @@ const handler = async (req: Request): Promise<Response> => {
         throw new Error("Invalid notification type");
     }
 
-    console.log('[send-email] Sending:', emailContent.subject);
+    // Verifica RESEND_API_KEY presente
+    const resendKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendKey) {
+      console.error('[send-email] RESEND_API_KEY mancante nei secrets');
+      return new Response(
+        JSON.stringify({
+          error: "Configurazione email mancante: RESEND_API_KEY non impostata nei secrets della Edge Function.",
+          errorCode: "RESEND_KEY_MISSING",
+        }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log('[send-email] Sending:', emailContent.subject, '→', finalRecipientEmail);
 
     const emailResponse = await resend.emails.send({
       from: FROM_EMAIL,
@@ -279,7 +292,35 @@ const handler = async (req: Request): Promise<Response> => {
       html: emailContent.html,
     });
 
-    console.log('[send-email] Sent:', JSON.stringify(emailResponse));
+    console.log('[send-email] Resend raw response:', JSON.stringify(emailResponse));
+
+    // Resend SDK ritorna { data, error } anche su 4xx — non lancia eccezione
+    if ((emailResponse as any)?.error) {
+      const resendError = (emailResponse as any).error;
+      const errMsg: string = resendError.message || JSON.stringify(resendError);
+      const errName: string = resendError.name || "";
+
+      let errorCode = "RESEND_API_ERROR";
+      if (/domain/i.test(errMsg) && /(verif|not found)/i.test(errMsg)) {
+        errorCode = "RESEND_DOMAIN_UNVERIFIED";
+      } else if (/api[_ ]?key|unauthor|forbidden/i.test(errMsg) || errName === "validation_error") {
+        errorCode = "RESEND_AUTH_ERROR";
+      } else if (/testing|test mode|own email/i.test(errMsg)) {
+        errorCode = "RESEND_TEST_MODE";
+      }
+
+      console.error('[send-email] Resend rifiutato:', errorCode, errMsg);
+      return new Response(
+        JSON.stringify({
+          error: `Resend ha rifiutato l'email: ${errMsg}`,
+          errorCode,
+          resendError,
+        }),
+        { status: 502, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log('[send-email] Inviata con successo, id:', (emailResponse as any)?.data?.id);
 
     return new Response(
       JSON.stringify({ success: true, data: emailResponse }),
@@ -288,7 +329,10 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error('[send-email] ERROR:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({
+        error: error.message || "Errore sconosciuto durante l'invio email",
+        errorCode: "EDGE_FUNCTION_EXCEPTION",
+      }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
