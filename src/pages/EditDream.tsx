@@ -18,6 +18,7 @@ import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { getCategoryFromTag } from "@/utils/dream-categories";
 import { CustomPromptInput, isCustomPromptValid } from "@/components/CustomPromptInput";
+import { buildErrorReportAction } from "@/utils/error-toast-action";
 
 const EditDream = () => {
   const { id } = useParams();
@@ -261,6 +262,13 @@ const EditDream = () => {
           title: "Errore Generazione Immagine",
           description: errorMessage,
           variant: "destructive",
+          action: buildErrorReportAction({
+            errorCode: errorCode || 'IMAGE_GENERATION_FAILED',
+            functionName: 'generate-dream-image',
+            userMessage: errorMessage,
+            technicalMessage: JSON.stringify({ message: error.message, body: errBody }),
+            dreamId: id,
+          }),
         });
       } else if (data?.error) {
         const errorMessage = mapImageErrorCode(data.errorCode, data.error, data.details);
@@ -282,6 +290,13 @@ const EditDream = () => {
           title: "Errore Generazione Immagine",
           description: errorMessage,
           variant: "destructive",
+          action: buildErrorReportAction({
+            errorCode: data.errorCode || 'IMAGE_GENERATION_FAILED',
+            functionName: 'generate-dream-image',
+            userMessage: errorMessage,
+            technicalMessage: JSON.stringify(data),
+            dreamId: id,
+          }),
         });
       } else if (data?.image_url) {
         setImageUrl(data.image_url);
@@ -308,6 +323,13 @@ const EditDream = () => {
           title: "Errore",
           description: fallbackMessage,
           variant: "destructive",
+          action: buildErrorReportAction({
+            errorCode: 'IMAGE_GENERATION_INVALID_RESPONSE',
+            functionName: 'generate-dream-image',
+            userMessage: fallbackMessage,
+            technicalMessage: JSON.stringify(data ?? null),
+            dreamId: id,
+          }),
         });
       }
     } catch (error: any) {
@@ -342,6 +364,13 @@ const EditDream = () => {
         title: "Errore",
         description: errorMessage,
         variant: "destructive",
+        action: buildErrorReportAction({
+          errorCode,
+          functionName: 'generate-dream-image',
+          userMessage: errorMessage,
+          technicalMessage: JSON.stringify({ message: String(error), body: errBody }),
+          dreamId: id,
+        }),
       });
     } finally {
       setImageGenerating(false);
