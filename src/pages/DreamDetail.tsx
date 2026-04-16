@@ -464,6 +464,13 @@ const DreamDetail = () => {
           title: "Errore",
           description: fallbackMessage,
           variant: "destructive",
+          action: buildErrorReportAction({
+            errorCode: 'IMAGE_GENERATION_INVALID_RESPONSE',
+            functionName: 'generate-dream-image',
+            userMessage: fallbackMessage,
+            technicalMessage: JSON.stringify(data ?? null),
+            dreamId: id,
+          }),
         });
       }
     } catch (error: any) {
@@ -498,6 +505,13 @@ const DreamDetail = () => {
         title: "Errore",
         description: errorMessage,
         variant: "destructive",
+        action: buildErrorReportAction({
+          errorCode,
+          functionName: 'generate-dream-image',
+          userMessage: errorMessage,
+          technicalMessage: JSON.stringify({ message: String(error), body: errBody }),
+          dreamId: id,
+        }),
       });
     } finally {
       setImageGenerating(false);
