@@ -11,6 +11,7 @@ import { Loader2, Search, Eye, Heart, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+import { usePageLoading } from "@/contexts/RouteLoadingContext";
 
 interface PublicDream {
   id: string;
@@ -87,13 +88,12 @@ export default function Explore() {
       dream.tags?.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  usePageLoading(loading, "explore");
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        <div className="container mx-auto px-4 py-8 flex items-center justify-center" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
       </div>
     );
   }
