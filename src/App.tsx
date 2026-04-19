@@ -10,6 +10,7 @@ import { MysticLoader } from "@/components/ui/MysticLoader";
 import { AppCacheProvider } from "@/contexts/AppCacheContext";
 import { RouteProgressBar } from "@/components/loading/RouteProgressBar";
 import { RouteFadeTransition } from "@/components/loading/RouteFadeTransition";
+import { startRoutePrefetch } from "@/utils/route-prefetch";
 
 // Eager load - Landing page
 import Index from "./pages/Index";
@@ -60,6 +61,10 @@ const AppRouter = () => {
     tickRef.current += 1;
     setLoadingTick(tickRef.current);
   };
+
+  useEffect(() => {
+    startRoutePrefetch();
+  }, []);
 
   return (
     <>
