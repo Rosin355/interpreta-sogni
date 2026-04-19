@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Calendar, Star, Edit2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { usePageLoading } from "@/contexts/RouteLoadingContext";
 
 const Astrology = () => {
   const navigate = useNavigate();
@@ -158,15 +159,12 @@ const Astrology = () => {
     return houses[houseNum] || { area: "", description: "" };
   };
 
+  usePageLoading(loading, "astrology");
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        <div className="pb-16 px-6 container mx-auto" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          </div>
-        </div>
       </div>
     );
   }
