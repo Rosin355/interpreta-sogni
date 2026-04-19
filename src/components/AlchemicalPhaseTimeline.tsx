@@ -148,7 +148,7 @@ export const AlchemicalPhaseTimeline = ({
                       Presenza
                     </p>
                     <p className={cn("text-4xl font-semibold tracking-tight", styles.accentClass)}>
-                      {Math.round(percentage)}%
+                      {formatPercentage(percentage)}%
                     </p>
                   </div>
                 </div>
