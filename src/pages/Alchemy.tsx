@@ -54,8 +54,15 @@ const Alchemy = () => {
   const { celebrate } = useAlchemicalCelebration();
 
   useEffect(() => {
-    checkAuth();
+    // Cache fresca → niente refetch
+    if (cachedAlchemy && !isStale(alchemyLastFetchedAt)) {
+      return;
+    }
+    checkAuth(!!cachedAlchemy);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
+  useEffect(() => {
     const checkForTransitions = async () => {
       if (!journey || !journey.transitions || journey.transitions.length === 0) return;
 
