@@ -1,26 +1,21 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
-  calculateUserJourney,
   getAllPhases,
   getPhaseAdvice,
-  type UserJourney,
   type AlchemicalPhase,
 } from "@/utils/alchemical-phases";
 import { AlchemicalJourneyMap } from "@/components/AlchemicalJourneyMap";
 import { AlchemicalTransitionsList } from "@/components/AlchemicalTransitionsList";
 import { Loader2, TrendingUp, TrendingDown, Minus, Sparkles, ChevronDown } from "lucide-react";
-import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useAlchemicalCelebration } from "@/hooks/useAlchemicalCelebration";
 import { AlchemicalTransitionCelebration } from "@/components/AlchemicalTransitionCelebration";
 import { cn } from "@/lib/utils";
-import { useAppCache } from "@/contexts/AppCacheContext";
+import { useAlchemyJourney } from "@/hooks/useAlchemyJourney";
 
 const phaseBadgeClass: Record<AlchemicalPhase, string> = {
   nigredo: "border-border bg-secondary text-secondary-foreground",
@@ -29,22 +24,8 @@ const phaseBadgeClass: Record<AlchemicalPhase, string> = {
 };
 
 const Alchemy = () => {
-  const navigate = useNavigate();
-  const {
-    getAlchemyCache,
-    setAlchemyCache,
-    isStale,
-    alchemyLastFetchedAt,
-    isAlchemyRefreshing,
-    setAlchemyRefreshing,
-  } = useAppCache();
+  const { journey, dreamsCount, loading, isRefreshing: isAlchemyRefreshing } = useAlchemyJourney();
 
-  const cachedAlchemy = getAlchemyCache();
-
-  const [loading, setLoading] = useState(!cachedAlchemy);
-  const [dreams, setDreams] = useState<any[]>([]);
-  const [journey, setJourney] = useState<UserJourney | null>(cachedAlchemy?.journey ?? null);
-  const [dreamsCount, setDreamsCount] = useState<number>(cachedAlchemy?.dreamsCount ?? 0);
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationTransition, setCelebrationTransition] = useState<{
     from: AlchemicalPhase;
@@ -52,15 +33,6 @@ const Alchemy = () => {
   } | null>(null);
 
   const { celebrate } = useAlchemicalCelebration();
-
-  useEffect(() => {
-    // Cache fresca → niente refetch
-    if (cachedAlchemy && !isStale(alchemyLastFetchedAt)) {
-      return;
-    }
-    checkAuth(!!cachedAlchemy);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     const checkForTransitions = async () => {
@@ -103,50 +75,6 @@ const Alchemy = () => {
     checkForTransitions();
   }, [celebrate, journey]);
 
-  const checkAuth = async (background = false) => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session) {
-      navigate("/auth");
-      return;
-    }
-    fetchDreams(background);
-  };
-
-  const fetchDreams = async (background = false) => {
-    if (background) setAlchemyRefreshing(true);
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Payload ridotto: solo campi utili al calcolo alchemico
-      const { data, error } = await supabase
-        .from("dreams")
-        .select("id, dream_date, content, mood, tags, interpretation, alchemical_phase")
-        .eq("user_id", user.id)
-        .order("dream_date", { ascending: true });
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        setDreams(data);
-        const userJourney = calculateUserJourney(data);
-        setJourney(userJourney);
-        setDreamsCount(data.length);
-        setAlchemyCache({ journey: userJourney, dreamsCount: data.length });
-      }
-    } catch (error) {
-      console.error("Error fetching dreams:", error);
-      toast.error("Errore nel caricamento dei sogni");
-    } finally {
-      setLoading(false);
-      if (background) setAlchemyRefreshing(false);
-    }
-  };
-
   const getTrendMeta = () => {
     if (!journey) return null;
 
@@ -183,7 +111,7 @@ const Alchemy = () => {
     );
   }
 
-  if (!journey || (dreams.length === 0 && dreamsCount === 0)) {
+  if (!journey || dreamsCount === 0) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
@@ -245,7 +173,7 @@ const Alchemy = () => {
                   </Badge>
                 )}
                 <Badge variant="outline" className="border-border bg-card/70 text-foreground">
-                  {dreamsCount || dreams.length} sogni analizzati
+                  {dreamsCount} sogni analizzati
                 </Badge>
                 {isAlchemyRefreshing && (
                   <Loader2 className="h-3 w-3 animate-spin text-muted-foreground/60" />
