@@ -172,9 +172,18 @@ const MyDreams = () => {
       console.error("Errore nel caricamento ulteriore:", error);
     } else {
       const batch = data || [];
-      setDreams(prev => [...prev, ...batch]);
-      setOffset(prev => prev + batch.length);
-      setHasMore(batch.length === PAGE_SIZE);
+      const merged = [...dreams, ...batch];
+      const newOffset = offset + batch.length;
+      const newHasMore = batch.length === PAGE_SIZE;
+      setDreams(merged);
+      setOffset(newOffset);
+      setHasMore(newHasMore);
+      setDreamsCache({
+        dreams: merged,
+        offset: newOffset,
+        hasMore: newHasMore,
+        totalCount,
+      });
     }
     setLoadingMore(false);
   };
@@ -187,8 +196,11 @@ const MyDreams = () => {
           <div className="mb-8 flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-bold text-foreground mb-2">I Miei Sogni</h1>
-              <p className="text-muted-foreground">
-                {totalCount} {totalCount === 1 ? "sogno registrato" : "sogni registrati"}
+              <p className="text-muted-foreground flex items-center gap-2">
+                <span>{totalCount} {totalCount === 1 ? "sogno registrato" : "sogni registrati"}</span>
+                {isDreamsRefreshing && (
+                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground/60" />
+                )}
               </p>
             </div>
             <Button onClick={() => navigate("/dreams/new")} className="gap-2">
