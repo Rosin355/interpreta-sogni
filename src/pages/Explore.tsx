@@ -11,6 +11,7 @@ import { Loader2, Search, Eye, Heart, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+import { usePageLoading } from "@/contexts/RouteLoadingContext";
 
 interface PublicDream {
   id: string;
