@@ -19,8 +19,7 @@ import { useAlchemyJourney } from "@/hooks/useAlchemyJourney";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { formatPercentage } from "@/contexts/AppCacheContext";
-import { AppLoadingOverlay } from "@/components/loading/AppLoadingOverlay";
-import { AnimatePresence } from "framer-motion";
+import { usePageLoading } from "@/contexts/RouteLoadingContext";
 
 const phaseBadgeClass: Record<AlchemicalPhase, string> = {
   nigredo: "border-border bg-secondary text-secondary-foreground",
@@ -105,22 +104,14 @@ const Alchemy = () => {
   const allPhases = getAllPhases();
   const trendMeta = getTrendMeta();
 
+  // Registra il loading globale: l'overlay RouteSwitchOverlay resta visibile
+  // finché i dati del viaggio non sono pronti, evitando un secondo loader interno.
+  usePageLoading(loading && !journey, "alchemy");
+
   if (loading && !journey) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        <AnimatePresence>
-          <AppLoadingOverlay
-            title="Viaggio alchemico"
-            messages={[
-              "Sto aprendo il tuo spazio interiore…",
-              "Sto leggendo le fasi del tuo cammino…",
-              "Sto ricomponendo i simboli emersi…",
-              "Sto tracciando la tua mappa interiore…",
-              "Quasi pronto.",
-            ]}
-          />
-        </AnimatePresence>
       </div>
     );
   }
