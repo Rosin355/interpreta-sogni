@@ -16,8 +16,6 @@ import { DreamCardSkeleton } from "@/components/ui/dream-skeleton";
 import { AlchemicalBadge } from "@/components/AlchemicalBadge";
 import { AlchemicalPhase } from "@/utils/alchemical-phases";
 import { useDreamsList } from "@/hooks/useDreamsList";
-import { AppLoadingOverlay } from "@/components/loading/AppLoadingOverlay";
-import { AnimatePresence } from "framer-motion";
 
 const DreamImage = ({ src, alt }: { src: string; alt: string }) => {
   const [loaded, setLoaded] = useState(false);
@@ -84,23 +82,8 @@ const MyDreams = () => {
     setFilteredDreams(filtered);
   }, [searchQuery, selectedCategory, selectedPhase, dreams]);
 
-  const showFullLoader = loading && dreams.length === 0;
-
   return (
     <>
-      <AnimatePresence>
-        {showFullLoader && (
-          <AppLoadingOverlay
-            title="I tuoi sogni"
-            messages={[
-              "Sto aprendo il tuo diario onirico…",
-              "Sto raccogliendo i sogni recenti…",
-              "Sto ricomponendo i simboli emersi…",
-              "Quasi pronto.",
-            ]}
-          />
-        )}
-      </AnimatePresence>
       <Navigation />
       <div className="min-h-screen bg-gradient-to-br from-background via-dream-space to-background pb-12" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
         <div className="container mx-auto px-6">

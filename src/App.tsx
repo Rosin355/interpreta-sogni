@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import MysticCursor from "@/components/ui/MysticCursor";
 import { MysticLoader } from "@/components/ui/MysticLoader";
 import { AppCacheProvider } from "@/contexts/AppCacheContext";
+import { RouteProgressBar } from "@/components/loading/RouteProgressBar";
 
 // Eager load - Landing page
 import Index from "./pages/Index";
@@ -48,6 +49,7 @@ const App = () => (
         <Sonner />
         <MysticCursor />
         <BrowserRouter>
+          <RouteProgressBar />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<Index />} />
