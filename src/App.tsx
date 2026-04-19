@@ -10,6 +10,7 @@ import { MysticLoader } from "@/components/ui/MysticLoader";
 import { AppCacheProvider } from "@/contexts/AppCacheContext";
 import { RouteProgressBar } from "@/components/loading/RouteProgressBar";
 import { RouteFadeTransition } from "@/components/loading/RouteFadeTransition";
+import { RouteSwitchOverlay } from "@/components/loading/RouteSwitchOverlay";
 import { startRoutePrefetch } from "@/utils/route-prefetch";
 
 // Eager load - Landing page
@@ -69,6 +70,7 @@ const AppRouter = () => {
   return (
     <>
       <RouteProgressBar loadingTick={loadingTick} />
+      <RouteSwitchOverlay loadingTick={loadingTick} />
       <Suspense fallback={<PageLoader />}>
         <RouteMountMarker onMount={handleMount} />
         <RouteFadeTransition>
