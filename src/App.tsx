@@ -62,6 +62,10 @@ const AppRouter = () => {
     setLoadingTick(tickRef.current);
   };
 
+  useEffect(() => {
+    startRoutePrefetch();
+  }, []);
+
   return (
     <>
       <RouteProgressBar loadingTick={loadingTick} />
