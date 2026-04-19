@@ -31,8 +31,10 @@ export const RouteFadeTransition = ({ children }: { children: React.ReactNode })
     <div
       style={{
         opacity: visible ? 1 : 0,
-        transition: "opacity 180ms ease-out",
-        willChange: "opacity",
+        transform: visible ? "translateY(0)" : "translateY(4px)",
+        transition:
+          "opacity 140ms ease-out, transform 180ms cubic-bezier(0.22, 1, 0.36, 1)",
+        willChange: "opacity, transform",
       }}
     >
       {children}
