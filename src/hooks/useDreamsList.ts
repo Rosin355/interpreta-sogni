@@ -120,7 +120,12 @@ export const useDreamsList = () => {
   };
 
   const refresh = async (options?: RefreshOptions) => {
-    const background = !options?.force && dreams.length > 0;
+    // force=true: bypassa sempre la cache, mostra solo loader discreto, non svuota la UI
+    if (options?.force) {
+      await fetchInitial(true);
+      return;
+    }
+    const background = dreams.length > 0;
     await fetchInitial(background);
   };
 

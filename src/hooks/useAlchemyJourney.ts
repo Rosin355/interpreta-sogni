@@ -61,7 +61,12 @@ export const useAlchemyJourney = () => {
   };
 
   const refresh = async (options?: RefreshOptions) => {
-    const background = !options?.force && journey !== null;
+    // force=true: bypassa la cache e forza il refetch, mantenendo i dati visibili
+    if (options?.force) {
+      await fetchJourney(true);
+      return;
+    }
+    const background = journey !== null;
     await fetchJourney(background);
   };
 
