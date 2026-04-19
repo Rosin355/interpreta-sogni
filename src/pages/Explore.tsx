@@ -88,13 +88,12 @@ export default function Explore() {
       dream.tags?.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  usePageLoading(loading, "explore");
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        <div className="container mx-auto px-4 py-8 flex items-center justify-center" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
       </div>
     );
   }
