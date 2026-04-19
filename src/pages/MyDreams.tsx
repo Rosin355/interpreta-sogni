@@ -15,6 +15,7 @@ import { ImageZoomModal } from "@/components/ImageZoomModal";
 import { DreamCardSkeleton } from "@/components/ui/dream-skeleton";
 import { AlchemicalBadge } from "@/components/AlchemicalBadge";
 import { AlchemicalPhase } from "@/utils/alchemical-phases";
+import { useAppCache } from "@/contexts/AppCacheContext";
 
 const PAGE_SIZE = 12;
 
@@ -36,19 +37,36 @@ const DreamImage = ({ src, alt }: { src: string; alt: string }) => {
 
 const MyDreams = () => {
   const navigate = useNavigate();
-  const [dreams, setDreams] = useState<any[]>([]);
-  const [filteredDreams, setFilteredDreams] = useState<any[]>([]);
+  const {
+    getDreamsCache,
+    setDreamsCache,
+    isStale,
+    dreamsLastFetchedAt,
+    isDreamsRefreshing,
+    setDreamsRefreshing,
+  } = useAppCache();
+
+  const cached = getDreamsCache();
+
+  const [dreams, setDreams] = useState<any[]>(cached?.dreams ?? []);
+  const [filteredDreams, setFilteredDreams] = useState<any[]>(cached?.dreams ?? []);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedPhase, setSelectedPhase] = useState<string>("all");
-  const [loading, setLoading] = useState(true);
+  // Skeleton solo se NON ho dati in cache
+  const [loading, setLoading] = useState(!cached);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [offset, setOffset] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
-  const [totalCount, setTotalCount] = useState(0);
+  const [offset, setOffset] = useState(cached?.offset ?? 0);
+  const [hasMore, setHasMore] = useState(cached?.hasMore ?? false);
+  const [totalCount, setTotalCount] = useState(cached?.totalCount ?? 0);
 
   useEffect(() => {
-    fetchInitial();
+    // Se ho dati freschi in cache, non rifetchare
+    if (cached && !isStale(dreamsLastFetchedAt)) {
+      return;
+    }
+    // Se cache stale ma presente: refresh in background; altrimenti fetch normale
+    fetchInitial(!!cached);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
