@@ -1,48 +1,50 @@
 
 
-## Diagnosi
+## Piano: RouteProgressBar con soglia di apparizione (~250ms)
 
-L'utente mostra il dashboard Resend filtrato su "Last 15 days": appaiono solo email "Confirm Your Signup" (auth Supabase). NESSUN invio di `send-email-notification` è registrato → la edge function NON sta chiamando Resend con successo. Le email a `jessicaommarin@gmail.com` e `romesh.singhabahu@gmail.com` non sono mai partite.
+### Problema
+La barra parte ad ogni cambio di route ma, grazie al prefetch idle, i chunk sono quasi sempre già in cache → `Suspense` non scatta → `loadingTick` non cambia → la barra resta a ~90% finché non cambia di nuovo route. Risultato: linea gradiente fastidiosa quasi sempre visibile.
 
-Cause più probabili (da verificare nei log della edge function):
+### Soluzione
+Aggiungere una **soglia di 250ms** prima di rendere la barra visibile. Se il nuovo content monta entro quella soglia (chunk già in cache), la barra non appare mai. Se invece il caricamento è più lento (chunk non prefetchato, rete lenta), la barra appare normalmente con feedback utile.
 
-1. **`RESEND_API_KEY` mancante o invalida** nei secrets di Supabase per la funzione `send-email-notification`. La funzione fallirebbe ma il client mostra comunque un toast generico (anche se ora abbiamo aggiunto il logging in `error_logs`, solo i nuovi tentativi vengono tracciati).
+### Modifiche
 
-2. **Dominio `dreamalchemist.app` non verificato su Resend** → Resend rifiuta gli invii con `from: noreply@dreamalchemist.app`. Il dashboard mostra che il progetto Resend si chiama "dreamalchemistapp" ma nella sidebar serve controllare la sezione **Domains** per lo stato di verifica.
+**1. `src/components/loading/RouteProgressBar.tsx`** (unico file da modificare)
 
-3. **Edge function va in errore prima di chiamare Resend** (es. `auth.getUser()` fallisce) — ma in tal caso vedremmo gli errori in `error_logs`.
+Logica:
+- Al cambio `pathname`: avviare un **timer di 250ms** prima di settare `visible = true` e iniziare la progression.
+- Se nel frattempo arriva il `loadingTick` (= mount completato), **cancellare il timer** e non mostrare nulla.
+- Se invece il timer scatta prima del mount → comportamento attuale (barra appare, cresce asintoticamente, completa al 100% quando arriva loadingTick).
+- Pulizia corretta dei timer in cleanup per evitare leak.
 
-Per risolvere serve:
-- Leggere i log reali della edge function `send-email-notification` per vedere l'errore esatto
-- Verificare lo stato del dominio su Resend
-- Verificare che `RESEND_API_KEY` sia configurata
+Pseudocodice:
+```
+useEffect on pathname:
+  clear all timers
+  hide bar (visible=false, progress=0)
+  appearTimer = setTimeout(() => {
+    visible = true
+    progress = 10
+    intervalRef = setInterval(asymptotic growth)
+  }, 250)
+  return cleanup
 
-## Piano
+useEffect on loadingTick:
+  if loadingTick changed:
+    clear appearTimer  // <- chiave: se ancora pendente, niente barra
+    if visible:
+      complete to 100% then hide
+    else:
+      reset silently
+```
 
-### Step 1 — Diagnostica (lettura log)
-Leggere i log recenti della edge function `send-email-notification` per identificare la causa esatta del fallimento (chiave mancante, dominio non verificato, errore di parsing, ecc).
+### Cosa NON cambia
+- `App.tsx`, `RouteFadeTransition`, `route-prefetch.ts`, marker Suspense → invariati.
+- Comportamento sui chunk lenti / non prefetchati → identico a prima.
+- Design e colori → identici.
 
-Query la tabella `error_logs` filtrando su `function_name = 'send-email-notification'` per vedere se i nuovi tentativi (post-fix precedente) hanno generato log strutturati.
-
-### Step 2 — In base al risultato
-- **Se `RESEND_API_KEY` manca/invalida** → chiedere all'utente di aggiungerla/rigenerarla nei Supabase Edge Function Secrets (l'agente non può scrivere secrets).
-- **Se dominio non verificato** → istruire l'utente a completare la verifica DNS (SPF/DKIM/DMARC) sul dashboard Resend → Domains, oppure cambiare temporaneamente `FROM_EMAIL` a `onboarding@resend.dev` per testare.
-- **Se errore di codice** → patchare la edge function.
-
-### Step 3 — Hardening della edge function `send-email-notification`
-Indipendentemente dalla causa, migliorare la funzione per restituire errori PIÙ chiari al client:
-- Logging esplicito quando `RESEND_API_KEY` è assente
-- Catturare e ritornare l'errore reale di `resend.emails.send()` (oggi viene loggato in console ma non sempre rilanciato come 500 strutturato)
-- Aggiungere `errorCode` strutturato (`RESEND_KEY_MISSING`, `RESEND_DOMAIN_UNVERIFIED`, `RESEND_API_ERROR`) così il client mostra messaggi precisi nel toast
-
-### File toccati
-- `supabase/functions/send-email-notification/index.ts` — gestione errori Resend strutturata + check `RESEND_API_KEY`
-
-### File NON toccati
-- Schema DB, RLS, altre edge function, UI
-
-### Verifiche richieste all'utente (dopo il fix)
-1. Su **Resend Dashboard → Domains**: confermare che `dreamalchemist.app` sia in stato **Verified** (verde) con SPF/DKIM ok. Screenshot.
-2. Su **Lovable Cloud → Edge Functions → send-email-notification → Secrets**: confermare che `RESEND_API_KEY` sia presente.
-3. Provare di nuovo a condividere un sogno e controllare la tab "Errori" in Admin Dashboard per il log strutturato `EMAIL_DELIVERY_FAILED` con il `errorCode` reale.
+### Tradeoff
+- Su connessioni molto veloci la barra non apparirà quasi mai (è l'obiettivo).
+- 250ms è una soglia standard (NProgress usa 200-300ms): sotto è percepito come "istantaneo", sopra l'utente inizia a percepire attesa e il feedback diventa utile.
 
