@@ -19,6 +19,8 @@ import { useAlchemyJourney } from "@/hooks/useAlchemyJourney";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { formatPercentage } from "@/contexts/AppCacheContext";
+import { AppLoadingOverlay } from "@/components/loading/AppLoadingOverlay";
+import { AnimatePresence } from "framer-motion";
 
 const phaseBadgeClass: Record<AlchemicalPhase, string> = {
   nigredo: "border-border bg-secondary text-secondary-foreground",
@@ -103,13 +105,22 @@ const Alchemy = () => {
   const allPhases = getAllPhases();
   const trendMeta = getTrendMeta();
 
-  if (loading) {
+  if (loading && !journey) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        <div className="container mx-auto flex items-center justify-center px-4 pb-12" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <AnimatePresence>
+          <AppLoadingOverlay
+            title="Viaggio alchemico"
+            messages={[
+              "Sto aprendo il tuo spazio interiore…",
+              "Sto leggendo le fasi del tuo cammino…",
+              "Sto ricomponendo i simboli emersi…",
+              "Sto tracciando la tua mappa interiore…",
+              "Quasi pronto.",
+            ]}
+          />
+        </AnimatePresence>
       </div>
     );
   }
