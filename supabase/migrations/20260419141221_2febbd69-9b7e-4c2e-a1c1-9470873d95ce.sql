@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS idx_dreams_user_date ON public.dreams (user_id, dream_date DESC);
