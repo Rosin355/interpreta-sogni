@@ -183,7 +183,7 @@ const Alchemy = () => {
     );
   }
 
-  if (!journey || dreams.length === 0) {
+  if (!journey || (dreams.length === 0 && dreamsCount === 0)) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
@@ -245,8 +245,11 @@ const Alchemy = () => {
                   </Badge>
                 )}
                 <Badge variant="outline" className="border-border bg-card/70 text-foreground">
-                  {dreams.length} sogni analizzati
+                  {dreamsCount || dreams.length} sogni analizzati
                 </Badge>
+                {isAlchemyRefreshing && (
+                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground/60" />
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -299,7 +302,7 @@ const Alchemy = () => {
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="text-lg font-semibold">{phase.name}</h3>
                             <Badge variant="outline" className={cn("font-medium", phaseBadgeClass[phase.id])}>
-                              {journey.distribution[phase.id]}%
+                              {Math.round(journey.distribution[phase.id])}%
                             </Badge>
                             {journey.currentPhase === phase.id && (
                               <Badge variant="outline" className="border-border bg-card/70 text-foreground">
