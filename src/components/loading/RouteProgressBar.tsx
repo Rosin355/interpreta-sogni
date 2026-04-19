@@ -4,59 +4,100 @@ import { useLocation } from "react-router-dom";
 /**
  * Top progress bar sincronizzata con il caricamento reale delle route lazy.
  *
- * Logica:
- * - Al cambio di pathname mostriamo la barra e cresce in modo asintotico fino a ~90%.
- * - Quando il nuovo componente di pagina è effettivamente montato (children renderizzati
- *   dopo il Suspense fallback), il prossimo effetto su pathname coincide col mount,
- *   quindi completiamo la barra a 100% e la nascondiamo.
+ * Con prefetch idle attivo, i chunk sono quasi sempre già in cache: il mount
+ * avviene entro pochi ms e mostrare la barra creerebbe solo "rumore" visivo.
  *
- * In pratica: useLocation() si aggiorna quando React Router cambia route, ma il render
- * dei children del wrapper avviene solo dopo che il chunk lazy è pronto. Tracciamo
- * quel mount con un ref incrementato dal child wrapper.
+ * Per questo applichiamo una soglia di apparizione (APPEAR_THRESHOLD_MS):
+ * - Al cambio route partiamo un timer; solo se scatta facciamo apparire la barra.
+ * - Se il loadingTick (mount completato) arriva prima del timer, la barra
+ *   non viene mai mostrata.
+ * - Se il caricamento supera la soglia, la barra appare e cresce in modo
+ *   asintotico fino al completamento.
  */
+const APPEAR_THRESHOLD_MS = 250;
+
 export const RouteProgressBar = ({ loadingTick }: { loadingTick?: number }) => {
   const location = useLocation();
   const [visible, setVisible] = useState(false);
   const [progress, setProgress] = useState(0);
   const intervalRef = useRef<number | null>(null);
+  const appearTimerRef = useRef<number | null>(null);
+  const hideTimerRef = useRef<number | null>(null);
+  const resetTimerRef = useRef<number | null>(null);
   const lastTickRef = useRef<number | undefined>(loadingTick);
 
-  // Avvio: cambio route -> start progress
-  useEffect(() => {
-    setVisible(true);
-    setProgress(10);
+  const clearAllTimers = () => {
+    if (intervalRef.current) {
+      window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (appearTimerRef.current) {
+      window.clearTimeout(appearTimerRef.current);
+      appearTimerRef.current = null;
+    }
+    if (hideTimerRef.current) {
+      window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+    if (resetTimerRef.current) {
+      window.clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = null;
+    }
+  };
 
-    if (intervalRef.current) window.clearInterval(intervalRef.current);
-    intervalRef.current = window.setInterval(() => {
-      setProgress((p) => {
-        if (p >= 90) return p;
-        // Crescita asintotica morbida
-        const delta = (90 - p) * 0.15;
-        return Math.min(90, p + Math.max(0.5, delta));
-      });
-    }, 120);
+  // Avvio: cambio route -> programma comparsa solo se il caricamento
+  // supera la soglia. Sui chunk già prefetchati il timer viene cancellato
+  // dall'effetto su loadingTick prima di scattare.
+  useEffect(() => {
+    clearAllTimers();
+    setVisible(false);
+    setProgress(0);
+
+    appearTimerRef.current = window.setTimeout(() => {
+      setVisible(true);
+      setProgress(10);
+      intervalRef.current = window.setInterval(() => {
+        setProgress((p) => {
+          if (p >= 90) return p;
+          // Crescita asintotica morbida
+          const delta = (90 - p) * 0.15;
+          return Math.min(90, p + Math.max(0.5, delta));
+        });
+      }, 120);
+    }, APPEAR_THRESHOLD_MS);
 
     return () => {
-      if (intervalRef.current) window.clearInterval(intervalRef.current);
+      clearAllTimers();
     };
   }, [location.pathname]);
 
   // Completion: quando il nuovo content è montato (loadingTick cambia dopo Suspense),
-  // chiudiamo la barra.
+  // cancelliamo il timer di apparizione (se la barra non è ancora visibile non
+  // appare affatto) o completiamo e nascondiamo se è già visibile.
   useEffect(() => {
     if (loadingTick === undefined) return;
     if (loadingTick === lastTickRef.current) return;
     lastTickRef.current = loadingTick;
 
-    if (intervalRef.current) window.clearInterval(intervalRef.current);
+    // Se la barra non è ancora apparsa, semplicemente cancelliamo tutto.
+    if (appearTimerRef.current) {
+      window.clearTimeout(appearTimerRef.current);
+      appearTimerRef.current = null;
+    }
+
+    if (!visible) {
+      // Mount avvenuto entro la soglia: nessun feedback necessario.
+      return;
+    }
+
+    if (intervalRef.current) {
+      window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
     setProgress(100);
-    const t = window.setTimeout(() => setVisible(false), 220);
-    const t2 = window.setTimeout(() => setProgress(0), 480);
-    return () => {
-      clearTimeout(t);
-      clearTimeout(t2);
-    };
-  }, [loadingTick]);
+    hideTimerRef.current = window.setTimeout(() => setVisible(false), 220);
+    resetTimerRef.current = window.setTimeout(() => setProgress(0), 480);
+  }, [loadingTick, visible]);
 
   return (
     <div
