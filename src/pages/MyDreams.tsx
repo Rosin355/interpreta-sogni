@@ -4,7 +4,8 @@ import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Filter, Loader2 } from "lucide-react";
+import { Plus, Search, Filter, Loader2, RefreshCw } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { getTagColor } from "@/utils/tag-colors";
@@ -42,6 +43,7 @@ const MyDreams = () => {
     totalCount,
     hasMore,
     loadMore,
+    refresh,
   } = useDreamsList();
 
   const [filteredDreams, setFilteredDreams] = useState<any[]>(dreams);
@@ -95,10 +97,29 @@ const MyDreams = () => {
                 )}
               </p>
             </div>
-            <Button onClick={() => navigate("/dreams/new")} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Nuovo Sogno
-            </Button>
+            <div className="flex items-center gap-2">
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => refresh({ force: true })}
+                      disabled={isDreamsRefreshing}
+                      aria-label="Aggiorna sogni"
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isDreamsRefreshing ? "animate-spin" : ""}`} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Aggiorna</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <Button onClick={() => navigate("/dreams/new")} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Nuovo Sogno
+              </Button>
+            </div>
           </div>
 
           {/* Barra di ricerca e filtri */}

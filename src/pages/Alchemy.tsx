@@ -10,12 +10,15 @@ import {
 } from "@/utils/alchemical-phases";
 import { AlchemicalJourneyMap } from "@/components/AlchemicalJourneyMap";
 import { AlchemicalTransitionsList } from "@/components/AlchemicalTransitionsList";
-import { Loader2, TrendingUp, TrendingDown, Minus, Sparkles, ChevronDown } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown, Minus, Sparkles, ChevronDown, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAlchemicalCelebration } from "@/hooks/useAlchemicalCelebration";
 import { AlchemicalTransitionCelebration } from "@/components/AlchemicalTransitionCelebration";
 import { cn } from "@/lib/utils";
 import { useAlchemyJourney } from "@/hooks/useAlchemyJourney";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { formatPercentage } from "@/contexts/AppCacheContext";
 
 const phaseBadgeClass: Record<AlchemicalPhase, string> = {
   nigredo: "border-border bg-secondary text-secondary-foreground",
@@ -24,7 +27,7 @@ const phaseBadgeClass: Record<AlchemicalPhase, string> = {
 };
 
 const Alchemy = () => {
-  const { journey, dreamsCount, loading, isRefreshing: isAlchemyRefreshing } = useAlchemyJourney();
+  const { journey, dreamsCount, loading, isRefreshing: isAlchemyRefreshing, refresh } = useAlchemyJourney();
 
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationTransition, setCelebrationTransition] = useState<{
@@ -150,16 +153,35 @@ const Alchemy = () => {
         >
           <Card className="overflow-hidden border-border/80 bg-[linear-gradient(135deg,hsl(var(--card))_0%,hsl(var(--dream-space)/0.55)_100%)]">
             <CardHeader className="space-y-5">
-              <div className="space-y-3">
-                <p className="text-xs uppercase tracking-[0.32em] text-muted-foreground">
-                  Mappa interiore
-                </p>
-                <CardTitle className="max-w-3xl text-3xl sm:text-4xl">
-                  Il tuo viaggio alchemico, letto in tre fasi essenziali.
-                </CardTitle>
-                <CardDescription className="max-w-2xl text-base leading-7 text-muted-foreground">
-                  Una lettura più semplice e narrativa del tuo percorso tra ombra, purificazione e integrazione.
-                </CardDescription>
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-3">
+                  <p className="text-xs uppercase tracking-[0.32em] text-muted-foreground">
+                    Mappa interiore
+                  </p>
+                  <CardTitle className="max-w-3xl text-3xl sm:text-4xl">
+                    Il tuo viaggio alchemico, letto in tre fasi essenziali.
+                  </CardTitle>
+                  <CardDescription className="max-w-2xl text-base leading-7 text-muted-foreground">
+                    Una lettura più semplice e narrativa del tuo percorso tra ombra, purificazione e integrazione.
+                  </CardDescription>
+                </div>
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => refresh({ force: true })}
+                        disabled={isAlchemyRefreshing}
+                        aria-label="Aggiorna viaggio alchemico"
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${isAlchemyRefreshing ? "animate-spin" : ""}`} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Aggiorna</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
@@ -230,7 +252,7 @@ const Alchemy = () => {
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="text-lg font-semibold">{phase.name}</h3>
                             <Badge variant="outline" className={cn("font-medium", phaseBadgeClass[phase.id])}>
-                              {Math.round(journey.distribution[phase.id])}%
+                              {formatPercentage(journey.distribution[phase.id])}%
                             </Badge>
                             {journey.currentPhase === phase.id && (
                               <Badge variant="outline" className="border-border bg-card/70 text-foreground">
