@@ -19,10 +19,12 @@ import { cn } from "@/lib/utils";
 import { getCategoryFromTag } from "@/utils/dream-categories";
 import { CustomPromptInput, isCustomPromptValid } from "@/components/CustomPromptInput";
 import { buildErrorReportAction } from "@/utils/error-toast-action";
+import { useAppCache } from "@/contexts/AppCacheContext";
 
 const EditDream = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { invalidateDreamsCache, invalidateAlchemyCache } = useAppCache();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -173,6 +175,10 @@ const EditDream = () => {
         .eq("id", id);
 
       if (error) throw error;
+
+      // Invalida cache condivisa dopo update riuscita
+      invalidateDreamsCache();
+      invalidateAlchemyCache();
 
       toast({
         title: "Successo",
