@@ -22,6 +22,7 @@ import { CustomPromptInput, isCustomPromptValid } from "@/components/CustomPromp
 import { buildErrorReportAction } from "@/utils/error-toast-action";
 import { AlchemicalBadge } from "@/components/AlchemicalBadge";
 import { cn } from "@/lib/utils";
+import { useAppCache } from "@/contexts/AppCacheContext";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,6 +48,7 @@ import { Label } from "@/components/ui/label";
 const DreamDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { invalidateDreamsCache, invalidateAlchemyCache } = useAppCache();
   const [dream, setDream] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [interpretationLoading, setInterpretationLoading] = useState(false);
@@ -235,6 +237,10 @@ const DreamDetail = () => {
         variant: "destructive",
       });
     } else {
+      // Invalida cache condivisa dopo delete riuscita
+      invalidateDreamsCache();
+      invalidateAlchemyCache();
+
       toast({
         title: "Successo",
         description: "Sogno eliminato con successo",

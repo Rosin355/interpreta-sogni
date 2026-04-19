@@ -24,6 +24,7 @@ import { getCategoryFromTag } from "@/utils/dream-categories";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { useDreamDraft } from "@/hooks/useDreamDraft";
 import { Cloud, CloudOff } from "lucide-react";
+import { useAppCache } from "@/contexts/AppCacheContext";
 
 interface SuggestedTag {
   tag: string;
@@ -33,6 +34,7 @@ interface SuggestedTag {
 
 const NewDream = () => {
   const navigate = useNavigate();
+  const { invalidateDreamsCache, invalidateAlchemyCache } = useAppCache();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -227,7 +229,11 @@ const NewDream = () => {
     } else {
       // Delete draft after successful save
       await deleteDraft();
-      
+
+      // Invalida cache condivisa: la lista sogni e il viaggio alchemico devono rifetchare
+      invalidateDreamsCache();
+      invalidateAlchemyCache();
+
       toast({
         title: "Successo",
         description: "Sogno salvato con successo!",
