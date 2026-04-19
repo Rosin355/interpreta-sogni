@@ -103,7 +103,7 @@ const Alchemy = () => {
     checkForTransitions();
   }, [celebrate, journey]);
 
-  const checkAuth = async () => {
+  const checkAuth = async (background = false) => {
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -111,19 +111,21 @@ const Alchemy = () => {
       navigate("/auth");
       return;
     }
-    fetchDreams();
+    fetchDreams(background);
   };
 
-  const fetchDreams = async () => {
+  const fetchDreams = async (background = false) => {
+    if (background) setAlchemyRefreshing(true);
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Payload ridotto: solo campi utili al calcolo alchemico
       const { data, error } = await supabase
         .from("dreams")
-        .select("*")
+        .select("id, dream_date, content, mood, tags, interpretation, alchemical_phase")
         .eq("user_id", user.id)
         .order("dream_date", { ascending: true });
 
@@ -133,12 +135,15 @@ const Alchemy = () => {
         setDreams(data);
         const userJourney = calculateUserJourney(data);
         setJourney(userJourney);
+        setDreamsCount(data.length);
+        setAlchemyCache({ journey: userJourney, dreamsCount: data.length });
       }
     } catch (error) {
       console.error("Error fetching dreams:", error);
       toast.error("Errore nel caricamento dei sogni");
     } finally {
       setLoading(false);
+      if (background) setAlchemyRefreshing(false);
     }
   };
 
