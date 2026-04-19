@@ -103,14 +103,15 @@ const MyDreams = () => {
 
   const SELECT_FIELDS = "id, title, dream_date, mood, tags, image_url, alchemical_phase, content";
 
-  const fetchInitial = async () => {
+  const fetchInitial = async (background = false) => {
+    if (background) setDreamsRefreshing(true);
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       navigate("/auth?mode=login");
       return;
     }
 
-    // Conteggio totale in parallelo con la prima pagina
     const [countRes, pageRes] = await Promise.all([
       supabase
         .from("dreams")
@@ -128,17 +129,26 @@ const MyDreams = () => {
       console.error("Errore nel caricamento dei sogni:", pageRes.error);
     } else {
       const data = pageRes.data || [];
+      const newOffset = data.length;
+      const newHasMore = data.length === PAGE_SIZE;
+      const newTotal = countRes.error ? totalCount : (countRes.count || 0);
+
       setDreams(data);
       setFilteredDreams(data);
-      setOffset(data.length);
-      setHasMore(data.length === PAGE_SIZE);
-    }
+      setOffset(newOffset);
+      setHasMore(newHasMore);
+      setTotalCount(newTotal);
 
-    if (!countRes.error) {
-      setTotalCount(countRes.count || 0);
+      setDreamsCache({
+        dreams: data,
+        offset: newOffset,
+        hasMore: newHasMore,
+        totalCount: newTotal,
+      });
     }
 
     setLoading(false);
+    if (background) setDreamsRefreshing(false);
   };
 
   const loadMore = async () => {
