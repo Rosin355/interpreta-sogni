@@ -111,7 +111,7 @@ const Alchemy = () => {
     );
   }
 
-  if (!journey || (dreams.length === 0 && dreamsCount === 0)) {
+  if (!journey || dreamsCount === 0) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
@@ -173,7 +173,7 @@ const Alchemy = () => {
                   </Badge>
                 )}
                 <Badge variant="outline" className="border-border bg-card/70 text-foreground">
-                  {dreamsCount || dreams.length} sogni analizzati
+                  {dreamsCount} sogni analizzati
                 </Badge>
                 {isAlchemyRefreshing && (
                   <Loader2 className="h-3 w-3 animate-spin text-muted-foreground/60" />
