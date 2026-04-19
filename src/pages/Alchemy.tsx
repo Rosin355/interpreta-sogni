@@ -20,6 +20,7 @@ import { motion } from "framer-motion";
 import { useAlchemicalCelebration } from "@/hooks/useAlchemicalCelebration";
 import { AlchemicalTransitionCelebration } from "@/components/AlchemicalTransitionCelebration";
 import { cn } from "@/lib/utils";
+import { useAppCache } from "@/contexts/AppCacheContext";
 
 const phaseBadgeClass: Record<AlchemicalPhase, string> = {
   nigredo: "border-border bg-secondary text-secondary-foreground",
@@ -29,9 +30,21 @@ const phaseBadgeClass: Record<AlchemicalPhase, string> = {
 
 const Alchemy = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const {
+    getAlchemyCache,
+    setAlchemyCache,
+    isStale,
+    alchemyLastFetchedAt,
+    isAlchemyRefreshing,
+    setAlchemyRefreshing,
+  } = useAppCache();
+
+  const cachedAlchemy = getAlchemyCache();
+
+  const [loading, setLoading] = useState(!cachedAlchemy);
   const [dreams, setDreams] = useState<any[]>([]);
-  const [journey, setJourney] = useState<UserJourney | null>(null);
+  const [journey, setJourney] = useState<UserJourney | null>(cachedAlchemy?.journey ?? null);
+  const [dreamsCount, setDreamsCount] = useState<number>(cachedAlchemy?.dreamsCount ?? 0);
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationTransition, setCelebrationTransition] = useState<{
     from: AlchemicalPhase;
