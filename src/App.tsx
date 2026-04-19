@@ -11,6 +11,7 @@ import { AppCacheProvider } from "@/contexts/AppCacheContext";
 import { RouteProgressBar } from "@/components/loading/RouteProgressBar";
 import { RouteFadeTransition } from "@/components/loading/RouteFadeTransition";
 import { RouteSwitchOverlay } from "@/components/loading/RouteSwitchOverlay";
+import { RouteLoadingProvider } from "@/contexts/RouteLoadingContext";
 import { startRoutePrefetch } from "@/utils/route-prefetch";
 
 // Eager load - Landing page
@@ -68,7 +69,7 @@ const AppRouter = () => {
   }, []);
 
   return (
-    <>
+    <RouteLoadingProvider>
       <RouteProgressBar loadingTick={loadingTick} />
       <RouteSwitchOverlay loadingTick={loadingTick} />
       <Suspense fallback={<PageLoader />}>
@@ -100,7 +101,7 @@ const AppRouter = () => {
           </Routes>
         </RouteFadeTransition>
       </Suspense>
-    </>
+    </RouteLoadingProvider>
   );
 };
 
