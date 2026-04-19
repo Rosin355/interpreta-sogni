@@ -355,14 +355,33 @@ export const getPhaseDistribution = (dreams: any[]): PhaseDistribution => {
   });
 
   const total = dreams.length || 1;
+
+  // Largest-remainder rounding: arrotonda a numeri interi che sommano a 100
+  const rawValues: Array<{ key: AlchemicalPhase; raw: number }> = [
+    { key: 'nigredo', raw: (counts.nigredo / total) * 100 },
+    { key: 'albedo', raw: (counts.albedo / total) * 100 },
+    { key: 'rubedo', raw: (counts.rubedo / total) * 100 },
+  ];
+
+  const floors = rawValues.map(v => ({ ...v, floor: Math.floor(v.raw), rem: v.raw - Math.floor(v.raw) }));
+  let assigned = floors.reduce((s, v) => s + v.floor, 0);
+  let remainder = 100 - assigned;
+  // Distribuisci il resto alle fasi con il resto frazionario più alto
+  const sortedByRem = [...floors].sort((a, b) => b.rem - a.rem);
+  const finals: Record<AlchemicalPhase, number> = { nigredo: 0, albedo: 0, rubedo: 0 };
+  floors.forEach(f => { finals[f.key] = f.floor; });
+  for (let i = 0; i < sortedByRem.length && remainder > 0; i++) {
+    finals[sortedByRem[i].key] += 1;
+    remainder--;
+  }
+
   const distribution: PhaseDistribution = {
-    nigredo: (counts.nigredo / total) * 100,
-    albedo: (counts.albedo / total) * 100,
-    rubedo: (counts.rubedo / total) * 100,
+    nigredo: finals.nigredo,
+    albedo: finals.albedo,
+    rubedo: finals.rubedo,
     dominant: 'nigredo'
   };
 
-  // Determina la fase dominante
   if (distribution.albedo > distribution.nigredo && distribution.albedo > distribution.rubedo) {
     distribution.dominant = 'albedo';
   } else if (distribution.rubedo > distribution.nigredo && distribution.rubedo > distribution.albedo) {

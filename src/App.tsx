@@ -7,6 +7,7 @@ import { GlobalNotificationManager } from "@/components/GlobalNotificationManage
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import MysticCursor from "@/components/ui/MysticCursor";
 import { MysticLoader } from "@/components/ui/MysticLoader";
+import { AppCacheProvider } from "@/contexts/AppCacheContext";
 
 // Eager load - Landing page
 import Index from "./pages/Index";
@@ -41,6 +42,7 @@ const PageLoader = () => (
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
     <TooltipProvider>
+      <AppCacheProvider>
       <GlobalNotificationManager>
         <Toaster />
         <Sonner />
@@ -74,6 +76,7 @@ const App = () => (
           </Suspense>
         </BrowserRouter>
       </GlobalNotificationManager>
+      </AppCacheProvider>
     </TooltipProvider>
   </ThemeProvider>
 );

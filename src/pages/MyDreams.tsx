@@ -15,6 +15,7 @@ import { ImageZoomModal } from "@/components/ImageZoomModal";
 import { DreamCardSkeleton } from "@/components/ui/dream-skeleton";
 import { AlchemicalBadge } from "@/components/AlchemicalBadge";
 import { AlchemicalPhase } from "@/utils/alchemical-phases";
+import { useAppCache } from "@/contexts/AppCacheContext";
 
 const PAGE_SIZE = 12;
 
@@ -36,19 +37,36 @@ const DreamImage = ({ src, alt }: { src: string; alt: string }) => {
 
 const MyDreams = () => {
   const navigate = useNavigate();
-  const [dreams, setDreams] = useState<any[]>([]);
-  const [filteredDreams, setFilteredDreams] = useState<any[]>([]);
+  const {
+    getDreamsCache,
+    setDreamsCache,
+    isStale,
+    dreamsLastFetchedAt,
+    isDreamsRefreshing,
+    setDreamsRefreshing,
+  } = useAppCache();
+
+  const cached = getDreamsCache();
+
+  const [dreams, setDreams] = useState<any[]>(cached?.dreams ?? []);
+  const [filteredDreams, setFilteredDreams] = useState<any[]>(cached?.dreams ?? []);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedPhase, setSelectedPhase] = useState<string>("all");
-  const [loading, setLoading] = useState(true);
+  // Skeleton solo se NON ho dati in cache
+  const [loading, setLoading] = useState(!cached);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [offset, setOffset] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
-  const [totalCount, setTotalCount] = useState(0);
+  const [offset, setOffset] = useState(cached?.offset ?? 0);
+  const [hasMore, setHasMore] = useState(cached?.hasMore ?? false);
+  const [totalCount, setTotalCount] = useState(cached?.totalCount ?? 0);
 
   useEffect(() => {
-    fetchInitial();
+    // Se ho dati freschi in cache, non rifetchare
+    if (cached && !isStale(dreamsLastFetchedAt)) {
+      return;
+    }
+    // Se cache stale ma presente: refresh in background; altrimenti fetch normale
+    fetchInitial(!!cached);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -85,14 +103,15 @@ const MyDreams = () => {
 
   const SELECT_FIELDS = "id, title, dream_date, mood, tags, image_url, alchemical_phase, content";
 
-  const fetchInitial = async () => {
+  const fetchInitial = async (background = false) => {
+    if (background) setDreamsRefreshing(true);
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       navigate("/auth?mode=login");
       return;
     }
 
-    // Conteggio totale in parallelo con la prima pagina
     const [countRes, pageRes] = await Promise.all([
       supabase
         .from("dreams")
@@ -110,17 +129,26 @@ const MyDreams = () => {
       console.error("Errore nel caricamento dei sogni:", pageRes.error);
     } else {
       const data = pageRes.data || [];
+      const newOffset = data.length;
+      const newHasMore = data.length === PAGE_SIZE;
+      const newTotal = countRes.error ? totalCount : (countRes.count || 0);
+
       setDreams(data);
       setFilteredDreams(data);
-      setOffset(data.length);
-      setHasMore(data.length === PAGE_SIZE);
-    }
+      setOffset(newOffset);
+      setHasMore(newHasMore);
+      setTotalCount(newTotal);
 
-    if (!countRes.error) {
-      setTotalCount(countRes.count || 0);
+      setDreamsCache({
+        dreams: data,
+        offset: newOffset,
+        hasMore: newHasMore,
+        totalCount: newTotal,
+      });
     }
 
     setLoading(false);
+    if (background) setDreamsRefreshing(false);
   };
 
   const loadMore = async () => {
@@ -144,9 +172,18 @@ const MyDreams = () => {
       console.error("Errore nel caricamento ulteriore:", error);
     } else {
       const batch = data || [];
-      setDreams(prev => [...prev, ...batch]);
-      setOffset(prev => prev + batch.length);
-      setHasMore(batch.length === PAGE_SIZE);
+      const merged = [...dreams, ...batch];
+      const newOffset = offset + batch.length;
+      const newHasMore = batch.length === PAGE_SIZE;
+      setDreams(merged);
+      setOffset(newOffset);
+      setHasMore(newHasMore);
+      setDreamsCache({
+        dreams: merged,
+        offset: newOffset,
+        hasMore: newHasMore,
+        totalCount,
+      });
     }
     setLoadingMore(false);
   };
@@ -159,8 +196,11 @@ const MyDreams = () => {
           <div className="mb-8 flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-bold text-foreground mb-2">I Miei Sogni</h1>
-              <p className="text-muted-foreground">
-                {totalCount} {totalCount === 1 ? "sogno registrato" : "sogni registrati"}
+              <p className="text-muted-foreground flex items-center gap-2">
+                <span>{totalCount} {totalCount === 1 ? "sogno registrato" : "sogni registrati"}</span>
+                {isDreamsRefreshing && (
+                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground/60" />
+                )}
               </p>
             </div>
             <Button onClick={() => navigate("/dreams/new")} className="gap-2">
