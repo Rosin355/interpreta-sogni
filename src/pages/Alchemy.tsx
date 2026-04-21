@@ -6,6 +6,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import {
   getAllPhases,
   getPhaseAdvice,
+  getEmergedSymbols,
+  getPhaseNarrative,
+  alchemicalPhases,
   type AlchemicalPhase,
 } from "@/utils/alchemical-phases";
 import { AlchemicalJourneyMap } from "@/components/AlchemicalJourneyMap";
@@ -28,7 +31,7 @@ const phaseBadgeClass: Record<AlchemicalPhase, string> = {
 };
 
 const Alchemy = () => {
-  const { journey, dreamsCount, loading, isRefreshing: isAlchemyRefreshing, refresh } = useAlchemyJourney();
+  const { journey, dreamsCount, dreams, loading, isRefreshing: isAlchemyRefreshing, refresh } = useAlchemyJourney();
 
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationTransition, setCelebrationTransition] = useState<{
