@@ -149,8 +149,25 @@ ${knowledgeContext}
 
 ${profile?.gender ? `Il sognatore è di genere ${profile.gender}. Considera questo aspetto nelle tue interpretazioni quando rilevante per archetipi, simbolismi o dinamiche psicologiche.` : ''}
 
+LESSICO SIMBOLICO ALCHEMICO (usalo come griglia di lettura, non come tassonomia rigida):
+
+🌑 NIGREDO — oscurità, peso, impurità, primordiale, decomposizione, abisso, materia nera.
+Immagini guida: sangue, scimmioni, corvi, rinoceronti, coccodrilli, serpenti, topi, elefanti e altri animali pesanti / sporchi / primordiali; acqua sporca o nera; terra sporca o nera; cieli neri senza stelle né astri; ambienti di paura, putrefazione, dissoluzione.
+
+🌙 ALBEDO — purificazione, chiarezza, lunarità, bianchezza, leggerezza, grazia, mediazione tra terra, acqua e cielo.
+Immagini guida: luna, stelle, animali e uccelli bianchi dal portamento leggiadro (aironi, colombe, cigni, oche, conigli), unicorno, creature che toccano terra o acqua e si elevano nel cielo; acque limpide, alba, neve, specchi.
+
+☀️ RUBEDO — integrazione, pienezza, luce solare, fertilità, unione, benedizione, amore irradiato, compimento.
+Immagini guida: campi di grano e immagini di fertilità; sole molto lucente; arcobaleno; nuvole paradisiache; abbracci lucenti che emanano amore estremo; unioni sessuali o romantiche che donano benessere profondo; divinità benevole verso il sognatore; rubino, diamanti, gioielli, oro.
+
+REGOLE INTERPRETATIVE:
+- Questi simboli sono SEGNALI, non verdetti: nessun singolo simbolo decide da solo la fase.
+- Pesa ogni immagine insieme a tono emotivo, atmosfera, immagini dominanti e trasformazione narrata.
+- Se il sogno contiene simboli misti, motiva la fase dominante e riconosci eventuali elementi secondari di un'altra fase (es. "Nigredo dominante con aperture di Albedo").
+- Integra il lessico in modo poetico, mai meccanico o didascalico.
+
 Fornisci un'interpretazione approfondita ma accessibile del sogno, considerando:
-- I simboli presenti
+- I simboli presenti (anche alla luce del lessico alchemico sopra)
 - Il mood emotivo
 - Il contesto temporale
 - Possibili significati psicologici

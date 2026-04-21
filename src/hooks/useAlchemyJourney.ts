@@ -25,6 +25,7 @@ export const useAlchemyJourney = () => {
   const [loading, setLoading] = useState(!cached);
   const [journey, setJourney] = useState<UserJourney | null>(cached?.journey ?? null);
   const [dreamsCount, setDreamsCount] = useState<number>(cached?.dreamsCount ?? 0);
+  const [dreams, setDreams] = useState<any[]>(cached?.dreams ?? []);
 
   const fetchJourney = async (background = false) => {
     if (background) setAlchemyRefreshing(true);
@@ -49,7 +50,8 @@ export const useAlchemyJourney = () => {
         const userJourney = calculateUserJourney(data);
         setJourney(userJourney);
         setDreamsCount(data.length);
-        setAlchemyCache({ journey: userJourney, dreamsCount: data.length });
+        setDreams(data);
+        setAlchemyCache({ journey: userJourney, dreamsCount: data.length, dreams: data });
       }
     } catch (error) {
       console.error("Error fetching dreams:", error);
@@ -81,6 +83,7 @@ export const useAlchemyJourney = () => {
   return {
     journey,
     dreamsCount,
+    dreams,
     loading,
     isRefreshing: isAlchemyRefreshing,
     refresh,

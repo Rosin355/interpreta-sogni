@@ -6,6 +6,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import {
   getAllPhases,
   getPhaseAdvice,
+  getEmergedSymbols,
+  getPhaseNarrative,
+  alchemicalPhases,
   type AlchemicalPhase,
 } from "@/utils/alchemical-phases";
 import { AlchemicalJourneyMap } from "@/components/AlchemicalJourneyMap";
@@ -28,7 +31,7 @@ const phaseBadgeClass: Record<AlchemicalPhase, string> = {
 };
 
 const Alchemy = () => {
-  const { journey, dreamsCount, loading, isRefreshing: isAlchemyRefreshing, refresh } = useAlchemyJourney();
+  const { journey, dreamsCount, dreams, loading, isRefreshing: isAlchemyRefreshing, refresh } = useAlchemyJourney();
 
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationTransition, setCelebrationTransition] = useState<{
@@ -103,6 +106,8 @@ const Alchemy = () => {
 
   const allPhases = getAllPhases();
   const trendMeta = getTrendMeta();
+  const emergedSymbols = journey ? getEmergedSymbols(dreams || [], { limit: 10, recentCount: 15 }) : [];
+  const phaseNarrative = journey ? getPhaseNarrative(journey.distribution) : "";
 
   // Registra il loading globale: l'overlay RouteSwitchOverlay resta visibile
   // finché i dati del viaggio non sono pronti, evitando un secondo loader interno.
@@ -224,6 +229,52 @@ const Alchemy = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {phaseNarrative && (
+                <Card className="border-border/70 bg-background/40">
+                  <CardContent className="space-y-2 p-5">
+                    <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">
+                      Lettura del periodo
+                    </p>
+                    <p className="text-sm leading-7 text-foreground/85">
+                      {phaseNarrative}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {emergedSymbols.length > 0 && (
+                <Card className="border-border/70 bg-background/40">
+                  <CardContent className="space-y-3 p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">
+                        Simboli guida del periodo
+                      </p>
+                      <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground/70">
+                        Sogni recenti
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {emergedSymbols.map((s) => (
+                        <Badge
+                          key={`${s.phase}-${s.symbol}`}
+                          variant="outline"
+                          className={cn("font-medium capitalize", phaseBadgeClass[s.phase])}
+                          title={`${alchemicalPhases[s.phase].name} · ricorrenze: ${s.occurrences}`}
+                        >
+                          {s.symbol}
+                          {s.occurrences > 1 && (
+                            <span className="ml-1.5 text-[10px] opacity-70">×{s.occurrences}</span>
+                          )}
+                        </Badge>
+                      ))}
+                    </div>
+                    <p className="text-xs leading-6 text-muted-foreground">
+                      Immagini ricorrenti emerse nei tuoi sogni recenti, lette attraverso il lessico alchemico. Sono segnali, non verdetti.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </CardContent>
           </Card>
         </motion.section>

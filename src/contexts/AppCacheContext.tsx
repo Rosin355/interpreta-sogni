@@ -13,6 +13,7 @@ interface DreamsCachePayload {
 interface AlchemyCachePayload {
   journey: UserJourney;
   dreamsCount: number;
+  dreams?: any[];
 }
 
 interface CacheEntry<T> {
