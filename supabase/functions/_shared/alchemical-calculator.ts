@@ -83,13 +83,23 @@ const alchemicalPhases: Record<AlchemicalPhase, PhaseDefinition> = {
       'pulizia': 0.7,
       'risveglio': 0.7,
       'meditazione': 0.7,
-      'spiritualità': 0.6
+      'spiritualità': 0.6,
+      'luna': 0.9,
+      'stelle': 0.8,
+      'unicorno': 1.0,
+      'airone': 0.8,
+      'colomba': 0.8,
+      'cigno': 0.8,
+      'oca': 0.6,
+      'coniglio': 0.6
     },
     keywords: [
       'luce', 'bianco', 'chiaro', 'puro', 'pulizia', 'lavare', 'purificare',
       'alba', 'mattina', 'chiarezza', 'luna piena', 'argenteo', 'cristallo',
       'acqua limpida', 'neve', 'nuvole bianche', 'pace', 'serenità', 'calma',
-      'meditazione', 'risveglio', 'consapevolezza', 'riflessione', 'specchio'
+      'meditazione', 'risveglio', 'consapevolezza', 'riflessione', 'specchio',
+      'luna', 'stelle', 'unicorno', 'airone', 'colomba', 'cigno', 'oca',
+      'coniglio', 'uccello bianco', 'animale bianco', 'leggiadro', 'grazia'
     ]
   },
   rubedo: {
@@ -115,13 +125,27 @@ const alchemicalPhases: Record<AlchemicalPhase, PhaseDefinition> = {
       'unione': 0.8,
       'matrimonio': 0.8,
       'creatività': 0.7,
-      'trasformazione': 0.7
+      'trasformazione': 0.7,
+      'sole': 0.9,
+      'oro': 0.8,
+      'rubino': 0.9,
+      'diamante': 0.8,
+      'gioielli': 0.7,
+      'arcobaleno': 0.9,
+      'grano': 0.7,
+      'fertilità': 0.8,
+      'paradiso': 0.8,
+      'divinità': 0.7
     },
     keywords: [
       'rosso', 'oro', 'fuoco', 'sole', 'calore', 'passione', 'amore',
       'unione', 'matrimonio', 'coppia', 'abbraccio', 'bacio', 'cuore',
       'sangue vitale', 'energia', 'vitalità', 'gioia', 'celebrazione',
-      'festa', 'danza', 'musica', 'creatività', 'arte', 'realizzazione'
+      'festa', 'danza', 'musica', 'creatività', 'arte', 'realizzazione',
+      'campo di grano', 'grano', 'spighe', 'raccolto', 'arcobaleno',
+      'sole splendente', 'nuvole paradisiache', 'paradiso', 'cielo dorato',
+      'rubino', 'diamante', 'gioielli', 'unione sessuale', 'unione amorosa',
+      'abbraccio luminoso', 'divinità benevola', 'dio benevolo', 'dea benevola'
     ]
   }
 };
