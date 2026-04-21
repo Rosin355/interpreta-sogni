@@ -39,13 +39,26 @@ const alchemicalPhases: Record<AlchemicalPhase, PhaseDefinition> = {
       'violenza': 0.7,
       'caduta': 0.7,
       'perdita': 0.7,
-      'dolore': 0.7
+      'dolore': 0.7,
+      'sangue': 0.9,
+      'corvo': 0.7,
+      'serpente': 0.7,
+      'coccodrillo': 0.7,
+      'rinoceronte': 0.6,
+      'scimmione': 0.6,
+      'topo': 0.6,
+      'elefante': 0.5,
+      'fango': 0.7,
+      'palude': 0.7
     },
     keywords: [
       'morte', 'buio', 'ombra', 'paura', 'angoscia', 'terrore', 'incubo',
       'oscurità', 'abisso', 'caduta', 'inseguimento', 'fuga', 'pericolo',
       'mostro', 'demone', 'sangue', 'violenza', 'distruzione', 'perdita',
-      'lutto', 'dolore', 'sofferenza', 'tormento', 'prigionia', 'trappola'
+      'lutto', 'dolore', 'sofferenza', 'tormento', 'prigionia', 'trappola',
+      'scimmione', 'corvo', 'rinoceronte', 'coccodrillo', 'serpente',
+      'topo', 'ratto', 'elefante', 'fango', 'melma', 'palude',
+      'acqua sporca', 'acqua nera', 'terra nera', 'cielo nero', 'putrido'
     ]
   },
   albedo: {
