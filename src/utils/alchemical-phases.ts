@@ -572,6 +572,91 @@ export interface EmergedSymbol {
   occurrences: number;
 }
 
+/**
+ * Dizionario di sinonimi e varianti morfologiche → simbolo canonico.
+ * Ogni voce mappa il "label" mostrato in UI a un set di pattern (sinonimi,
+ * plurali, varianti dialettali, espressioni) che vengono cercati con
+ * word-boundary nel testo del sogno. Serve a migliorare la copertura del
+ * matching senza alterare il calcolo della fase alchemica.
+ */
+interface SymbolDictEntry {
+  label: string;
+  phase: AlchemicalPhase;
+  patterns: string[];
+}
+
+const symbolDictionary: SymbolDictEntry[] = [
+  // 🌑 NIGREDO ─────────────────────────────────────────────
+  { label: 'sangue', phase: 'nigredo', patterns: ['sangue', 'sanguinante', 'insanguinato', 'emorragia'] },
+  { label: 'corvo', phase: 'nigredo', patterns: ['corvo', 'corvi', 'cornacchia', 'cornacchie', 'uccello nero', 'uccelli neri'] },
+  { label: 'serpente', phase: 'nigredo', patterns: ['serpente', 'serpenti', 'serpe', 'biscia', 'vipera', 'cobra', 'pitone'] },
+  { label: 'coccodrillo', phase: 'nigredo', patterns: ['coccodrillo', 'coccodrilli', 'alligatore', 'caimano'] },
+  { label: 'rinoceronte', phase: 'nigredo', patterns: ['rinoceronte', 'rinoceronti'] },
+  { label: 'scimmione', phase: 'nigredo', patterns: ['scimmione', 'scimmioni', 'gorilla', 'orango', 'babbuino', 'babbuini'] },
+  { label: 'topo', phase: 'nigredo', patterns: ['topo', 'topi', 'ratto', 'ratti', 'roditore', 'roditori'] },
+  { label: 'elefante', phase: 'nigredo', patterns: ['elefante', 'elefanti', 'mammut'] },
+  { label: 'fango / palude', phase: 'nigredo', patterns: ['fango', 'fangoso', 'fangosa', 'melma', 'melmoso', 'palude', 'paludoso', 'pantano', 'acquitrino'] },
+  { label: 'acqua nera', phase: 'nigredo', patterns: ['acqua nera', 'acqua sporca', 'acqua torbida', 'acqua fangosa', 'acqua putrida', 'acque nere'] },
+  { label: 'terra nera', phase: 'nigredo', patterns: ['terra nera', 'terra sporca', 'terra bruciata', 'cenere', 'ceneri'] },
+  { label: 'cielo nero', phase: 'nigredo', patterns: ['cielo nero', 'cielo buio', 'cielo cupo', 'cielo senza stelle', 'notte senza stelle', 'cielo plumbeo'] },
+  { label: 'incubo', phase: 'nigredo', patterns: ['incubo', 'incubi'] },
+  { label: 'inseguimento', phase: 'nigredo', patterns: ['inseguimento', 'inseguito', 'inseguita', 'mi inseguono', 'mi inseguiva', 'mi inseguivano'] },
+  { label: 'caduta', phase: 'nigredo', patterns: ['caduta', 'precipizio', 'precipitare', 'precipitavo', 'precipitando', 'voragine', 'baratro', 'abisso'] },
+  { label: 'mostro', phase: 'nigredo', patterns: ['mostro', 'mostri', 'mostruoso', 'demone', 'demoni', 'creatura oscura'] },
+  { label: 'morte', phase: 'nigredo', patterns: ['morte', 'morto', 'morta', 'cadavere', 'cadaveri', 'lutto', 'funerale', 'tomba', 'cimitero'] },
+
+  // 🌙 ALBEDO ─────────────────────────────────────────────
+  { label: 'luna', phase: 'albedo', patterns: ['luna', 'luna piena', 'lunare', 'mezzaluna', 'plenilunio'] },
+  { label: 'stelle', phase: 'albedo', patterns: ['stella', 'stelle', 'stellato', 'stellata', 'cielo stellato', 'costellazione', 'costellazioni'] },
+  { label: 'unicorno', phase: 'albedo', patterns: ['unicorno', 'unicorni'] },
+  { label: 'airone', phase: 'albedo', patterns: ['airone', 'aironi', 'cicogna', 'cicogne', 'gru'] },
+  { label: 'colomba', phase: 'albedo', patterns: ['colomba', 'colombe', 'colombo'] },
+  { label: 'cigno', phase: 'albedo', patterns: ['cigno', 'cigni'] },
+  { label: 'oca', phase: 'albedo', patterns: ['oca', 'oche', 'anatra bianca'] },
+  { label: 'coniglio', phase: 'albedo', patterns: ['coniglio', 'conigli', 'lepre', 'leprotto'] },
+  { label: 'uccelli bianchi', phase: 'albedo', patterns: ['uccello bianco', 'uccelli bianchi', 'animale bianco', 'animali bianchi', 'piume bianche'] },
+  { label: 'acqua limpida', phase: 'albedo', patterns: ['acqua limpida', 'acqua cristallina', 'acqua chiara', 'acqua trasparente', 'acque limpide'] },
+  { label: 'alba / aurora', phase: 'albedo', patterns: ['alba', 'aurora', 'primo mattino', 'sorgere del sole', 'crepuscolo del mattino'] },
+  { label: 'neve', phase: 'albedo', patterns: ['neve', 'nevicata', 'nevicare', 'innevato', 'innevata', 'manto bianco'] },
+  { label: 'specchio', phase: 'albedo', patterns: ['specchio', 'specchi', 'riflesso', 'riflesso nello specchio', 'superficie riflettente'] },
+  { label: 'purificazione', phase: 'albedo', patterns: ['purificazione', 'purificare', 'purificato', 'purificata', 'lavaggio', 'lavare', 'pulizia rituale'] },
+  { label: 'meditazione', phase: 'albedo', patterns: ['meditazione', 'meditare', 'meditavo', 'contemplazione', 'contemplare', 'silenzio interiore'] },
+  { label: 'guarigione', phase: 'albedo', patterns: ['guarigione', 'guarire', 'guarito', 'guarita', 'convalescenza'] },
+
+  // ☀️ RUBEDO ─────────────────────────────────────────────
+  { label: 'sole splendente', phase: 'rubedo', patterns: ['sole splendente', 'sole lucente', 'sole abbagliante', 'sole dorato', 'sole radioso', 'luce solare intensa'] },
+  { label: 'campo di grano', phase: 'rubedo', patterns: ['campo di grano', 'campi di grano', 'spighe', 'spighe di grano', 'grano maturo', 'mietitura', 'raccolto', 'messi', 'messe'] },
+  { label: 'arcobaleno', phase: 'rubedo', patterns: ['arcobaleno', 'arcobaleni'] },
+  { label: 'nuvole paradisiache', phase: 'rubedo', patterns: ['nuvole paradisiache', 'nuvole dorate', 'nubi luminose', 'cielo paradisiaco', 'cielo dorato', 'paradiso'] },
+  { label: 'abbraccio luminoso', phase: 'rubedo', patterns: ['abbraccio luminoso', 'abbraccio lucente', 'abbraccio di luce', 'abbraccio caloroso', 'stretta amorosa'] },
+  { label: 'unione amorosa', phase: 'rubedo', patterns: ['unione amorosa', 'unione sessuale', 'fare l\'amore', 'amplesso', 'matrimonio', 'sposalizio', 'nozze'] },
+  { label: 'divinità benevola', phase: 'rubedo', patterns: ['divinità benevola', 'divinità che benedice', 'dio benevolo', 'dea benevola', 'angelo luminoso', 'figura divina', 'presenza divina'] },
+  { label: 'rubino', phase: 'rubedo', patterns: ['rubino', 'rubini'] },
+  { label: 'diamante', phase: 'rubedo', patterns: ['diamante', 'diamanti', 'brillante', 'brillanti'] },
+  { label: 'gioielli', phase: 'rubedo', patterns: ['gioiello', 'gioielli', 'gemma', 'gemme', 'pietra preziosa', 'pietre preziose', 'tesoro', 'tesori'] },
+  { label: 'oro', phase: 'rubedo', patterns: ['oro', 'aureo', 'aurea', 'dorato', 'dorata', 'oro filosofale'] },
+  { label: 'fertilità', phase: 'rubedo', patterns: ['fertilità', 'fertile', 'gravidanza', 'incinta', 'nascita', 'partorire', 'parto'] },
+  { label: 'volo', phase: 'rubedo', patterns: ['volavo', 'volare', 'volo libero', 'mi sollevavo in cielo', 'sogno lucido', 'sogni lucidi', 'consapevole nel sogno'] },
+  { label: 'fuoco vitale', phase: 'rubedo', patterns: ['fuoco', 'fiamma', 'fiamme', 'falò', 'braci ardenti'] },
+];
+
+/**
+ * Escape per costruire regex sicure dai pattern del dizionario.
+ */
+const escapeRegex = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Conta le occorrenze di un pattern in un testo, usando word-boundary
+ * compatibili con accenti e apostrofi italiani (non si appoggia a \b ASCII).
+ */
+const countMatches = (text: string, pattern: string): number => {
+  const escaped = escapeRegex(pattern.toLowerCase());
+  // delimitatori: inizio/fine stringa o qualunque carattere non lettera/numero accentato
+  const re = new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?=[^\\p{L}\\p{N}]|$)`, 'giu');
+  const matches = text.match(re);
+  return matches ? matches.length : 0;
+};
+
 export const getEmergedSymbols = (
   dreams: any[],
   options: { limit?: number; recentCount?: number } = {}
@@ -592,23 +677,22 @@ export const getEmergedSymbols = (
       .toLowerCase();
     if (!text) return;
 
-    (Object.entries(alchemicalPhases) as [AlchemicalPhase, PhaseDefinition][]).forEach(
-      ([phaseId, phase]) => {
-        phase.keywords.forEach((kw) => {
-          const k = kw.toLowerCase();
-          if (k.length < 4) return;
-          if (text.includes(k)) {
-            const key = `${phaseId}:${k}`;
-            const existing = counts.get(key);
-            if (existing) {
-              existing.occurrences += 1;
-            } else {
-              counts.set(key, { symbol: kw, phase: phaseId, occurrences: 1 });
-            }
-          }
-        });
+    symbolDictionary.forEach((entry) => {
+      // Somma le occorrenze di tutti i sinonimi/varianti di questo simbolo canonico
+      let occInThisDream = 0;
+      for (const pattern of entry.patterns) {
+        occInThisDream += countMatches(text, pattern);
       }
-    );
+      if (occInThisDream === 0) return;
+
+      const key = `${entry.phase}:${entry.label}`;
+      const existing = counts.get(key);
+      if (existing) {
+        existing.occurrences += occInThisDream;
+      } else {
+        counts.set(key, { symbol: entry.label, phase: entry.phase, occurrences: occInThisDream });
+      }
+    });
   });
 
   return Array.from(counts.values())
