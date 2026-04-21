@@ -562,3 +562,90 @@ export const getAllPhases = (): PhaseDefinition[] => {
     alchemicalPhases.rubedo
   ];
 };
+
+/**
+ * Estrae i simboli alchemici emersi nei sogni recenti, raggruppati per fase.
+ */
+export interface EmergedSymbol {
+  symbol: string;
+  phase: AlchemicalPhase;
+  occurrences: number;
+}
+
+export const getEmergedSymbols = (
+  dreams: any[],
+  options: { limit?: number; recentCount?: number } = {}
+): EmergedSymbol[] => {
+  const { limit = 8, recentCount = 12 } = options;
+  if (!dreams || dreams.length === 0) return [];
+
+  const recent = [...dreams]
+    .sort((a, b) => new Date(b.dream_date).getTime() - new Date(a.dream_date).getTime())
+    .slice(0, recentCount);
+
+  const counts = new Map<string, EmergedSymbol>();
+
+  recent.forEach((dream) => {
+    const text = [dream.content, dream.interpretation, ...(dream.tags || [])]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    if (!text) return;
+
+    (Object.entries(alchemicalPhases) as [AlchemicalPhase, PhaseDefinition][]).forEach(
+      ([phaseId, phase]) => {
+        phase.keywords.forEach((kw) => {
+          const k = kw.toLowerCase();
+          if (k.length < 4) return;
+          if (text.includes(k)) {
+            const key = `${phaseId}:${k}`;
+            const existing = counts.get(key);
+            if (existing) {
+              existing.occurrences += 1;
+            } else {
+              counts.set(key, { symbol: kw, phase: phaseId, occurrences: 1 });
+            }
+          }
+        });
+      }
+    );
+  });
+
+  return Array.from(counts.values())
+    .sort((a, b) => b.occurrences - a.occurrences)
+    .slice(0, limit);
+};
+
+/**
+ * Lettura narrativa breve della fase dominante con eventuali tensioni secondarie.
+ */
+export const getPhaseNarrative = (distribution: PhaseDistribution): string => {
+  const { nigredo, albedo, rubedo, dominant } = distribution;
+  const sorted = [
+    { id: 'nigredo' as AlchemicalPhase, value: nigredo },
+    { id: 'albedo' as AlchemicalPhase, value: albedo },
+    { id: 'rubedo' as AlchemicalPhase, value: rubedo },
+  ].sort((a, b) => b.value - a.value);
+
+  const secondary = sorted[1];
+  const dominantName = alchemicalPhases[dominant].name;
+  const secondaryName = alchemicalPhases[secondary.id].name;
+
+  const base: Record<AlchemicalPhase, string> = {
+    nigredo:
+      "Il tuo materiale onirico recente è attraversato da immagini dense, primordiali, a tratti scomode: è il lavoro della Nigredo, la fase in cui qualcosa di vecchio si decompone perché qualcosa di nuovo possa nascere.",
+    albedo:
+      "Nei tuoi sogni recenti emergono atmosfere lunari, acquatiche, ariose: la psiche sta lavando, separando, distillando. È il tempo dell'Albedo, della chiarificazione interiore.",
+    rubedo:
+      "I tuoi sogni si stanno accendendo di luce solare, fertilità e unione: è il segno della Rubedo, la fase in cui ciò che hai attraversato torna a te come pienezza e calore.",
+  };
+
+  let text = base[dominant];
+
+  if (secondary.value >= 25 && secondary.id !== dominant) {
+    text += ` Restano però aperture verso la ${secondaryName}: la fase ${dominantName} non è isolata, dialoga con tracce di ${secondaryName} che meritano attenzione.`;
+  }
+
+  return text;
+};
+
