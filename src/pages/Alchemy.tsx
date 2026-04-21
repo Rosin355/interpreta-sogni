@@ -106,6 +106,8 @@ const Alchemy = () => {
 
   const allPhases = getAllPhases();
   const trendMeta = getTrendMeta();
+  const emergedSymbols = journey ? getEmergedSymbols(dreams || [], { limit: 10, recentCount: 15 }) : [];
+  const phaseNarrative = journey ? getPhaseNarrative(journey.distribution) : "";
 
   // Registra il loading globale: l'overlay RouteSwitchOverlay resta visibile
   // finché i dati del viaggio non sono pronti, evitando un secondo loader interno.
