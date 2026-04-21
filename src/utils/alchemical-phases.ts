@@ -646,29 +646,164 @@ const symbolDictionary: SymbolDictEntry[] = [
 const escapeRegex = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
- * Conta le occorrenze di un pattern in un testo, usando word-boundary
- * compatibili con accenti e apostrofi italiani (non si appoggia a \b ASCII).
+ * Genera varianti morfologiche italiane di base per un pattern di una sola
+ * parola (singolare/plurale, gerundio, participio). Per pattern multi-parola
+ * o già flessi, restituisce il pattern così com'è. Le varianti generate
+ * vengono poi de-duplicate insieme a quelle dichiarate manualmente.
  */
-const countMatches = (text: string, pattern: string): number => {
-  const escaped = escapeRegex(pattern.toLowerCase());
-  // delimitatori: inizio/fine stringa o qualunque carattere non lettera/numero accentato
-  const re = new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?=[^\\p{L}\\p{N}]|$)`, 'giu');
-  const matches = text.match(re);
-  return matches ? matches.length : 0;
+const generateMorphVariants = (pattern: string): string[] => {
+  const p = pattern.toLowerCase().trim();
+  if (!p || p.includes(' ') || p.includes("'")) return [p];
+  const variants = new Set<string>([p]);
+
+  // Singolare/plurale italiano (euristica leggera)
+  if (/[^aeiou]o$/.test(p)) variants.add(p.slice(0, -1) + 'i'); // gatto -> gatti
+  else if (/[^aeiou]a$/.test(p)) variants.add(p.slice(0, -1) + 'e'); // mela -> mele
+  else if (/[^aeiou]e$/.test(p)) variants.add(p.slice(0, -1) + 'i'); // cane -> cani
+  if (/[^aeiou]i$/.test(p)) variants.add(p.slice(0, -1) + 'o');
+  if (/[^aeiou]e$/.test(p)) variants.add(p.slice(0, -1) + 'a');
+
+  // Verbi all'infinito -are/-ere/-ire → gerundio + participio passato
+  if (/are$/.test(p)) {
+    const root = p.slice(0, -3);
+    variants.add(root + 'ando');
+    variants.add(root + 'ato');
+    variants.add(root + 'ata');
+  } else if (/ere$/.test(p)) {
+    const root = p.slice(0, -3);
+    variants.add(root + 'endo');
+    variants.add(root + 'uto');
+    variants.add(root + 'uta');
+  } else if (/ire$/.test(p)) {
+    const root = p.slice(0, -3);
+    variants.add(root + 'endo');
+    variants.add(root + 'ito');
+    variants.add(root + 'ita');
+  }
+
+  return Array.from(variants);
 };
 
-export const getEmergedSymbols = (
+/**
+ * Cache module-level: per ogni voce del dizionario, precompila l'array di
+ * regex (una per pattern espanso). Si calcola una sola volta a runtime.
+ */
+interface CompiledEntry {
+  label: string;
+  phase: AlchemicalPhase;
+  patterns: { source: string; re: RegExp }[];
+}
+
+const compiledDictionary: CompiledEntry[] = symbolDictionary.map((entry) => {
+  const expanded = new Set<string>();
+  for (const p of entry.patterns) {
+    for (const v of generateMorphVariants(p)) expanded.add(v);
+  }
+  // Ordina per lunghezza decrescente: i pattern più lunghi (più specifici)
+  // vengono valutati prima, riducendo overlap con sotto-stringhe.
+  const sorted = Array.from(expanded).sort((a, b) => b.length - a.length);
+  return {
+    label: entry.label,
+    phase: entry.phase,
+    patterns: sorted.map((source) => ({
+      source,
+      re: new RegExp(
+        `(?:^|[^\\p{L}\\p{N}])(${escapeRegex(source)})(?=[^\\p{L}\\p{N}]|$)`,
+        'giu'
+      ),
+    })),
+  };
+});
+
+/**
+ * Trova tutti i match (intervalli) di un pattern in un testo. Usa il primo
+ * gruppo catturante per ottenere lo span esatto della parola, escludendo il
+ * delimitatore iniziale.
+ */
+interface MatchSpan {
+  start: number;
+  end: number;
+  source: string;
+}
+
+const findMatchSpans = (text: string, re: RegExp, source: string): MatchSpan[] => {
+  re.lastIndex = 0;
+  const spans: MatchSpan[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    const groupIndex = m.index + (m[0].length - m[1].length);
+    spans.push({ start: groupIndex, end: groupIndex + m[1].length, source });
+    if (m.index === re.lastIndex) re.lastIndex++; // safety
+  }
+  return spans;
+};
+
+/**
+ * Conta gli intervalli unici (mergiati) per evitare doppi conteggi quando
+ * più sinonimi dello stesso simbolo canonico matchano lo stesso frammento
+ * di testo (es. "sole" e "sole splendente").
+ */
+const countUniqueSpans = (spans: MatchSpan[]): number => {
+  if (spans.length === 0) return 0;
+  const sorted = [...spans].sort((a, b) => a.start - b.start || b.end - a.end);
+  let count = 0;
+  let lastEnd = -1;
+  for (const s of sorted) {
+    if (s.start >= lastEnd) {
+      count++;
+      lastEnd = s.end;
+    } else if (s.end > lastEnd) {
+      // overlap parziale: già contato, estendi soltanto il limite
+      lastEnd = s.end;
+    }
+  }
+  return count;
+};
+
+/**
+ * Conta le occorrenze di un singolo pattern in un testo (helper esposto per i test).
+ * Usa word-boundary compatibili con accenti e apostrofi italiani.
+ */
+export const countPatternMatches = (text: string, pattern: string): number => {
+  const re = new RegExp(
+    `(?:^|[^\\p{L}\\p{N}])(${escapeRegex(pattern.toLowerCase())})(?=[^\\p{L}\\p{N}]|$)`,
+    'giu'
+  );
+  return findMatchSpans(text.toLowerCase(), re, pattern).length;
+};
+
+export interface EmergedSymbolDebug extends EmergedSymbol {
+  matchedSynonyms: { source: string; occurrences: number }[];
+  perDream: { dreamId?: string; occurrences: number; sources: string[] }[];
+}
+
+export function getEmergedSymbols(
   dreams: any[],
-  options: { limit?: number; recentCount?: number } = {}
-): EmergedSymbol[] => {
-  const { limit = 8, recentCount = 12 } = options;
+  options?: { limit?: number; recentCount?: number; debug?: false }
+): EmergedSymbol[];
+export function getEmergedSymbols(
+  dreams: any[],
+  options: { limit?: number; recentCount?: number; debug: true }
+): EmergedSymbolDebug[];
+export function getEmergedSymbols(
+  dreams: any[],
+  options: { limit?: number; recentCount?: number; debug?: boolean } = {}
+): EmergedSymbol[] | EmergedSymbolDebug[] {
+  const { limit = 8, recentCount = 12, debug = false } = options;
   if (!dreams || dreams.length === 0) return [];
 
   const recent = [...dreams]
     .sort((a, b) => new Date(b.dream_date).getTime() - new Date(a.dream_date).getTime())
     .slice(0, recentCount);
 
-  const counts = new Map<string, EmergedSymbol>();
+  interface Aggregate {
+    symbol: string;
+    phase: AlchemicalPhase;
+    occurrences: number;
+    sources: Map<string, number>;
+    perDream: { dreamId?: string; occurrences: number; sources: string[] }[];
+  }
+  const counts = new Map<string, Aggregate>();
 
   recent.forEach((dream) => {
     const text = [dream.content, dream.interpretation, ...(dream.tags || [])]
@@ -677,28 +812,69 @@ export const getEmergedSymbols = (
       .toLowerCase();
     if (!text) return;
 
-    symbolDictionary.forEach((entry) => {
-      // Somma le occorrenze di tutti i sinonimi/varianti di questo simbolo canonico
-      let occInThisDream = 0;
-      for (const pattern of entry.patterns) {
-        occInThisDream += countMatches(text, pattern);
+    compiledDictionary.forEach((entry) => {
+      // Raccogli tutti gli span di questo simbolo canonico, poi mergia
+      // gli intervalli sovrapposti per evitare doppi conteggi.
+      const allSpans: MatchSpan[] = [];
+      for (const { re, source } of entry.patterns) {
+        const spans = findMatchSpans(text, re, source);
+        if (spans.length) allSpans.push(...spans);
       }
+      const occInThisDream = countUniqueSpans(allSpans);
       if (occInThisDream === 0) return;
 
       const key = `${entry.phase}:${entry.label}`;
-      const existing = counts.get(key);
-      if (existing) {
-        existing.occurrences += occInThisDream;
-      } else {
-        counts.set(key, { symbol: entry.label, phase: entry.phase, occurrences: occInThisDream });
+      let agg = counts.get(key);
+      if (!agg) {
+        agg = {
+          symbol: entry.label,
+          phase: entry.phase,
+          occurrences: 0,
+          sources: new Map(),
+          perDream: [],
+        };
+        counts.set(key, agg);
+      }
+      agg.occurrences += occInThisDream;
+
+      // Per debug: tieni traccia delle sorgenti uniche che hanno contribuito
+      const usedSources = new Set<string>();
+      for (const s of allSpans) usedSources.add(s.source);
+      usedSources.forEach((src) => {
+        agg!.sources.set(src, (agg!.sources.get(src) || 0) + 1);
+      });
+      if (debug) {
+        agg.perDream.push({
+          dreamId: dream.id,
+          occurrences: occInThisDream,
+          sources: Array.from(usedSources),
+        });
       }
     });
   });
 
-  return Array.from(counts.values())
+  const sorted = Array.from(counts.values())
     .sort((a, b) => b.occurrences - a.occurrences)
     .slice(0, limit);
-};
+
+  if (debug) {
+    return sorted.map<EmergedSymbolDebug>((a) => ({
+      symbol: a.symbol,
+      phase: a.phase,
+      occurrences: a.occurrences,
+      matchedSynonyms: Array.from(a.sources.entries())
+        .map(([source, occurrences]) => ({ source, occurrences }))
+        .sort((x, y) => y.occurrences - x.occurrences),
+      perDream: a.perDream,
+    }));
+  }
+
+  return sorted.map<EmergedSymbol>((a) => ({
+    symbol: a.symbol,
+    phase: a.phase,
+    occurrences: a.occurrences,
+  }));
+}
 
 /**
  * Lettura narrativa breve della fase dominante con eventuali tensioni secondarie.
