@@ -79,7 +79,13 @@ export const alchemicalPhases: Record<AlchemicalPhase, PhaseDefinition> = {
       'mostro', 'demone', 'sangue', 'violenza', 'distruzione', 'perdita',
       'lutto', 'dolore', 'sofferenza', 'tormento', 'prigionia', 'trappola',
       'smembramento', 'decomposizione', 'putrefazione', 'dissoluzione',
-      'caos', 'confusione oscura', 'disperazione', 'vuoto', 'abbandono'
+      'caos', 'confusione oscura', 'disperazione', 'vuoto', 'abbandono',
+      // Bestiario e materia primordiale (Nigredo)
+      'scimmione', 'scimmie', 'corvo', 'corvi', 'rinoceronte', 'coccodrillo',
+      'serpente', 'serpenti', 'topo', 'topi', 'ratto', 'ratti', 'elefante',
+      'fango', 'melma', 'palude', 'acqua sporca', 'acqua nera', 'acqua torbida',
+      'terra sporca', 'terra nera', 'cielo nero', 'cielo senza stelle',
+      'animale pesante', 'animale primordiale', 'sporcizia', 'putrido'
     ],
     moodWeights: {
       'paura': 1.0,
@@ -99,7 +105,20 @@ export const alchemicalPhases: Record<AlchemicalPhase, PhaseDefinition> = {
       'pericolo': 0.8,
       'oscurità': 0.8,
       'violenza': 0.7,
-      'perdita': 0.7
+      'perdita': 0.7,
+      // Simboli zoomorfi e materici della Nigredo
+      'sangue': 0.9,
+      'corvo': 0.7,
+      'serpente': 0.7,
+      'coccodrillo': 0.7,
+      'rinoceronte': 0.6,
+      'scimmione': 0.6,
+      'topo': 0.6,
+      'elefante': 0.5,
+      'fango': 0.7,
+      'palude': 0.7,
+      'acqua nera': 0.8,
+      'cielo nero': 0.7
     },
     description: 'La fase della Nigredo rappresenta l\'inizio del processo alchemico, caratterizzata dall\'oscurità, dalla decomposizione e dalla morte simbolica. È il momento dell\'attraversamento dell\'ombra e della conoscenza del lato oscuro della psiche.',
     psychologicalMeaning: 'Questa fase corrisponde al confronto con l\'inconscio, l\'elaborazione di traumi, paure profonde e aspetti repressi della personalità. \nQuando un individuo sosta in essa, non conosce ancora i propri veri desideri e potrebbe ignorare i propri potenziali inespressi e le proprie capacità o, in casi non meno comuni, potrebbe non essere ancora in grado di guardare con onestà ai propri agiti, e dunque elaborarli. \nIl processo necessario di dissoluzione dell\'ego e dei vecchi schemi permettere l\'emergere della maturità. Se nel nero il seme era obliato, nel bianco esso vedrà la luce... ',
@@ -133,7 +152,12 @@ export const alchemicalPhases: Record<AlchemicalPhase, PhaseDefinition> = {
       'guarigione', 'cura', 'medicina', 'terapia', 'convalescenza',
       'transizione', 'passaggio', 'soglia', 'ponte', 'confine',
       'chiarificazione', 'separazione', 'distillazione', 'filtrazione',
-      'luna', 'stella', 'cristallo', 'ghiaccio', 'neve', 'nuvola'
+      'luna', 'stella', 'stelle', 'cristallo', 'ghiaccio', 'neve', 'nuvola',
+      // Bestiario lunare e creature ariose dell'Albedo
+      'unicorno', 'airone', 'aironi', 'colomba', 'colombe', 'cigno', 'cigni',
+      'oca', 'oche', 'coniglio', 'conigli', 'uccello bianco', 'uccelli bianchi',
+      'animale bianco', 'piume bianche', 'animale che vola',
+      'leggiadro', 'grazia'
     ],
     moodWeights: {
       'calma': 1.0,
@@ -154,7 +178,17 @@ export const alchemicalPhases: Record<AlchemicalPhase, PhaseDefinition> = {
       'foresta': 0.5,
       'meditazione': 0.9,
       'guarigione': 0.8,
-      'purificazione': 1.0
+      'purificazione': 1.0,
+      // Simboli lunari e zoomorfi dell'Albedo
+      'luna': 0.9,
+      'stelle': 0.8,
+      'unicorno': 1.0,
+      'airone': 0.8,
+      'colomba': 0.8,
+      'cigno': 0.8,
+      'oca': 0.6,
+      'coniglio': 0.6,
+      'uccello bianco': 0.8
     },
     description: 'La fase dell\'Albedo è il momento della purificazione, della chiarificazione e della separazione. Dopo l\'oscurità della Nigredo, emerge una nuova luce, pallida come la luna, che illumina ciò che è stato dissolto e permette di distinguere e sanare.',
     psychologicalMeaning: 'Questa fase rappresenta il processo di purificazione psichica, l\'integrazione degli opposti, la guarigione di ferite emotive e la separazione di ciò che è sano da ciò che è tossico. È un momento di riflessione, introspezione profonda e riorganizzazione interiore.',
@@ -190,7 +224,14 @@ export const alchemicalPhases: Record<AlchemicalPhase, PhaseDefinition> = {
       'gioia', 'estasi', 'beatitudine', 'felicità', 'celebrazione',
       'completezza', 'perfezione', 'realizzazione', 'compimento',
       'guarigione', 'miracolo', 'dono', 'benedizione', 'grazia',
-      'trasmutazione', 'trasformazione', 'rinascita', 'resurrezione'
+      'trasmutazione', 'trasformazione', 'rinascita', 'resurrezione',
+      // Simboli solari, di fertilità e unione della Rubedo
+      'campo di grano', 'grano', 'spighe', 'messi', 'raccolto',
+      'arcobaleno', 'sole splendente', 'sole lucente', 'nuvole paradisiache',
+      'paradiso', 'cielo dorato', 'rubino', 'diamante', 'diamanti',
+      'gioiello', 'gioielli', 'unione sessuale', 'unione amorosa',
+      'abbraccio luminoso', 'abbraccio lucente', 'divinità benevola',
+      'dio benevolo', 'dea benevola', 'divinità che benedice'
     ],
     moodWeights: {
       'felicità': 1.0,
@@ -214,7 +255,20 @@ export const alchemicalPhases: Record<AlchemicalPhase, PhaseDefinition> = {
       'cuore': 0.8,
       'romantico': 0.7,
       'creazione': 0.8,
-      'nascita': 0.8
+      'nascita': 0.8,
+      // Simboli solari, fertili e nuziali della Rubedo
+      'sole': 0.9,
+      'oro': 0.8,
+      'rubino': 0.9,
+      'diamante': 0.8,
+      'gioielli': 0.7,
+      'arcobaleno': 0.9,
+      'grano': 0.7,
+      'fertilità': 0.8,
+      'unione': 0.9,
+      'matrimonio': 0.8,
+      'divinità': 0.7,
+      'paradiso': 0.8
     },
     description: 'La fase della Rubedo è il coronamento dell\'Opera Alchemica. Rappresenta la perfezione raggiunta, l\'unione degli opposti, la rinascita dell\'individuo trasformato. È il momento dell\'oro filosofale, della luce solare interiore e della piena realizzazione.',
     psychologicalMeaning: 'Questa fase simboleggia l\'individuazione junghiana completa, l\'integrazione di tutti gli aspetti della personalità, la nascita del Sé autentico. È caratterizzata da creatività, consapevolezza lucida, amore incondizionato e capacità di portare guarigione anche agli altri.',
