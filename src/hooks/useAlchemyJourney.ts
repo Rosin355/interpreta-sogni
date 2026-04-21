@@ -83,6 +83,7 @@ export const useAlchemyJourney = () => {
   return {
     journey,
     dreamsCount,
+    dreams,
     loading,
     isRefreshing: isAlchemyRefreshing,
     refresh,
