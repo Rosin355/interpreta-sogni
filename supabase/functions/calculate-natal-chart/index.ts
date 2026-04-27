@@ -186,7 +186,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          data: existingProfile.natal_chart_data,
+          natalChartData: existingProfile.natal_chart_data,
           fromCache: true
         }),
         { 
@@ -195,6 +195,41 @@ serve(async (req) => {
         }
       );
     }
+
+    // Helper: salva i dati di nascita anche quando il calcolo upstream fallisce,
+    // così l'utente non li deve reinserire al prossimo tentativo.
+    const persistBirthDataOnly = async () => {
+      try {
+        const { error: birthSaveError } = await supabaseAdmin
+          .from('profiles')
+          .update({
+            birth_date: birthDate,
+            birth_time: birthTime,
+            birth_place_name: placeName,
+            birth_latitude: latitude,
+            birth_longitude: longitude,
+            birth_timezone: timezone,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id);
+        if (birthSaveError) {
+          console.error('⚠️ Failed to persist birth data after upstream failure:', birthSaveError);
+        } else {
+          console.log('💾 Birth data persisted (without natal_chart_data) after upstream failure');
+        }
+      } catch (e) {
+        console.error('⚠️ Exception while persisting birth data after upstream failure:', e);
+      }
+    };
+
+    // Helper: risposta errore strutturata e coerente
+    const errorResponse = (status: number, errorCode: string, message: string, extra: Record<string, unknown> = {}) => {
+      console.error(`[calculate-natal-chart] ❌ ${errorCode} (${status}):`, message, extra);
+      return new Response(
+        JSON.stringify({ success: false, error: message, errorCode, ...extra }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status }
+      );
+    };
 
     console.log('⚠️ CACHE MISS - API call required');
     if (!existingProfile?.natal_chart_data) {
