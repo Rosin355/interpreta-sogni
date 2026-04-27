@@ -304,16 +304,24 @@ serve(async (req) => {
         // ====================================
         if (errorText.includes('Limit Exceeded') || errorText.includes('limit exceeded')) {
           console.error('🚫 API LIMIT EXCEEDED - No more retries possible');
-          throw new Error(
-            'Il servizio di calcolo del tema natale ha raggiunto il limite giornaliero di richieste. ' +
-            'Ti preghiamo di riprovare tra qualche ora. ' +
-            'I tuoi dati sono stati salvati e potrai calcolare il tema natale in seguito.'
+          await persistBirthDataOnly();
+          return errorResponse(
+            503,
+            'NATAL_CHART_LIMIT_EXCEEDED',
+            'Il servizio di calcolo del tema natale ha raggiunto il limite giornaliero di richieste. Riprova tra qualche ora. I tuoi dati di nascita sono stati salvati.',
+            { upstreamStatus: apiResponse.status, upstreamBody: errorText.slice(0, 500) }
           );
         }
         
         // Don't retry on 400 (validation errors)
         if (apiResponse.status === 400) {
-          throw new Error(`Invalid request to API: ${errorText}`);
+          await persistBirthDataOnly();
+          return errorResponse(
+            400,
+            'NATAL_CHART_INVALID_INPUT',
+            'Dati di nascita non validi per il servizio astrologico. Verifica data, ora e luogo e riprova.',
+            { upstreamStatus: 400, upstreamBody: errorText.slice(0, 500) }
+          );
         }
 
         lastError = new Error(`API returned ${apiResponse.status}: ${errorText}`);
@@ -339,7 +347,7 @@ serve(async (req) => {
     }
 
     if (!apiResponse || !apiResponse.ok) {
-      const status = apiResponse?.status || 'unknown';
+      const status = apiResponse?.status || 0;
       const statusText = apiResponse?.statusText || 'unknown';
       console.error('=== API CALL FAILED ===');
       console.error('Status:', status);
@@ -347,10 +355,12 @@ serve(async (req) => {
       console.error('Last Error:', lastError?.message);
       console.error('=======================');
       
-      throw new Error(
-        `Impossibile calcolare il tema natale. ` +
-        `Codice errore: ${status}. ` +
-        `${lastError?.message || 'Riprova più tardi.'}`
+      await persistBirthDataOnly();
+      return errorResponse(
+        502,
+        'NATAL_CHART_API_ERROR',
+        `Impossibile calcolare il tema natale al momento. Riprova tra qualche minuto.`,
+        { upstreamStatus: status, lastError: lastError?.message }
       );
     }
 
@@ -360,7 +370,13 @@ serve(async (req) => {
 
     if (apiData.statusCode !== 200 || !apiData.output) {
       console.error('Invalid API response structure:', JSON.stringify(apiData, null, 2));
-      throw new Error('Invalid response from Free Astrology API');
+      await persistBirthDataOnly();
+      return errorResponse(
+        502,
+        'NATAL_CHART_API_ERROR',
+        'Risposta non valida dal servizio astrologico. Riprova tra qualche minuto.',
+        { upstreamStatusCode: apiData?.statusCode }
+      );
     }
 
     let planets = apiData?.output?.planets;
@@ -390,10 +406,12 @@ serve(async (req) => {
         if (t1.includes('Limit Exceeded') || t2.includes('Limit Exceeded') || 
             t1.includes('limit exceeded') || t2.includes('limit exceeded')) {
           console.error('🚫 API LIMIT EXCEEDED on planets/houses call');
-          throw new Error(
-            'Il servizio di calcolo del tema natale ha raggiunto il limite giornaliero di richieste. ' +
-            'Ti preghiamo di riprovare tra qualche ora. ' +
-            'I tuoi dati sono stati salvati e potrai calcolare il tema natale in seguito.'
+          await persistBirthDataOnly();
+          return errorResponse(
+            503,
+            'NATAL_CHART_LIMIT_EXCEEDED',
+            'Il servizio di calcolo del tema natale ha raggiunto il limite giornaliero di richieste. Riprova tra qualche ora. I tuoi dati di nascita sono stati salvati.',
+            { upstreamPlanetsStatus: plRes.status, upstreamHousesStatus: hoRes.status }
           );
         }
         
@@ -404,7 +422,18 @@ serve(async (req) => {
         console.error('Houses error response:', t2);
         console.error('Request payload:', JSON.stringify(payload, null, 2));
         console.error('================');
-        throw new Error('Failed to fetch planets/houses');
+        await persistBirthDataOnly();
+        return errorResponse(
+          502,
+          'NATAL_CHART_API_ERROR',
+          'Errore nel recupero dei dati planetari dal servizio astrologico. Riprova tra qualche minuto.',
+          {
+            upstreamPlanetsStatus: plRes.status,
+            upstreamHousesStatus: hoRes.status,
+            planetsError: t1.slice(0, 300),
+            housesError: t2.slice(0, 300)
+          }
+        );
       }
       const [plJson, hoJson, asJson] = await Promise.all([plRes.json(), hoRes.json(), asRes.ok ? asRes.json() : Promise.resolve(null)]);
       planets = plJson?.output;
