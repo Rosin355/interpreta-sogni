@@ -5,6 +5,8 @@ import * as z from "zod";
 import { format } from "date-fns";
 import { CalendarIcon, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
+import { buildErrorReportAction } from "@/utils/error-toast-action";
 import { supabase } from "@/integrations/supabase/client";
 import { searchPlaces, getTimezone, GeocodingResult } from "@/utils/geocoding";
 
