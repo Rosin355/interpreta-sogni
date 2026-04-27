@@ -40,12 +40,28 @@ const Astrology = () => {
         .from("profiles")
         .select("*")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error("[Astrology] Error fetching profile:", error);
+        toast({
+          title: "Errore",
+          description: "Impossibile caricare il tuo profilo. Riprova tra poco.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Profilo non ancora pronto (timing trigger): mostriamo comunque il form
+      if (!profileData) {
+        console.warn("[Astrology] Profile row not found yet for user", user.id);
+        setProfile(null);
+        setNatalChartData(null);
+        return;
+      }
 
       setProfile(profileData);
-      
+
       // Convert natal chart data structure if needed
       const rawData = profileData?.natal_chart_data as any;
       if (rawData && typeof rawData === 'object') {
