@@ -756,14 +756,42 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in calculate-natal-chart function:', error);
+    const message = (error as Error)?.message || 'Internal server error';
+    console.error('[calculate-natal-chart] ❌ UNHANDLED EXCEPTION:', message, error);
+
+    // Mappa errori di validazione iniziale a errorCode dedicati
+    let errorCode = 'NATAL_CHART_INTERNAL';
+    let status = 500;
+    if (message.includes('Authorization') || message === 'Unauthorized') {
+      errorCode = 'NATAL_CHART_AUTH';
+      status = 401;
+    } else if (
+      message.includes('Missing required fields') ||
+      message.includes('Invalid coordinates') ||
+      message.includes('Invalid latitude') ||
+      message.includes('Invalid longitude') ||
+      message.includes('Invalid date format') ||
+      message.includes('Invalid time format')
+    ) {
+      errorCode = 'NATAL_CHART_INVALID_INPUT';
+      status = 400;
+    } else if (message.includes('FREE_ASTROLOGY_API_KEY not configured')) {
+      errorCode = 'NATAL_CHART_CONFIG';
+      status = 500;
+    } else if (message.includes('No planets data returned')) {
+      errorCode = 'NATAL_CHART_API_ERROR';
+      status = 502;
+    }
+
     return new Response(
       JSON.stringify({
-        error: error.message || 'Internal server error'
+        success: false,
+        error: message,
+        errorCode,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
+        status,
       }
     );
   }
