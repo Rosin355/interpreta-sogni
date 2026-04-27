@@ -89,6 +89,7 @@ export function BirthDataForm({ onSuccess, initialData }: BirthDataFormProps) {
   );
   const [searchingPlaces, setSearchingPlaces] = useState(false);
   const [openPlaceCombobox, setOpenPlaceCombobox] = useState(false);
+  const { toast: toastClassic } = useToast();
 
   const form = useForm<BirthDataFormValues>({
     resolver: zodResolver(birthDataSchema),
