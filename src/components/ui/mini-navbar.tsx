@@ -104,16 +104,9 @@ export function MiniNavbar() {
             alt="Dream Alchemist"
             className="w-16 h-16 object-contain transition-transform duration-500 group-hover:scale-105" 
            />
-           <div className="hidden md:flex flex-col items-center justify-center leading-none">
-            <span className="text-lg font-bodoni-heading uppercase tracking-[0.18em] text-foreground whitespace-nowrap">
-              Dream Alchemist
-            </span>
-            <div className="mt-1.5 flex items-center justify-center gap-2 w-full">
-              <span className="h-px flex-1 bg-foreground/40 rounded-full" />
-              <span className="text-foreground/60 text-xs leading-none select-none">☾</span>
-              <span className="h-px flex-1 bg-foreground/40 rounded-full" />
-            </div>
-           </div>
+           <span className="hidden md:block font-editorial uppercase tracking-[0.2em] text-foreground text-sm whitespace-nowrap">
+            DREAM ALCHEMIST
+           </span>
         </Link>
 
         <nav className="hidden sm:flex items-center space-x-8">
