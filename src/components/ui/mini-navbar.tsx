@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils";
+import dreamAlchemistLogo from "@/assets/dreamalchemist_logo.png";
 
 const AnimatedNavLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
   return (
@@ -97,15 +98,22 @@ export function MiniNavbar() {
     )}>
 
       <div className="flex items-center justify-between w-full gap-x-10">
-        <Link to="/" className="flex items-center gap-3 flex-shrink-0 group">
+        <Link to="/" className="flex items-center gap-4 flex-shrink-0 group">
            <img 
-            src="/dreamalchemist_logo.png" 
-            alt="Dream Alchemist Logo" 
-            className="w-8 h-8 object-contain transition-transform duration-500 group-hover:scale-110" 
+            src={dreamAlchemistLogo}
+            alt="Dream Alchemist"
+            className="w-16 h-16 object-contain transition-transform duration-500 group-hover:scale-105" 
            />
-           <span className="hidden md:block font-editorial uppercase tracking-[0.2em] text-white text-sm whitespace-nowrap">
-            DREAM ALCHEMIST
-           </span>
+           <div className="hidden md:flex flex-col items-center justify-center leading-none">
+            <span className="text-lg font-bodoni-heading uppercase tracking-[0.18em] text-foreground whitespace-nowrap">
+              Dream Alchemist
+            </span>
+            <div className="mt-1.5 flex items-center justify-center gap-2 w-full">
+              <span className="h-px flex-1 bg-foreground/40 rounded-full" />
+              <span className="text-foreground/60 text-xs leading-none select-none">☾</span>
+              <span className="h-px flex-1 bg-foreground/40 rounded-full" />
+            </div>
+           </div>
         </Link>
 
         <nav className="hidden sm:flex items-center space-x-8">
