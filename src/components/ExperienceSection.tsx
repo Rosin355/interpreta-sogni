@@ -25,7 +25,6 @@ const ExperienceSection = () => {
             "radial-gradient(ellipse at 50% 40%, hsl(var(--mystic-magenta) / 0.18) 0%, transparent 45%), radial-gradient(ellipse at 30% 70%, hsl(var(--mystic-violet) / 0.18) 0%, transparent 50%), radial-gradient(ellipse at 80% 30%, hsl(var(--mystic-deep)) 0%, transparent 60%), linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--mystic-deep)) 50%, hsl(var(--background)) 100%)",
         }}
       />
-
       {/* Stelle */}
       <div className="absolute inset-0 pointer-events-none">
         {stars.map((s) => (
@@ -69,10 +68,14 @@ const ExperienceSection = () => {
           >
             “
           </span>
-          Il sogno è la piccola{" "}
-          <em style={{ color: "hsl(var(--mystic-glow))" }}>porta nascosta</em>{" "}
-          nel più profondo e intimo santuario dell'anima.
+          Il sogno è una piccola{" "}
+          <em style={{ color: "hsl(var(--mystic-glow))" }}>porta occulta</em>{" "}
+          nel più intimo e segreto sacrario dell’anima.
         </p>
+
+        <div className="mt-8 ed-lead max-w-[50ch] mx-auto opacity-90 text-foreground/80">
+          Dream Alchemist nasce da questa soglia: un luogo in cui il sogno non viene ridotto a spiegazione, ma ascoltato come una forma di conoscenza interiore.
+        </div>
 
         <div
           className="mt-12 ed-meta"

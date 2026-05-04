@@ -6,7 +6,7 @@ const chapters = [
     title: "Il diario",
     em: "intimo",
     sub: "Annota il sogno",
-    body: "Registra il sogno mentre è ancora caldo. A voce o per iscritto, ogni dettaglio diventa una pagina del tuo libro notturno.",
+    body: "Scrivi ciò che resta al risveglio: un’immagine, una frase, una sensazione. Anche il frammento più piccolo può diventare una traccia da seguire.",
     meta: "Capitolo uno · il diario",
   },
   {
@@ -14,7 +14,7 @@ const chapters = [
     title: "Il simbolo",
     em: "rivelato",
     sub: "Lettura simbolica",
-    body: "Ogni immagine porta una lingua antica. Ti accompagniamo a leggerla con calma — l'acqua, la soglia, la chiamata senza risposta.",
+    body: "Alcune immagini ritornano senza spiegarsi subito. Qui impari a fermarti davanti a ciò che insiste, finché il simbolo comincia a prendere voce.",
     meta: "Capitolo due · il simbolo",
   },
   {
@@ -22,7 +22,7 @@ const chapters = [
     title: "Il cielo",
     em: "sotteso",
     sub: "Tema natale & risonanze",
-    body: "Sotto ogni sogno c'è il tuo cielo di nascita. Il tema natale non predice: rivela la nota a cui il sogno sta rispondendo.",
+    body: "Il tema natale non dà risposte automatiche, ma offre una cornice sottile. A volte il cielo non spiega il sogno: lo mette semplicemente in una luce più chiara.",
     meta: "Capitolo tre · il cielo",
   },
   {
@@ -30,7 +30,7 @@ const chapters = [
     title: "L'opera",
     em: "alchemica",
     sub: "Nigredo, Albedo, Rubedo",
-    body: "Il sogno entra nel tempo lungo della trasformazione. Le quattro fasi dell'alchimia diventano la mappa silenziosa del tuo cammino interiore.",
+    body: "Ogni sogno lascia un piccolo resto da integrare nella vita vigile. L’opera comincia quando riconosci quella traccia e scegli di non perderla.",
     meta: "Capitolo quattro · la trasformazione",
   },
 ];

@@ -5,7 +5,7 @@ const phases = [
     key: "nigredo",
     latin: "Nigredo",
     roman: "I · L'oscuramento",
-    desc: "La discesa nell'ignoto. Il sogno che inquieta è il sogno che dà inizio all'opera.",
+    desc: "La fase in cui tutto si fa più denso: confusione, discesa, materia scura. È il momento in cui il sogno porta alla luce ciò che non può più restare indistinto.",
     gradient:
       "radial-gradient(circle at 30% 30%, hsl(280 60% 25%) 0%, hsl(232 71% 8%) 80%)",
   },
@@ -13,7 +13,7 @@ const phases = [
     key: "albedo",
     latin: "Albedo",
     roman: "II · La purificazione",
-    desc: "Una prima luce lucida. L'immagine viene lavata e vista per ciò che è — senza giudizio.",
+    desc: "Dopo l’oscurità arriva una chiarezza sottile. Non è ancora risposta, ma un primo respiro interiore: qualcosa si separa dal caos e diventa finalmente visibile.",
     gradient:
       "radial-gradient(circle at 30% 30%, hsl(245 80% 78%) 0%, hsl(245 40% 45%) 100%)",
   },
@@ -21,7 +21,7 @@ const phases = [
     key: "citrinitas",
     latin: "Citrinitas",
     roman: "III · L'illuminazione",
-    desc: "L'intuizione matura. Ciò che il sogno ripeteva da settimane finalmente trova senso.",
+    desc: "È la luce che torna senza abbagliare. Il senso inizia a orientarsi, le immagini si collegano, e ciò che era sparso comincia a trovare direzione.",
     gradient:
       "radial-gradient(circle at 30% 30%, hsl(45 90% 70%) 0%, hsl(280 50% 40%) 100%)",
   },
@@ -29,7 +29,7 @@ const phases = [
     key: "rubedo",
     latin: "Rubedo",
     roman: "IV · L'integrazione",
-    desc: "Il simbolo lascia la pagina e diventa un piccolo cambiamento nella vita di veglia.",
+    desc: "La trasformazione prende corpo. Quello che hai visto, sentito e compreso smette di restare solo simbolo, e diventa presenza viva dentro di te.",
     gradient:
       "radial-gradient(circle at 30% 30%, hsl(330 80% 65%) 0%, hsl(280 70% 30%) 100%)",
   },

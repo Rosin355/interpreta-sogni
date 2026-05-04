@@ -16,7 +16,6 @@ const CTASection = () => {
             "radial-gradient(ellipse at 50% 50%, hsl(var(--mystic-magenta) / 0.18) 0%, transparent 50%), linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--mystic-deep)) 50%, hsl(var(--background)) 100%)",
         }}
       />
-
       <motion.div
         className="relative z-10 flex flex-col items-center gap-12 text-center max-w-3xl mx-auto px-6 lg:px-10"
         initial={{ opacity: 0, y: 30 }}
@@ -43,20 +42,19 @@ const CTASection = () => {
           style={{ fontSize: "clamp(36px, 6vw, 84px)" }}
         >
           Stasera, <em style={{ color: "hsl(var(--mystic-glow))" }}>annota</em>{" "}
-          il primo sogno.
+          ciò che resta.
         </h2>
 
         <p className="ed-lead max-w-[44ch]">
-          Un'app che si apre come un libro. Nessuna serie, nessuna notifica —
-          soltanto la pagina, il simbolo, e il tempo che serve.
+          Non serve ricordare tutto. Basta un dettaglio, un’emozione, una scena rimasta accesa al risveglio: da lì comincia il dialogo con il sogno.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 mt-2">
           <RainbowButton
             className="px-8 py-6 text-base"
-            onClick={() => navigate("/auth?mode=signup")}
+            onClick={() => navigate("/my-dreams")}
           >
-            Inizia il viaggio
+            Inizia dal primo frammento.
           </RainbowButton>
           <Button
             variant="outline"
