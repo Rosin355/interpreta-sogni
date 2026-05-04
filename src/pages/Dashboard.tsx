@@ -126,12 +126,6 @@ const Dashboard = () => {
   };
 
   return (
-import { ModernDashboardLayout } from "@/components/ModernDashboardLayout";
-
-const Dashboard = () => {
-  // ... existing code ...
-
-  return (
     <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div>

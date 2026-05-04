@@ -82,12 +82,6 @@ const MyDreams = () => {
   }, [searchQuery, selectedCategory, selectedPhase, dreams]);
 
   return (
-import { ModernDashboardLayout } from "@/components/ModernDashboardLayout";
-
-const MyDreams = () => {
-  // ... existing code ...
-
-  return (
     <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
