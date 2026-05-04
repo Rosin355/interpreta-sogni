@@ -151,7 +151,7 @@ const UserMenu = () => {
           </Avatar>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-56 bg-black/90 border-white/10 text-white backdrop-blur-xl">
         <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
@@ -163,19 +163,19 @@ const UserMenu = () => {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate("/dashboard")} className="cursor-pointer">
+        <DropdownMenuItem onClick={() => navigate("/dashboard")} className="cursor-pointer focus:bg-white/10 focus:text-white">
           <LayoutDashboard className="mr-2 h-4 w-4" />
           <span>Dashboard</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate("/my-dreams")} className="cursor-pointer">
+        <DropdownMenuItem onClick={() => navigate("/my-dreams")} className="cursor-pointer focus:bg-white/10 focus:text-white">
           <BookOpen className="mr-2 h-4 w-4" />
           <span>I Miei Sogni</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate("/profile")} className="cursor-pointer">
+        <DropdownMenuItem onClick={() => navigate("/profile")} className="cursor-pointer focus:bg-white/10 focus:text-white">
           <UserIcon className="mr-2 h-4 w-4" />
           <span>Profilo</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate("/settings")} className="cursor-pointer">
+        <DropdownMenuItem onClick={() => navigate("/settings")} className="cursor-pointer focus:bg-white/10 focus:text-white">
           <Settings className="mr-2 h-4 w-4" />
           <span>Impostazioni</span>
         </DropdownMenuItem>
