@@ -67,56 +67,46 @@ export function MiniNavbar() {
   ];
 
   const loginButtonElement = (
-    <Link to="/auth?mode=login" className="px-5 py-2 text-xs sm:text-sm border border-white/10 bg-white/5 text-gray-300 rounded-full hover:border-white/30 hover:text-white transition-all duration-300 w-full sm:w-auto text-center backdrop-blur-sm">
+    <Link to="/auth?mode=login" className="px-4 py-2 sm:px-3 text-xs sm:text-sm border border-[#333] bg-[rgba(31,31,31,0.62)] text-gray-300 rounded-full hover:border-white/50 hover:text-white transition-colors duration-200 w-full sm:w-auto text-center">
       Log In
     </Link>
   );
 
   const signupButtonElement = (
-    <Link to="/auth?mode=signup" className="relative group w-full sm:w-auto">
-       <div className="absolute inset-0 -m-1 rounded-full
+    <div className="relative group w-full sm:w-auto">
+       <div className="absolute inset-0 -m-2 rounded-full
                      hidden sm:block
-                     bg-white
-                     opacity-20 filter blur-md pointer-events-none
+                     bg-gray-100
+                     opacity-40 filter blur-lg pointer-events-none
                      transition-all duration-300 ease-out
-                     group-hover:opacity-40 group-hover:blur-lg"></div>
-       <div className="relative z-10 px-5 py-2 text-xs sm:text-sm font-semibold text-black bg-white rounded-full hover:bg-gray-100 transition-all duration-300 w-full sm:w-auto text-center block">
+                     group-hover:opacity-60 group-hover:blur-xl group-hover:-m-3"></div>
+       <Link to="/auth?mode=signup" className="relative z-10 px-4 py-2 sm:px-3 text-xs sm:text-sm font-semibold text-black bg-gradient-to-br from-gray-100 to-gray-300 rounded-full hover:from-gray-200 hover:to-gray-400 transition-all duration-200 w-full sm:w-auto text-center block">
          Inizia Ora
-       </div>
-    </Link>
+       </Link>
+    </div>
   );
 
   return (
     <header className={cn(
-      "fixed top-8 left-1/2 transform -translate-x-1/2 z-50",
+      "fixed top-6 left-1/2 transform -translate-x-1/2 z-50",
       "flex flex-col items-center",
-      "px-6 py-2.5 backdrop-blur-xl",
+      "pl-6 pr-6 py-3 backdrop-blur-sm",
       headerShapeClass,
-      "border border-white/10 bg-black/40",
-      "w-[calc(100%-2rem)] sm:w-auto min-w-[500px]",
-      "transition-all duration-500 ease-in-out shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+      "border border-[#333] bg-[#1f1f1f57]",
+      "w-[calc(100%-2rem)] sm:w-auto",
+      "transition-[border-radius] duration-0 ease-in-out"
     )}>
 
-      <div className="flex items-center justify-between w-full gap-x-10">
-        <Link to="/" className="flex items-center gap-4 flex-shrink-0 group">
+      <div className="flex items-center justify-between w-full gap-x-6 sm:gap-x-8">
+        <Link to="/" className="flex items-center flex-shrink-0 group">
            <img 
             src={dreamAlchemistLogo}
             alt="Dream Alchemist"
-            className="w-16 h-16 object-contain transition-transform duration-500 group-hover:scale-105" 
+            className="w-7 h-7 object-contain transition-transform duration-500 group-hover:scale-105" 
            />
-           <div className="hidden md:flex flex-col items-center justify-center leading-none">
-            <span className="text-lg font-bodoni-heading uppercase tracking-[0.18em] text-foreground whitespace-nowrap">
-              Dream Alchemist
-            </span>
-            <div className="mt-1.5 flex items-center justify-center gap-2 w-full">
-              <span className="h-px flex-1 bg-foreground/40 rounded-full" />
-              <span className="text-foreground/60 text-xs leading-none select-none">☾</span>
-              <span className="h-px flex-1 bg-foreground/40 rounded-full" />
-            </div>
-           </div>
         </Link>
 
-        <nav className="hidden sm:flex items-center space-x-8">
+        <nav className="hidden sm:flex items-center space-x-4 sm:space-x-6 text-sm">
           {navLinksData.map((link) => (
             <AnimatedNavLink key={link.href} href={link.href}>
               {link.label}
@@ -124,7 +114,7 @@ export function MiniNavbar() {
           ))}
         </nav>
 
-        <div className="hidden sm:flex items-center gap-4">
+        <div className="hidden sm:flex items-center gap-2 sm:gap-3">
           {loginButtonElement}
           {signupButtonElement}
         </div>
