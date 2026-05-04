@@ -68,7 +68,7 @@ const ManifestoSection = () => {
               Dal cielo natale al sogno — dal simbolo alla coscienza.
             </p>
 
-            <div className="ed-meta mt-16">※&nbsp;&nbsp;Nota dell'editore</div>
+            
           </div>
         </motion.div>
       </div>
