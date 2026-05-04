@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAppCache } from "@/contexts/AppCacheContext";
+import { useAuth } from "@/hooks/useAuth";
+import { usePageLoading } from "@/contexts/RouteLoadingContext";
 
 const PAGE_SIZE = 12;
 const SELECT_FIELDS =
@@ -13,6 +15,7 @@ interface RefreshOptions {
 
 export const useDreamsList = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const {
     getDreamsCache,
     setDreamsCache,
@@ -31,12 +34,12 @@ export const useDreamsList = () => {
   const [hasMore, setHasMore] = useState(cached?.hasMore ?? false);
   const [totalCount, setTotalCount] = useState(cached?.totalCount ?? 0);
 
+  // Sync with global route loading overlay
+  usePageLoading(loading);
+
   const fetchInitial = async (background = false) => {
     if (background) setDreamsRefreshing(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
     if (!user) {
       navigate("/auth?mode=login");
       return;
@@ -84,9 +87,6 @@ export const useDreamsList = () => {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
     if (!user) {
       navigate("/auth?mode=login");
       return;

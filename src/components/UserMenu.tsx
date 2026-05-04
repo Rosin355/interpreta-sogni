@@ -10,118 +10,43 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
 import { BookOpen, User as UserIcon, Settings, LogOut, LayoutDashboard } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const UserMenu = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
-    const loadUserAndProfile = async () => {
-      try {
-        console.log("[UserMenu] loadUserAndProfile START");
-        console.log("[UserMenu] calling supabase.auth.getUser()...");
-        
-        const { data: { user }, error } = await supabase.auth.getUser();
-        
-        console.log("[UserMenu] getUser completed", { 
-          hasUser: !!user, 
-          userId: user?.id,
-          userEmail: user?.email,
-          error: error?.message 
-        });
-        
-        setUser(user);
-        
-        if (user) {
-          console.log("[UserMenu] fetching profile for user:", user.id);
-          const { data, error: profileError } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", user.id)
-            .single();
-          
-          console.log("[UserMenu] profile fetch completed", { 
-            hasProfile: !!data,
-            username: data?.username,
-            error: profileError?.message 
-          });
-          
-          setProfile(data);
-        } else {
-          console.log("[UserMenu] no user found, clearing profile");
-          setProfile(null);
-        }
-      } catch (err) {
-        console.error("[UserMenu] loadUserAndProfile ERROR:", err);
-      }
-    };
-
-    loadUserAndProfile();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("[UserMenu] onAuthStateChange", { event, hasSession: !!session });
-      setUser(session?.user ?? null);
-      
-      // CRITICAL: Use setTimeout to avoid deadlock
-      // Never call Supabase functions directly inside onAuthStateChange
-      if (session?.user) {
-        setTimeout(async () => {
-          console.log("[UserMenu] fetching profile after auth event", { userId: session.user.id });
-          const { data, error } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", session.user.id)
-            .single();
-          console.log("[UserMenu] profile fetch result (auth event)", { data, error });
-          setProfile(data);
-        }, 0);
-      } else {
-        console.log("[UserMenu] no session in onAuthStateChange, clearing profile");
-        setProfile(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+    if (user) {
+      const fetchProfile = async () => {
+        const { data } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+        setProfile(data);
+      };
+      fetchProfile();
+    } else {
+      setProfile(null);
+    }
+  }, [user]);
 
   const handleLogout = async () => {
-    console.log("[UserMenu] handleLogout START");
-    
-    // Aggiornamento immediato dello stato UI
-    setUser(null);
     setProfile(null);
-    
     try {
       const { error } = await supabase.auth.signOut();
-      console.log("[UserMenu] signOut completed", { error: error?.message });
-      
       if (error) {
-        console.error("[UserMenu] signOut ERROR:", error);
-        toast({
-          title: "Errore",
-          description: "Impossibile disconnettersi. Riprova.",
-          variant: "destructive",
-        });
+        toast({ title: "Errore", description: "Impossibile disconnettersi.", variant: "destructive" });
       } else {
-        console.log("[UserMenu] logout successful, navigating to /");
-        toast({
-          title: "Disconnesso",
-          description: "Logout effettuato con successo.",
-        });
+        toast({ title: "Disconnesso", description: "Logout effettuato con successo." });
         navigate("/");
       }
     } catch (err) {
-      console.error("[UserMenu] handleLogout EXCEPTION:", err);
-      toast({
-        title: "Errore",
-        description: "Si è verificato un errore inatteso durante il logout.",
-        variant: "destructive",
-      });
+      toast({ title: "Errore", description: "Si è verificato un errore inatteso.", variant: "destructive" });
     }
   };
 
@@ -138,6 +63,8 @@ const UserMenu = () => {
     }
     return "U";
   };
+
+  if (!user) return null;
 
   return (
     <DropdownMenu>

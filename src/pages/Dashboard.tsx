@@ -19,10 +19,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlchemicalJourneyMap } from "@/components/AlchemicalJourneyMap";
 import { AlchemicalTransitionsList } from "@/components/AlchemicalTransitionsList";
 import { calculateUserJourney, type UserJourney } from "@/utils/alchemical-phases";
+import { useAppCache } from "@/contexts/AppCacheContext";
+import { useAuth } from "@/hooks/useAuth";
+import { usePageLoading } from "@/contexts/RouteLoadingContext";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
+  
   const [dreams, setDreams] = useState<any[]>([]);
   const [allDreams, setAllDreams] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, thisWeek: 0, thisMonth: 0 });
@@ -32,74 +37,70 @@ const Dashboard = () => {
   const [exporting, setExporting] = useState(false);
   const [journey, setJourney] = useState<UserJourney | null>(null);
 
+  const { getDreamsCache, setDreamsCache, isStale, dreamsLastFetchedAt } = useAppCache();
+  
+  // Keep global loader visible while fetching
+  usePageLoading(loading);
+  
   useEffect(() => {
-    checkAuth();
-    fetchDreams();
-  }, []);
+    if (!user) return;
 
-  const checkAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      navigate("/auth?mode=login");
+    const initDashboard = async () => {
+      // Check cache
+      const cached = getDreamsCache();
+      if (cached && !isStale(dreamsLastFetchedAt)) {
+        setAllDreams(cached.dreams);
+        setDreams(cached.dreams.slice(0, 5));
+        updateStatsAndInsights(cached.dreams);
+        setLoading(false);
+      } else {
+        fetchDreams(user.id);
+      }
+    };
+
+    initDashboard();
+  }, [user]);
+
+  const updateStatsAndInsights = (allData: any[]) => {
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    
+    setStats({
+      total: allData.length,
+      thisWeek: allData.filter(d => new Date(d.created_at) > weekAgo).length,
+      thisMonth: allData.filter(d => new Date(d.created_at) > monthAgo).length,
+    });
+    
+    setInsights(calculateInsights(allData));
+    
+    if (allData.length > 0) {
+      setJourney(calculateUserJourney(allData));
     }
   };
 
-  const fetchDreams = async () => {
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    // DEBUG: Log autenticazione
-    console.log('[Dashboard] DEBUG Auth:', {
-      hasUser: !!user,
-      userId: user?.id,
-      expectedUserId: 'c4547d62-ee36-463d-8ce3-077310e2c6ac',
-      isMatch: user?.id === 'c4547d62-ee36-463d-8ce3-077310e2c6ac',
-      authError: authError?.message
-    });
-    
-    if (!user) return;
-
-    // Unified query - fetch all dreams and slice for recent
+  const fetchDreams = async (userId: string) => {
     const { data: allData, error } = await supabase
       .from("dreams")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .order("dream_date", { ascending: false });
-
-    // DEBUG: Log query risultati
-    console.log('[Dashboard] DEBUG Dreams Query:', {
-      dreamsCount: allData?.length || 0,
-      error: error?.message,
-      errorCode: (error as any)?.code,
-      errorDetails: (error as any)?.details,
-      firstDreamTitle: allData?.[0]?.title,
-      queryUserId: user.id
-    });
 
     if (error) {
       console.error("Errore nel caricamento dei sogni:", error);
-    } else {
-      setAllDreams(allData || []);
-      setDreams(allData?.slice(0, 5) || []);
+      toast({ title: "Errore", description: "Impossibile caricare i sogni.", variant: "destructive" });
+    } else if (allData) {
+      setAllDreams(allData);
+      setDreams(allData.slice(0, 5));
+      updateStatsAndInsights(allData);
       
-      // Calcola statistiche
-      const now = new Date();
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      
-      setStats({
-        total: allData?.length || 0,
-        thisWeek: allData?.filter(d => new Date(d.created_at) > weekAgo).length || 0,
-        thisMonth: allData?.filter(d => new Date(d.created_at) > monthAgo).length || 0,
+      // Save to cache
+      setDreamsCache({ 
+        dreams: allData, 
+        offset: 0, 
+        hasMore: false, 
+        totalCount: allData.length 
       });
-      
-      // Calcola insights
-      setInsights(calculateInsights(allData || []));
-      
-      // Calcola percorso alchemico
-      if (allData && allData.length > 0) {
-        const userJourney = calculateUserJourney(allData);
-        setJourney(userJourney);
-      }
     }
     setLoading(false);
   };
