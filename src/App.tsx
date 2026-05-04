@@ -13,6 +13,7 @@ import { RouteFadeTransition } from "@/components/loading/RouteFadeTransition";
 import { RouteSwitchOverlay } from "@/components/loading/RouteSwitchOverlay";
 import { RouteLoadingProvider } from "@/contexts/RouteLoadingContext";
 import { startRoutePrefetch } from "@/utils/route-prefetch";
+import { GlassFilter } from "@/components/ui/liquid-glass";
 
 // Eager load - Landing page
 import Index from "./pages/Index";
@@ -107,6 +108,7 @@ const AppRouter = () => {
 
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <GlassFilter />
     <TooltipProvider>
       <AppCacheProvider>
       <GlobalNotificationManager>

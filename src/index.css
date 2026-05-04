@@ -611,3 +611,12 @@ All colors MUST be HSL.
     0 0 60px hsl(var(--mystic-violet) / 0.15);
   border-color: hsl(var(--mystic-magenta) / 0.4);
 }
+
+@keyframes moveBackground {
+  from {
+    background-position: 0% 0%;
+  }
+  to {
+    background-position: 0% -1000%;
+  }
+}
