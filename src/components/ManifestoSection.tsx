@@ -20,9 +20,10 @@ const ManifestoSection = () => {
           viewport={{ once: true }}
         >
           <div className="lg:sticky lg:top-32">
-            <div className="ed-eyebrow">
-              <span>L'apertura</span>
+            <div className="ed-eyebrow text-lg lg:text-xl">
               <span className="ed-num">i.</span>
+              <span className="ed-dot" />
+              <span>Introduzione</span>
             </div>
           </div>
 
@@ -30,41 +31,36 @@ const ManifestoSection = () => {
             <p
               className="font-editorial font-light text-foreground"
               style={{
-                fontSize: "clamp(22px, 2.4vw, 36px)",
-                lineHeight: 1.35,
+                fontSize: "clamp(24px, 2.8vw, 42px)",
+                lineHeight: 1.3,
                 letterSpacing: "-0.012em",
-                margin: "0 0 32px",
+                margin: "0 0 40px",
               }}
             >
-              Dream Alchemist è un santuario silenzioso per la vita onirica —
-              un luogo per annotare ciò che arriva nella notte, leggerlo alla
-              luce del tema natale e accompagnarlo, lentamente, attraverso le
-              quattro fasi dell'opera interiore.
+              Dream Alchemist è uno spazio silenzioso dedicato ai sogni — un luogo in cui annotare ciò che arriva nella notte, osservarlo alla luce del tema natale e seguirlo, con calma, attraverso le quattro fasi dell’opera interiore.
             </p>
             <p
               className="font-editorial font-light text-foreground/85"
               style={{
-                fontSize: "clamp(20px, 2vw, 30px)",
+                fontSize: "clamp(21px, 2.2vw, 32px)",
                 lineHeight: 1.4,
                 letterSpacing: "-0.01em",
-                margin: "0 0 32px",
+                margin: "0 0 40px",
               }}
             >
-              Non siamo un'app di produttività. Siamo più simili a una{" "}
+              Non è un’app di produttività. È più simile a una{" "}
               <em
                 className="italic"
                 style={{ color: "hsl(var(--mystic-glow))" }}
               >
                 biblioteca privata
               </em>{" "}
-              — pelle, carta, candela, misura. Ogni sogno diventa una pagina;
-              ogni pagina, col tempo, un capitolo; ogni capitolo, una
-              trasformazione.
+              — fatta di pagine, tempo e attenzione. Ogni sogno può diventare una traccia; ogni traccia, col tempo, un passaggio di trasformazione.
             </p>
             <p
               className="font-editorial italic font-light"
               style={{
-                fontSize: "clamp(18px, 1.8vw, 26px)",
+                fontSize: "clamp(20px, 2vw, 28px)",
                 lineHeight: 1.5,
                 color: "hsl(var(--mystic-glow))",
               }}
@@ -72,7 +68,7 @@ const ManifestoSection = () => {
               Dal cielo natale al sogno — dal simbolo alla coscienza.
             </p>
 
-            <div className="ed-meta mt-12">※&nbsp;&nbsp;Nota dell'editore</div>
+            <div className="ed-meta mt-16">※&nbsp;&nbsp;Nota dell'editore</div>
           </div>
         </motion.div>
       </div>
