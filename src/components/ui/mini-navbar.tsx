@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils";
+import dreamAlchemistLogo from "@/assets/dreamalchemist_logo.png";
 
 const AnimatedNavLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
   return (
@@ -97,13 +98,13 @@ export function MiniNavbar() {
     )}>
 
       <div className="flex items-center justify-between w-full gap-x-10">
-        <Link to="/" className="flex items-center gap-3 flex-shrink-0 group">
+        <Link to="/" className="flex items-center gap-4 flex-shrink-0 group">
            <img 
-            src="/dreamalchemist_logo.png" 
-            alt="Dream Alchemist Logo" 
-            className="w-8 h-8 object-contain transition-transform duration-500 group-hover:scale-110" 
+            src={dreamAlchemistLogo}
+            alt="Dream Alchemist"
+            className="w-16 h-16 object-contain transition-transform duration-500 group-hover:scale-105" 
            />
-           <span className="hidden md:block font-editorial uppercase tracking-[0.2em] text-white text-sm whitespace-nowrap">
+           <span className="hidden md:block font-editorial uppercase tracking-[0.2em] text-foreground text-sm whitespace-nowrap">
             DREAM ALCHEMIST
            </span>
         </Link>
