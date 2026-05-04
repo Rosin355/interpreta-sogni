@@ -337,10 +337,22 @@ serve(async (req) => {
       throw new Error('Dream ID is required');
     }
 
-    // Carica il profilo con i dati del tema natale
+    // Carica il sogno per ottenere la data di creazione
+    const { data: dream, error: dreamError } = await supabase
+      .from('dreams')
+      .select('created_at')
+      .eq('id', dreamId)
+      .single();
+
+    if (dreamError || !dream) {
+      console.error('Error loading dream:', dreamError);
+      throw new Error('Dream not found');
+    }
+
+    // Carica il profilo con i dati del tema natale e del contesto
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('natal_chart_data, gender')
+      .select('natal_chart_data, natal_context, gender, birth_date, birth_time, birth_latitude, birth_longitude, birth_timezone')
       .eq('id', user.id)
       .single();
 
@@ -349,18 +361,109 @@ serve(async (req) => {
     }
 
     const natalChartData = profile?.natal_chart_data;
+    const natalContext = profile?.natal_context;
     const hasNatalChart = natalChartData && natalChartData.planets;
 
-    // Costruisci il contesto astrologico
-    const astroContext = hasNatalChart ? buildAstrologicalContext(natalChartData) : '';
+    // Recupera transiti e fase lunare in tempo reale (RapidAPI)
+    let transitContext = "";
+    let moonContext = "";
+
+    if (hasNatalChart && profile.birth_latitude && profile.birth_longitude) {
+      try {
+        const rapidApiKey = Deno.env.get('RAPIDAPI_KEY');
+        if (rapidApiKey) {
+          const dreamDate = new Date(dream.created_at);
+          const [bYear, bMonth, bDay] = (profile.birth_date || "").split('-').map(Number);
+          const [bHour, bMinute] = (profile.birth_time || "12:00").split(':').map(Number);
+          
+          // Helper per il timezone offset numerico
+          const tzStr = profile.birth_timezone || "UTC+0";
+          const tzOffset = parseFloat(tzStr.replace('UTC', '').replace('+', '')) || 0;
+
+          const transitBody = {
+            first_subject: {
+              name: "User",
+              year: bYear || 2000,
+              month: bMonth || 1,
+              day: bDay || 1,
+              hour: bHour || 12,
+              minute: bMinute || 0,
+              longitude: parseFloat(profile.birth_longitude),
+              latitude: parseFloat(profile.birth_latitude),
+              timezone: tzOffset
+            },
+            transit_subject: {
+              name: "Transit",
+              year: dreamDate.getFullYear(),
+              month: dreamDate.getMonth() + 1,
+              day: dreamDate.getDate(),
+              hour: 12,
+              minute: 0,
+              longitude: parseFloat(profile.birth_longitude),
+              latitude: parseFloat(profile.birth_latitude),
+              timezone: tzOffset
+            }
+          };
+
+          const moonBody = {
+            year: dreamDate.getFullYear(),
+            month: dreamDate.getMonth() + 1,
+            day: dreamDate.getDate(),
+            hour: 12,
+            minute: 0,
+            longitude: parseFloat(profile.birth_longitude),
+            latitude: parseFloat(profile.birth_latitude),
+            timezone: tzOffset
+          };
+
+          console.log('Calling RapidAPI for transit and moon context...');
+          const [transRes, moonRes] = await Promise.all([
+            fetch('https://astrologer.p.rapidapi.com/api/v5/context/transit', {
+              method: 'POST',
+              headers: {
+                'X-RapidAPI-Host': 'astrologer.p.rapidapi.com',
+                'X-RapidAPI-Key': rapidApiKey,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(transitBody)
+            }).then(r => r.ok ? r.json() : null).catch(() => null),
+            fetch('https://astrologer.p.rapidapi.com/api/v5/moon-phase/context', {
+              method: 'POST',
+              headers: {
+                'X-RapidAPI-Host': 'astrologer.p.rapidapi.com',
+                'X-RapidAPI-Key': rapidApiKey,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(moonBody)
+            }).then(r => r.ok ? r.json() : null).catch(() => null)
+          ]);
+
+          transitContext = transRes?.context || "";
+          moonContext = moonRes?.context || "";
+          console.log('RapidAPI transit/moon calls completed');
+        }
+      } catch (e) {
+        console.error('Error fetching live astro context:', e);
+      }
+    }
+
+    // Costruisci il blocco del tema natale (fallback se manca natal_context)
+    const natalContextBlock = natalContext ? `TEMA NATALE DELL'UTENTE:\n${natalContext}` : buildAstrologicalContext(natalChartData);
     
     // Aggiungi informazioni sul genere se disponibili
     const genderContext = profile?.gender ? `\n\nIl sognatore è di genere ${profile.gender}. Considera questo aspetto nelle tue interpretazioni quando rilevante per archetipi, simbolismi o dinamiche psicologiche.` : '';
 
     // Prepara il prompt per Lovable AI
     const systemPrompt = hasNatalChart ? `Sei un'esperta interprete di sogni che integra la conoscenza astrologica per offrire interpretazioni profonde e personali.
+ 
+${natalContextBlock}
 
-${astroContext}${genderContext}
+TRANSITI AL MOMENTO DEL SOGNO:
+${transitContext || "Non disponibili."}
+
+FASE LUNARE AL MOMENTO DEL SOGNO:
+${moonContext || "Non disponibile."}
+${genderContext}
 
 COLLEGAMENTI PRIMARI (menziona SOLO se pertinenti al sogno):
 
