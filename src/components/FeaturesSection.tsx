@@ -1,102 +1,117 @@
-import mysticPortal from "@/assets/mystic-portal.jpg";
-import { MysticGlowOrb } from "@/components/ui/MysticGlowOrb";
-import { MorphingImage } from "@/components/ui/MorphingImage";
 import { motion } from "framer-motion";
 
-const features = [{
-  icon: "🌙",
-  title: "Diario dei Sogni",
-  description: "Registra ed esplora i tuoi sogni in un diario digitale privato con analisi intelligente"
-}, {
-  icon: "🔄",
-  title: "Pattern dei Sogni",
-  description: "Scopri temi ed emozioni ricorrenti nella tua storia onirica con analisi visive"
-}, {
-  icon: "👥",
-  title: "Cerchie dei Sogni",
-  description: "Condividi i sogni con amici fidati o cerchie oniriche e ottieni nuove prospettive"
-}, {
-  icon: "🌍",
-  title: "Iniziativa di Ricerca",
-  description: "Contribuisci alla nostra ricerca globale sui sogni e aiuta a mappare il panorama onirico collettivo"
-}];
+const chapters = [
+  {
+    n: "i.",
+    title: "Il diario",
+    em: "intimo",
+    sub: "Annota il sogno",
+    body: "Registra il sogno mentre è ancora caldo. A voce o per iscritto, ogni dettaglio diventa una pagina del tuo libro notturno.",
+    meta: "Capitolo uno · il diario",
+  },
+  {
+    n: "ii.",
+    title: "Il simbolo",
+    em: "rivelato",
+    sub: "Lettura simbolica",
+    body: "Ogni immagine porta una lingua antica. Ti accompagniamo a leggerla con calma — l'acqua, la soglia, la chiamata senza risposta.",
+    meta: "Capitolo due · il simbolo",
+  },
+  {
+    n: "iii.",
+    title: "Il cielo",
+    em: "sotteso",
+    sub: "Tema natale & risonanze",
+    body: "Sotto ogni sogno c'è il tuo cielo di nascita. Il tema natale non predice: rivela la nota a cui il sogno sta rispondendo.",
+    meta: "Capitolo tre · il cielo",
+  },
+  {
+    n: "iv.",
+    title: "L'opera",
+    em: "alchemica",
+    sub: "Nigredo, Albedo, Rubedo",
+    body: "Il sogno entra nel tempo lungo della trasformazione. Le quattro fasi dell'alchimia diventano la mappa silenziosa del tuo cammino interiore.",
+    meta: "Capitolo quattro · la trasformazione",
+  },
+];
 
 const FeaturesSection = () => {
   return (
-    <section id="features" className="py-24 features-section relative overflow-hidden">
-      {/* Seamless gradient background - no hard edges */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-mystic-deep/30 to-transparent" />
-      
-      {/* Soft radial glow from center */}
-      <div 
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[60%] opacity-20"
+    <section
+      id="features"
+      className="relative py-32 lg:py-40 overflow-hidden"
+    >
+      {/* Sfondo profondo viola/blu */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-mystic-deep/30 to-background" />
+      <div
+        className="absolute top-1/4 right-0 w-[60%] h-[60%] opacity-20 pointer-events-none"
         style={{
-          background: "radial-gradient(ellipse at center, hsl(var(--mystic-magenta) / 0.3) 0%, transparent 70%)",
+          background:
+            "radial-gradient(ellipse at center, hsl(var(--mystic-violet) / 0.35) 0%, transparent 70%)",
         }}
       />
-      
-      {/* Fog transition to Research */}
-      <div 
-        className="absolute bottom-0 left-0 right-0 h-48 pointer-events-none z-[1]"
-        style={{
-          background: "linear-gradient(to bottom, transparent 0%, hsl(270 50% 8% / 0.6) 40%, hsl(280 60% 12% / 0.9) 100%)",
-        }}
-      />
-      
-      {/* Mystic glow orb decoration with parallax */}
-      <MysticGlowOrb 
-        size="lg" 
-        intensity="low" 
-        className="top-10 right-[5%] hidden lg:block"
-        parallaxSpeed={0.2}
-      />
-      
-      <div className="container mx-auto px-6 relative z-10">
-        <motion.div 
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 30 }}
+
+      <div className="container mx-auto px-6 lg:px-10 relative z-10 max-w-6xl">
+        {/* Header sezione */}
+        <motion.div
+          className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-10 mb-20"
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
           viewport={{ once: true }}
         >
-          <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-foreground mystic-text section-title">
-            Sblocca il Potere dei Tuoi Sogni
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            I nostri strumenti intuitivi ti aiutano a documentare, analizzare e comprendere i tuoi sogni mentre 
-            partecipi a ricerche rivoluzionarie sui sogni.
-          </p>
-          
-          <div className="mt-24 mb-24 px-4 lg:px-8 relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-mystic-violet/20 via-mystic-magenta/20 to-mystic-violet/20 rounded-2xl blur-xl" />
-            <MorphingImage 
-              src={mysticPortal} 
-              alt="Una persona che dorme serenamente sotto un cielo stellato onirico" 
-              className="rounded-2xl shadow-2xl w-full max-w-3xl mx-auto relative dramatic-glow"
-              morphType="glow"
-              duration={1.4}
-            />
+          <div>
+            <div className="ed-eyebrow">
+              <span className="ed-num">ii.</span>
+              <span className="ed-dot" />
+              <span>Il lavoro interiore</span>
+            </div>
+            <h2 className="ed-h1 mt-7 max-w-[14ch] text-foreground">
+              Quattro stanze <em>silenziose</em>, una sola casa.
+            </h2>
           </div>
+          <p className="ed-lead max-w-[36ch]">
+            Ogni capitolo è una soglia. Aprine una stasera; le altre sapranno attendere.
+          </p>
         </motion.div>
-        
-        {/* Feature cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mt-16">
-          {features.map((feature, index) => (
-            <motion.div
-              key={feature.title}
-              className="mystic-card p-6 rounded-2xl transition-all duration-500 feature-card hover:dramatic-card-glow"
-              initial={{ opacity: 0, y: 30 }}
+
+        {/* Lista capitoli */}
+        <div className="ed-divider" />
+        <div>
+          {chapters.map((c, i) => (
+            <motion.article
+              key={c.n}
+              className="grid grid-cols-1 md:grid-cols-[80px_minmax(0,1.1fr)_minmax(0,1.4fr)] gap-6 md:gap-12 py-12 md:py-16 border-b border-mystic-violet/15 transition-colors hover:bg-mystic-violet/[0.03]"
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              viewport={{ once: true }}
-              whileHover={{ y: -5 }}
+              transition={{ duration: 0.5, delay: i * 0.08 }}
+              viewport={{ once: true, margin: "-50px" }}
             >
-              <div className="text-4xl mb-4 animate-mystic-float" style={{ animationDelay: `${index * 0.5}s` }}>
-                {feature.icon}
+              <div
+                className="font-editorial italic font-light text-3xl"
+                style={{ color: "hsl(var(--mystic-glow))" }}
+              >
+                {c.n}
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">{feature.title}</h3>
-              <p className="text-muted-foreground text-sm">{feature.description}</p>
-            </motion.div>
+
+              <div>
+                <h3 className="ed-h2 text-foreground">
+                  {c.title} <em>{c.em}</em>
+                </h3>
+                <div className="ed-meta mt-5 flex items-center gap-3">
+                  <span>{c.sub}</span>
+                  <span
+                    className="inline-block w-[3px] h-[3px] rounded-full"
+                    style={{ background: "hsl(var(--mystic-magenta))" }}
+                  />
+                  <span>{c.meta}</span>
+                </div>
+              </div>
+
+              <div>
+                <p className="ed-body max-w-[50ch]">{c.body}</p>
+              </div>
+            </motion.article>
           ))}
         </div>
       </div>
