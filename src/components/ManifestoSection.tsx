@@ -2,7 +2,10 @@ import { motion } from "framer-motion";
 
 const ManifestoSection = () => {
   return (
-    <section className="relative py-32 lg:py-44 overflow-hidden">
+    <section className="relative py-20 lg:py-28 overflow-hidden">
+      {/* Sfumatura superiore per blend con Hero */}
+      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-background to-transparent z-10 pointer-events-none" />
+
       <div
         className="absolute inset-0 opacity-25 pointer-events-none"
         style={{

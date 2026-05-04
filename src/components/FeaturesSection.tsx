@@ -39,7 +39,7 @@ const FeaturesSection = () => {
   return (
     <section
       id="features"
-      className="relative py-32 lg:py-40 overflow-hidden"
+      className="relative py-20 lg:py-28 overflow-hidden"
     >
       {/* Sfondo profondo viola/blu */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-mystic-deep/30 to-background" />
