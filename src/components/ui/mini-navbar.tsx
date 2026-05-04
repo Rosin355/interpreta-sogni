@@ -102,7 +102,7 @@ export function MiniNavbar() {
            <img 
             src={dreamAlchemistLogo}
             alt="Dream Alchemist"
-            className="w-7 h-7 object-contain transition-transform duration-500 group-hover:scale-105" 
+            className="w-10 h-10 object-contain transition-transform duration-500 group-hover:scale-105" 
            />
         </Link>
 
