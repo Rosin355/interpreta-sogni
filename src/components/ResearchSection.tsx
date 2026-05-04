@@ -53,13 +53,11 @@ const ResearchSection = () => {
           transition={{ duration: 0.8 }}
           viewport={{ once: true }}
         >
-          <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-foreground mystic-text section-title">
-            Mappare l'Universo Onirico Insieme
+          <h2 className="text-4xl lg:text-3xl font-bold mb-6 text-foreground mystic-text italic">
+            "Il sogno è una piccola porta occulta nel più intimo e segreto sacrario dell’anima."
           </h2>
           <p className="text-xl text-muted-foreground max-w-4xl mx-auto leading-relaxed mb-8">
-            La nostra iniziativa globale di ricerca sui sogni mira a mappare i pattern onirici collettivi, comprendere i contesti emotivi 
-            e creare un atlante completo del panorama onirico umano. Partecipando, contribuisci a una ricerca rivoluzionaria 
-            su come sogniamo.
+            Dream Alchemist nasce da questa soglia: un luogo in cui il sogno non viene ridotto a spiegazione, ma ascoltato come una forma di conoscenza interiore.
           </p>
           
           {/* Dream pattern tags with enhanced glow */}

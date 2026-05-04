@@ -5,20 +5,20 @@ import { motion } from "framer-motion";
 
 const features = [{
   icon: "🌙",
-  title: "Diario dei Sogni",
-  description: "Registra ed esplora i tuoi sogni in un diario digitale privato con analisi intelligente"
+  title: "Il diario",
+  description: "Scrivi ciò che resta al risveglio: un’immagine, una frase, una sensazione. Anche il frammento più piccolo può diventare una traccia da seguire."
 }, {
   icon: "🔄",
-  title: "Pattern dei Sogni",
-  description: "Scopri temi ed emozioni ricorrenti nella tua storia onirica con analisi visive"
+  title: "Il simbolo",
+  description: "Alcune immagini ritornano senza spiegarsi subito. Qui impari a fermarti davanti a ciò che insiste, finché il simbolo comincia a prendere voce."
 }, {
   icon: "👥",
-  title: "Cerchie dei Sogni",
-  description: "Condividi i sogni con amici fidati o cerchie oniriche e ottieni nuove prospettive"
+  title: "Il cielo",
+  description: "Il tema natale non dà risposte automatiche, ma offre una cornice sottile. A volte il cielo non spiega il sogno: lo mette semplicemente in una luce più chiara."
 }, {
   icon: "🌍",
-  title: "Iniziativa di Ricerca",
-  description: "Contribuisci alla nostra ricerca globale sui sogni e aiuta a mappare il panorama onirico collettivo"
+  title: "L’opera",
+  description: "Ogni sogno lascia un piccolo resto da integrare nella vita vigile. L’opera comincia quando riconosci quella traccia e scegli di non perderla."
 }];
 
 const FeaturesSection = () => {

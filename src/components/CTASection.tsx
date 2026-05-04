@@ -63,10 +63,10 @@ const CTASection = () => {
           viewport={{ once: true }}
         >
           <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-foreground mystic-text section-title">
-            Esplora l'Universo Onirico
+            Stasera, annota ciò che resta.
           </h2>
           <p className="text-xl text-muted-foreground leading-relaxed mb-8">
-            Unisciti a migliaia di sognatori che documentano le loro esperienze oniriche e contribuiscono alla nostra comprensione della mente umana.
+            Non serve ricordare tutto. Basta un dettaglio, un’emozione, una scena rimasta accesa al risveglio: da lì comincia il dialogo con il sogno.
           </p>
           
           {/* Newsletter Form */}
@@ -107,7 +107,7 @@ const CTASection = () => {
             viewport={{ once: true }}
           >
             <RainbowButton className="px-8 py-6 text-lg" onClick={() => navigate('/my-dreams')}>
-              Inizia il Tuo Viaggio Onirico
+              Inizia dal primo frammento.
             </RainbowButton>
             <Button 
               variant="outline" 

@@ -39,10 +39,10 @@ const ExperienceSection = () => {
           viewport={{ once: true }}
         >
           <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-foreground mystic-text section-title">
-            Prova Dream Alchemist
+            LE QUATTRO FASI
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Documenta, analizza e condividi i tuoi sogni con la nostra interfaccia intuitiva
+            Il percorso della trasformazione onirica
           </p>
         </motion.div>
         
@@ -130,16 +130,20 @@ const ExperienceSection = () => {
             <div className="space-y-6">
               {[
                 {
-                  title: "Diario dei Sogni Dettagliato",
-                  description: "Registra ogni dettaglio dei tuoi sogni con etichettatura emotiva, riconoscimento delle persone e formattazione ricca del contenuto."
+                  title: "Nigredo",
+                  description: "La fase in cui tutto si fa più denso: confusione, discesa, materia scura. È il momento in cui il sogno porta alla luce ciò che non può più restare indistinto."
                 },
                 {
-                  title: "Analisi dei Pattern",
-                  description: "Identifica temi, emozioni e pattern ricorrenti nella tua storia onirica con analisi visive."
+                  title: "Albedo",
+                  description: "Dopo l'oscurità arriva una chiarezza sottile. Non è ancora risposta, ma un primo respiro interiore: qualcosa si separa dal caos e diventa finalmente visibile."
                 },
                 {
-                  title: "Condivisione dei Sogni",
-                  description: "Condividi i sogni selettivamente con amici o cerchie oniriche per ottenere nuove prospettive."
+                  title: "Citrinitas",
+                  description: "È la luce che torna senza abbagliare. Il senso inizia a orientarsi, le immagini si collegano, e ciò che era sparso comincia a trovare direzione."
+                },
+                {
+                  title: "Rubedo",
+                  description: "La trasformazione prende corpo. Quello che hai visto, sentito e compreso smette di restare solo simbolo, e diventa presenza viva dentro di te."
                 }
               ].map((feature, index) => (
                 <motion.div
