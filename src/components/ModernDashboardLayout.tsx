@@ -62,7 +62,6 @@ const NavItem = ({ icon: Icon, label, href, active, collapsed }: NavItemProps) =
 export const ModernDashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems = [
@@ -119,32 +118,25 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
         className={cn(
           "fixed left-0 top-0 bottom-0 z-40 transition-all duration-500 ease-in-out",
           "hidden lg:flex flex-col bg-black/20 backdrop-blur-2xl border-r border-white/5",
-          isSidebarCollapsed ? "w-20" : "w-64"
+          "w-64"
         )}
       >
         <div className="p-6 flex items-center justify-between">
-          {!isSidebarCollapsed && (
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center border border-primary/30">
                 <Sparkles className="w-5 h-5 text-primary" />
               </div>
               <span className="font-bold tracking-tighter text-xl">ALCHEMIST</span>
             </div>
-          )}
-          {isSidebarCollapsed && (
-             <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center border border-primary/30 mx-auto">
-                <Sparkles className="w-5 h-5 text-primary" />
-             </div>
-          )}
         </div>
 
-        <nav className="flex-1 px-4 space-y-2 mt-4">
+        <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto custom-scrollbar">
           {navItems.map((item) => (
             <NavItem 
               key={item.href} 
               {...item} 
               active={location.pathname === item.href} 
-              collapsed={isSidebarCollapsed} 
+              collapsed={false} 
             />
           ))}
         </nav>
@@ -155,7 +147,7 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
             className="w-full bg-primary hover:bg-primary/80 text-white rounded-xl shadow-[0_0_20px_rgba(var(--primary),0.3)] transition-all"
           >
             <Plus className="w-5 h-5" />
-            {!isSidebarCollapsed && <span className="ml-2">Nuovo Sogno</span>}
+            <span className="ml-2">Nuovo Sogno</span>
           </Button>
           
           <button 
@@ -163,7 +155,7 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
             className="mt-4 w-full flex items-center gap-3 px-3 py-2 text-white/40 hover:text-destructive transition-colors rounded-xl hover:bg-destructive/5"
           >
             <LogOut className="w-5 h-5" />
-            {!isSidebarCollapsed && <span className="text-sm font-medium">Esci</span>}
+            <span className="text-sm font-medium">Esci</span>
           </button>
         </div>
       </aside>
@@ -205,10 +197,9 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
 
       {/* Main Content Area */}
       <main className={cn(
-        "relative z-10 min-h-screen transition-all duration-500 ease-in-out",
+        "relative z-10 min-h-screen transition-all duration-500 ease-in-out flex flex-col",
         "pt-16 lg:pt-0",
-        "lg:ml-64",
-        isSidebarCollapsed && "lg:ml-20"
+        "lg:ml-64"
       )}>
         {/* Top Header */}
         <header className="h-20 px-8 hidden lg:flex items-center justify-between sticky top-0 z-30 bg-[#030303]/40 backdrop-blur-md border-b border-white/5">
@@ -232,7 +223,7 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
         </header>
 
         {/* Content Wrapper */}
-        <div className="p-8 pb-24">
+        <div className="p-8 flex-1">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -241,6 +232,16 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
             {children}
           </motion.div>
         </div>
+
+        {/* Minimal Dashboard Footer */}
+        <footer className="p-8 pt-0 mt-auto border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/20">
+          <p>© 2026 Dream Alchemist. Tutti i diritti riservati.</p>
+          <div className="flex gap-6">
+            <a href="#" className="hover:text-white/40 transition-colors">Privacy</a>
+            <a href="#" className="hover:text-white/40 transition-colors">Termini</a>
+            <a href="#" className="hover:text-white/40 transition-colors">Supporto</a>
+          </div>
+        </footer>
       </main>
     </div>
   );
