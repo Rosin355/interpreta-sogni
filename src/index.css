@@ -165,6 +165,157 @@ All colors MUST be HSL.
   font-optical-sizing: auto;
 }
 
+/* ============================================================
+   Editorial Mystic — typography & layout tokens
+   Premium serif headings + Inter body, mantiene la palette
+   viola/blu del brand con un accento oro restraint.
+   ============================================================ */
+.font-editorial {
+  font-family: "Cormorant Garamond", "Bodoni Moda", "Times New Roman", serif;
+  font-optical-sizing: auto;
+}
+.font-sans-editorial {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+
+@layer utilities {
+  /* Eyebrow editoriale (label maiuscoletto, tracking ampio) */
+  .ed-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: hsl(var(--mystic-pink));
+  }
+  .ed-eyebrow .ed-num {
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 14px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: hsl(var(--mystic-glow));
+  }
+  .ed-eyebrow .ed-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 999px;
+    background: hsl(var(--mystic-magenta));
+  }
+
+  /* Titoli editoriali */
+  .ed-display {
+    font-family: "Cormorant Garamond", serif;
+    font-weight: 300;
+    font-size: clamp(40px, 6vw, 84px);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+  }
+  .ed-display em,
+  .ed-h1 em,
+  .ed-h2 em,
+  .ed-h3 em {
+    font-style: italic;
+    font-weight: 300;
+    color: hsl(var(--mystic-glow));
+  }
+  .ed-h1 {
+    font-family: "Cormorant Garamond", serif;
+    font-weight: 300;
+    font-size: clamp(34px, 4.4vw, 60px);
+    line-height: 1.06;
+    letter-spacing: -0.018em;
+  }
+  .ed-h2 {
+    font-family: "Cormorant Garamond", serif;
+    font-weight: 300;
+    font-size: clamp(28px, 3vw, 44px);
+    line-height: 1.1;
+    letter-spacing: -0.014em;
+  }
+  .ed-h3 {
+    font-family: "Cormorant Garamond", serif;
+    font-weight: 400;
+    font-size: 26px;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+  .ed-lead {
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: clamp(18px, 1.5vw, 22px);
+    line-height: 1.55;
+    color: hsl(var(--foreground) / 0.72);
+  }
+  .ed-body {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    color: hsl(var(--foreground) / 0.7);
+  }
+  .ed-meta {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: hsl(var(--foreground) / 0.5);
+  }
+
+  /* Asterismo divider */
+  .ed-asterism {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    color: hsl(var(--mystic-glow) / 0.7);
+    font-family: "Cormorant Garamond", serif;
+    letter-spacing: 0.5em;
+    font-size: 12px;
+  }
+  .ed-asterism .ed-line {
+    height: 1px;
+    width: 100px;
+    background: linear-gradient(to right, transparent, hsl(var(--mystic-magenta) / 0.5), transparent);
+  }
+
+  /* Linea sottile editoriale */
+  .ed-divider {
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      hsl(var(--mystic-magenta) / 0.35) 30%,
+      hsl(var(--mystic-glow) / 0.5) 50%,
+      hsl(var(--mystic-magenta) / 0.35) 70%,
+      transparent 100%
+    );
+    opacity: 0.55;
+  }
+
+  /* Card editoriale (superficie scura, bordo viola sottile) */
+  .ed-surface {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--mystic-deep) / 0.7) 0%,
+      hsl(var(--background) / 0.5) 100%
+    );
+    border: 1px solid hsl(var(--mystic-violet) / 0.18);
+    border-radius: 1rem;
+    backdrop-filter: blur(10px);
+    transition: border-color 320ms ease, transform 320ms ease, box-shadow 320ms ease;
+  }
+  .ed-surface:hover {
+    border-color: hsl(var(--mystic-magenta) / 0.4);
+    box-shadow: 0 18px 50px hsl(var(--mystic-violet) / 0.25);
+    transform: translateY(-2px);
+  }
+}
+
 /* Mystic utility classes */
 @layer utilities {
   .mystic-glow {
