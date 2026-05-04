@@ -4,7 +4,7 @@ import ManifestoSection from "@/components/ManifestoSection";
 import FeaturesSection from "@/components/FeaturesSection";
 import ResearchSection from "@/components/ResearchSection";
 import ExperienceSection from "@/components/ExperienceSection";
-import SymbolsSection from "@/components/SymbolsSection";
+
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
 
@@ -18,7 +18,7 @@ const Index = () => {
         <FeaturesSection />
         <ResearchSection />
         <ExperienceSection />
-        <SymbolsSection />
+        
         <CTASection />
         <Footer />
       </div>
