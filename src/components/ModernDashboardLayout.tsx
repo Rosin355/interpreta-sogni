@@ -81,8 +81,8 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
   };
 
   return (
-    <div className="relative min-h-screen bg-[#030303] text-white overflow-hidden font-sans">
-      {/* Background Image Layer */}
+    <div className="relative h-screen bg-[#030303] text-white overflow-hidden font-sans flex">
+      {/* Background Image Layer (Fixed to Viewport) */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <img 
           src={dashboardBg} 
@@ -98,12 +98,12 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
       <div className="fixed bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-500/10 blur-[100px] rounded-full pointer-events-none z-0" />
 
       {/* Mobile TopBar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 px-4 flex items-center justify-between bg-black/20 backdrop-blur-xl border-b border-white/5 z-50">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center border border-primary/30">
-            <Sparkles className="w-5 h-5 text-primary" />
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 px-4 flex items-center justify-between bg-black/60 backdrop-blur-xl border-b border-white/5 z-50">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 flex items-center justify-center">
+            <img src="/dreamalchemist_logo.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
-          <span className="font-bold tracking-tight">ALCHEMIST</span>
+          <span className="font-editorial uppercase tracking-[0.1em] text-sm">DREAM ALCHEMIST</span>
         </div>
         <button 
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -113,20 +113,19 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
         </button>
       </div>
 
-      {/* Sidebar */}
+      {/* Sidebar - Truly Fixed Height and Position */}
       <aside 
         className={cn(
-          "fixed left-0 top-0 bottom-0 z-40 transition-all duration-500 ease-in-out",
-          "hidden lg:flex flex-col bg-black/20 backdrop-blur-2xl border-r border-white/5",
-          "w-64"
+          "hidden lg:flex flex-col bg-black/40 backdrop-blur-3xl border-r border-white/5",
+          "w-64 h-full shrink-0 relative z-40"
         )}
       >
         <div className="p-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center border border-primary/30">
-                <Sparkles className="w-5 h-5 text-primary" />
+              <div className="w-10 h-10 flex items-center justify-center">
+                <img src="/dreamalchemist_logo.png" alt="Logo" className="w-full h-full object-contain" />
               </div>
-              <span className="font-bold tracking-tighter text-xl">ALCHEMIST</span>
+              <span className="font-editorial uppercase tracking-[0.12em] text-lg text-white">DREAM ALCHEMIST</span>
             </div>
         </div>
 
@@ -141,7 +140,7 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
           ))}
         </nav>
 
-        <div className="p-4 border-t border-white/5">
+        <div className="p-4 border-t border-white/5 space-y-2">
           <Button 
             onClick={() => navigate("/dreams/new")}
             className="w-full bg-primary hover:bg-primary/80 text-white rounded-xl shadow-[0_0_20px_rgba(var(--primary),0.3)] transition-all"
@@ -152,7 +151,7 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
           
           <button 
             onClick={handleLogout}
-            className="mt-4 w-full flex items-center gap-3 px-3 py-2 text-white/40 hover:text-destructive transition-colors rounded-xl hover:bg-destructive/5"
+            className="w-full flex items-center gap-3 px-3 py-2 text-white/40 hover:text-destructive transition-colors rounded-xl hover:bg-destructive/5"
           >
             <LogOut className="w-5 h-5" />
             <span className="text-sm font-medium">Esci</span>
@@ -167,7 +166,7 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="fixed inset-0 z-40 bg-black/90 backdrop-blur-2xl lg:hidden flex flex-col p-8 pt-24"
+            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-2xl lg:hidden flex flex-col p-8 pt-24"
           >
             <nav className="flex-1 space-y-4">
               {navItems.map((item) => (
@@ -195,14 +194,13 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
         )}
       </AnimatePresence>
 
-      {/* Main Content Area */}
+      {/* Main Content Area - Fixed Height with Internal Scroll */}
       <main className={cn(
-        "relative z-10 min-h-screen transition-all duration-500 ease-in-out flex flex-col",
-        "pt-16 lg:pt-0",
-        "lg:ml-64"
+        "relative z-10 h-full flex-1 flex flex-col overflow-hidden",
+        "pt-16 lg:pt-0"
       )}>
         {/* Top Header */}
-        <header className="h-20 px-8 hidden lg:flex items-center justify-between sticky top-0 z-30 bg-[#030303]/40 backdrop-blur-md border-b border-white/5">
+        <header className="h-20 px-8 hidden lg:flex items-center justify-between bg-black/20 backdrop-blur-md border-b border-white/5 shrink-0">
           <div className="flex items-center bg-white/5 border border-white/10 rounded-2xl px-4 py-2 w-96 group focus-within:border-primary/50 transition-all">
             <Search className="w-4 h-4 text-white/40 group-focus-within:text-primary transition-colors" />
             <input 
@@ -222,8 +220,8 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
           </div>
         </header>
 
-        {/* Content Wrapper */}
-        <div className="p-8 flex-1">
+        {/* Scrollable Content Wrapper */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -231,17 +229,17 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
           >
             {children}
           </motion.div>
-        </div>
 
-        {/* Minimal Dashboard Footer */}
-        <footer className="p-8 pt-0 mt-auto border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/20">
-          <p>© 2026 Dream Alchemist. Tutti i diritti riservati.</p>
-          <div className="flex gap-6">
-            <a href="#" className="hover:text-white/40 transition-colors">Privacy</a>
-            <a href="#" className="hover:text-white/40 transition-colors">Termini</a>
-            <a href="#" className="hover:text-white/40 transition-colors">Supporto</a>
-          </div>
-        </footer>
+          {/* Minimal Dashboard Footer - Now properly inside the scroll area */}
+          <footer className="mt-20 border-t border-white/5 pt-8 pb-12 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/20">
+            <p>© 2026 Dream Alchemist. Tutti i diritti riservati.</p>
+            <div className="flex gap-6">
+              <a href="#" className="hover:text-white/40 transition-colors">Privacy</a>
+              <a href="#" className="hover:text-white/40 transition-colors">Termini</a>
+              <a href="#" className="hover:text-white/40 transition-colors">Supporto</a>
+            </div>
+          </footer>
+        </div>
       </main>
     </div>
   );

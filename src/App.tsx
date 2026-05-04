@@ -76,8 +76,8 @@ const AppRouter = () => {
       <RouteSwitchOverlay loadingTick={loadingTick} />
       <Suspense fallback={<PageLoader />}>
         <RouteMountMarker onMount={handleMount} />
-        <RouteFadeTransition>
-          <AppLayout>
+        <AppLayout>
+          <RouteFadeTransition>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
@@ -102,8 +102,8 @@ const AppRouter = () => {
               <Route path="/admin/audio" element={<AudioAdmin />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </AppLayout>
-        </RouteFadeTransition>
+          </RouteFadeTransition>
+        </AppLayout>
       </Suspense>
     </RouteLoadingProvider>
   );

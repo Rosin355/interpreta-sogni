@@ -7,13 +7,18 @@ import { cn } from "@/lib/utils";
 const AnimatedNavLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
   const defaultTextColor = 'text-gray-300';
   const hoverTextColor = 'text-white';
-  const textSizeClass = 'text-sm';
+  const textSizeClass = 'text-sm font-medium';
+  const heightClass = "h-6"; // 24px per riga
 
   return (
-    <Link to={href} className={cn("group relative inline-block overflow-hidden h-5 flex items-center", textSizeClass)}>
-      <div className="flex flex-col transition-transform duration-400 ease-out transform group-hover:-translate-y-1/2">
-        <span className={defaultTextColor}>{children}</span>
-        <span className={hoverTextColor}>{children}</span>
+    <Link to={href} className={cn("group relative inline-block overflow-hidden", heightClass, textSizeClass)}>
+      <div className="flex flex-col transition-transform duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] transform group-hover:-translate-y-1/2">
+        <span className={cn("flex items-center", heightClass, defaultTextColor)}>
+          {children}
+        </span>
+        <span className={cn("flex items-center", heightClass, hoverTextColor)}>
+          {children}
+        </span>
       </div>
     </Link>
   );
@@ -49,11 +54,8 @@ export function MiniNavbar() {
   }, [isOpen]);
 
   const logoElement = (
-    <div className="relative w-5 h-5 flex items-center justify-center">
-      <span className="absolute w-1.5 h-1.5 rounded-full bg-gray-200 top-0 left-1/2 transform -translate-x-1/2 opacity-80"></span>
-      <span className="absolute w-1.5 h-1.5 rounded-full bg-gray-200 left-0 top-1/2 transform -translate-y-1/2 opacity-80"></span>
-      <span className="absolute w-1.5 h-1.5 rounded-full bg-gray-200 right-0 top-1/2 transform -translate-y-1/2 opacity-80"></span>
-      <span className="absolute w-1.5 h-1.5 rounded-full bg-gray-200 bottom-0 left-1/2 transform -translate-x-1/2 opacity-80"></span>
+    <div className="relative w-8 h-8 flex items-center justify-center">
+      <img src="/dreamalchemist_logo.png" alt="Dream Alchemist Logo" className="w-full h-full object-contain" />
     </div>
   );
 
@@ -94,8 +96,9 @@ export function MiniNavbar() {
     )}>
 
       <div className="flex items-center justify-between w-full gap-x-6 sm:gap-x-8">
-        <Link to="/" className="flex items-center">
+        <Link to="/" className="flex items-center gap-3">
            {logoElement}
+           <span className="hidden md:block font-editorial uppercase tracking-[0.15em] text-white text-sm">DREAM ALCHEMIST</span>
         </Link>
 
         <nav className="hidden sm:flex items-center space-x-4 sm:space-x-6 text-sm">
