@@ -5,15 +5,26 @@ interface MysticLoaderProps {
   showText?: boolean;
   text?: string;
   fullScreen?: boolean;
+  progress?: number; // 0 to 100
 }
 
 export function MysticLoader({ 
   size = 'md', 
   showText = true,
   text = 'Caricamento...',
-  fullScreen = false 
+  fullScreen = false,
+  progress
 }: MysticLoaderProps) {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [displayProgress, setDisplayProgress] = useState(0);
+
+  useEffect(() => {
+    if (progress !== undefined) {
+      // Smooth progress animation
+      const timer = setTimeout(() => setDisplayProgress(progress), 50);
+      return () => clearTimeout(timer);
+    }
+  }, [progress]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -33,13 +44,13 @@ export function MysticLoader({
   const s = sizeMap[size];
 
   const containerClasses = fullScreen 
-    ? 'fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/95 backdrop-blur-sm'
-    : 'flex flex-col items-center justify-center gap-4';
+    ? 'fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#030303] backdrop-blur-xl'
+    : 'flex flex-col items-center justify-center gap-6';
 
   return (
     <div className={containerClasses}>
       <div 
-        className="relative"
+        className="relative mb-4"
         style={{ width: s.container, height: s.container }}
       >
         {/* Outer glow ring */}
@@ -117,54 +128,33 @@ export function MysticLoader({
             `,
           }}
         />
+      </div>
 
-        {/* Cross rays from core */}
-        {!prefersReducedMotion && (
-          <div 
-            className="absolute mystic-loader-rays"
-            style={{
-              width: s.core * 3,
-              height: s.core * 3,
-              top: '50%',
-              left: '50%',
-              marginTop: -s.core * 1.5,
-              marginLeft: -s.core * 1.5,
-            }}
+      {/* Progress Bar and Text */}
+      <div className="w-64 space-y-4 text-center">
+        {showText && (
+          <p 
+            className={`text-white/60 font-editorial uppercase tracking-[0.2em] text-xs ${prefersReducedMotion ? '' : 'mystic-loader-text'}`}
           >
+            {text}
+          </p>
+        )}
+        
+        {progress !== undefined && (
+          <div className="relative w-full h-1 bg-white/5 rounded-full overflow-hidden border border-white/10">
             <div 
-              className="absolute"
-              style={{
-                width: '100%',
-                height: 2,
-                top: '50%',
-                left: 0,
-                marginTop: -1,
-                background: 'linear-gradient(90deg, transparent, hsl(var(--mystic-glow) / 0.6), transparent)',
-              }}
-            />
-            <div 
-              className="absolute"
-              style={{
-                width: 2,
-                height: '100%',
-                top: 0,
-                left: '50%',
-                marginLeft: -1,
-                background: 'linear-gradient(180deg, transparent, hsl(var(--mystic-glow) / 0.6), transparent)',
-              }}
+              className="h-full bg-gradient-to-r from-primary to-purple-500 shadow-[0_0_10px_rgba(var(--primary),0.5)] transition-all duration-300 ease-out"
+              style={{ width: `${displayProgress}%` }}
             />
           </div>
         )}
+        
+        {progress !== undefined && (
+          <p className="text-[10px] text-white/30 font-mono tracking-tighter">
+            {Math.round(displayProgress)}% COMPLETATO
+          </p>
+        )}
       </div>
-
-      {/* Loading text */}
-      {showText && (
-        <p 
-          className={`text-muted-foreground ${size === 'sm' ? 'text-xs' : size === 'md' ? 'text-sm' : 'text-base'} ${prefersReducedMotion ? '' : 'mystic-loader-text'}`}
-        >
-          {text}
-        </p>
-      )}
     </div>
   );
 }

@@ -92,6 +92,26 @@ export const RouteSwitchOverlay = ({ loadingTick }: { loadingTick?: number }) =>
     }
   }, [visible, mounted, minElapsed, isAnyPageLoading]);
 
+  const [progress, setProgress] = useState(0);
+
+  // Simula il progresso finché siamo visibili
+  useEffect(() => {
+    if (!visible) {
+      setProgress(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 95) return 95; // Si ferma al 95% finché non è pronto davvero
+        const step = prev < 30 ? 2 : prev < 70 ? 1 : 0.5;
+        return prev + step;
+      });
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [visible]);
+
   if (!visible || prefersReducedMotion) return null;
 
   return (
@@ -104,7 +124,12 @@ export const RouteSwitchOverlay = ({ loadingTick }: { loadingTick?: number }) =>
         animation: "routeSwitchFadeIn 160ms ease-out both",
       }}
     >
-      <MysticLoader fullScreen size="lg" text="Cambio scenario onirico..." />
+      <MysticLoader 
+        fullScreen 
+        size="lg" 
+        text="Sintonizzazione frequenze oniriche..." 
+        progress={progress}
+      />
       <style>{`
         @keyframes routeSwitchFadeIn {
           from { opacity: 0; }
