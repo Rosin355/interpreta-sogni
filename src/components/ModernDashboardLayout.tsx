@@ -125,7 +125,7 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
               <div className="w-10 h-10 flex items-center justify-center">
                 <img src="/dreamalchemist_logo.png" alt="Logo" className="w-full h-full object-contain" />
               </div>
-              <span className="font-editorial uppercase tracking-[0.12em] text-lg text-white">DREAM ALCHEMIST</span>
+              <span className="font-editorial uppercase tracking-[0.12em] text-lg text-white whitespace-nowrap">DREAM ALCHEMIST</span>
             </div>
         </div>
 

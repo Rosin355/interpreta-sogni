@@ -2,24 +2,31 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils";
 
 const AnimatedNavLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
-  const defaultTextColor = 'text-gray-300';
-  const hoverTextColor = 'text-white';
-  const textSizeClass = 'text-sm font-medium';
-  const heightClass = "h-6"; // 24px per riga
-
   return (
-    <Link to={href} className={cn("group relative inline-block overflow-hidden", heightClass, textSizeClass)}>
-      <div className="flex flex-col transition-transform duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] transform group-hover:-translate-y-1/2">
-        <span className={cn("flex items-center", heightClass, defaultTextColor)}>
+    <Link 
+      to={href} 
+      className="group relative h-[20px] overflow-hidden flex flex-col items-center"
+    >
+      <motion.div
+        className="flex flex-col items-center"
+        initial={false}
+        whileHover={{ y: -20 }}
+        transition={{ 
+          duration: 0.4,
+          ease: [0.23, 1, 0.32, 1]
+        }}
+      >
+        <span className="h-[20px] flex items-center text-gray-300 text-sm font-medium whitespace-nowrap tracking-wide">
           {children}
         </span>
-        <span className={cn("flex items-center", heightClass, hoverTextColor)}>
+        <span className="h-[20px] flex items-center text-white text-sm font-medium whitespace-nowrap tracking-wide">
           {children}
         </span>
-      </div>
+      </motion.div>
     </Link>
   );
 };
@@ -53,32 +60,26 @@ export function MiniNavbar() {
     };
   }, [isOpen]);
 
-  const logoElement = (
-    <div className="relative w-8 h-8 flex items-center justify-center">
-      <img src="/dreamalchemist_logo.png" alt="Dream Alchemist Logo" className="w-full h-full object-contain" />
-    </div>
-  );
-
   const navLinksData = [
     { label: 'Esplora', href: '/explore' },
     { label: 'Chi Siamo', href: '/about' },
   ];
 
   const loginButtonElement = (
-    <Link to="/auth?mode=login" className="px-4 py-2 sm:px-3 text-xs sm:text-sm border border-[#333] bg-[rgba(31,31,31,0.62)] text-gray-300 rounded-full hover:border-white/50 hover:text-white transition-colors duration-200 w-full sm:w-auto text-center">
+    <Link to="/auth?mode=login" className="px-5 py-2 text-xs sm:text-sm border border-white/10 bg-white/5 text-gray-300 rounded-full hover:border-white/30 hover:text-white transition-all duration-300 w-full sm:w-auto text-center backdrop-blur-sm">
       Log In
     </Link>
   );
 
   const signupButtonElement = (
     <Link to="/auth?mode=signup" className="relative group w-full sm:w-auto">
-       <div className="absolute inset-0 -m-2 rounded-full
+       <div className="absolute inset-0 -m-1 rounded-full
                      hidden sm:block
-                     bg-gray-100
-                     opacity-40 filter blur-lg pointer-events-none
+                     bg-white
+                     opacity-20 filter blur-md pointer-events-none
                      transition-all duration-300 ease-out
-                     group-hover:opacity-60 group-hover:blur-xl group-hover:-m-3"></div>
-       <div className="relative z-10 px-4 py-2 sm:px-3 text-xs sm:text-sm font-semibold text-black bg-gradient-to-br from-gray-100 to-gray-300 rounded-full hover:from-gray-200 hover:to-gray-400 transition-all duration-200 w-full sm:w-auto text-center block">
+                     group-hover:opacity-40 group-hover:blur-lg"></div>
+       <div className="relative z-10 px-5 py-2 text-xs sm:text-sm font-semibold text-black bg-white rounded-full hover:bg-gray-100 transition-all duration-300 w-full sm:w-auto text-center block">
          Inizia Ora
        </div>
     </Link>
@@ -86,22 +87,28 @@ export function MiniNavbar() {
 
   return (
     <header className={cn(
-      "fixed top-6 left-1/2 transform -translate-x-1/2 z-50",
+      "fixed top-8 left-1/2 transform -translate-x-1/2 z-50",
       "flex flex-col items-center",
-      "pl-6 pr-6 py-3 backdrop-blur-md",
+      "px-6 py-2.5 backdrop-blur-xl",
       headerShapeClass,
-      "border border-[#333] bg-[#1f1f1f57]",
-      "w-[calc(100%-2rem)] sm:w-auto",
-      "transition-[border-radius] duration-300 ease-in-out"
+      "border border-white/10 bg-black/40",
+      "w-[calc(100%-2rem)] sm:w-auto min-w-[500px]",
+      "transition-all duration-500 ease-in-out shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
     )}>
 
-      <div className="flex items-center justify-between w-full gap-x-6 sm:gap-x-8">
-        <Link to="/" className="flex items-center gap-3">
-           {logoElement}
-           <span className="hidden md:block font-editorial uppercase tracking-[0.15em] text-white text-sm">DREAM ALCHEMIST</span>
+      <div className="flex items-center justify-between w-full gap-x-10">
+        <Link to="/" className="flex items-center gap-3 flex-shrink-0 group">
+           <img 
+            src="/dreamalchemist_logo.png" 
+            alt="Dream Alchemist Logo" 
+            className="w-8 h-8 object-contain transition-transform duration-500 group-hover:scale-110" 
+           />
+           <span className="hidden md:block font-editorial uppercase tracking-[0.2em] text-white text-sm whitespace-nowrap">
+            DREAM ALCHEMIST
+           </span>
         </Link>
 
-        <nav className="hidden sm:flex items-center space-x-4 sm:space-x-6 text-sm">
+        <nav className="hidden sm:flex items-center space-x-8">
           {navLinksData.map((link) => (
             <AnimatedNavLink key={link.href} href={link.href}>
               {link.label}
@@ -109,7 +116,7 @@ export function MiniNavbar() {
           ))}
         </nav>
 
-        <div className="hidden sm:flex items-center gap-2 sm:gap-3">
+        <div className="hidden sm:flex items-center gap-4">
           {loginButtonElement}
           {signupButtonElement}
         </div>
@@ -123,20 +130,28 @@ export function MiniNavbar() {
         </button>
       </div>
 
-      <div className={`sm:hidden flex flex-col items-center w-full transition-all ease-in-out duration-300 overflow-hidden
-                       ${isOpen ? 'max-h-[1000px] opacity-100 pt-4' : 'max-h-0 opacity-0 pt-0 pointer-events-none'}`}>
-        <nav className="flex flex-col items-center space-y-4 text-base w-full">
-          {navLinksData.map((link) => (
-            <Link key={link.href} to={link.href} onClick={() => setIsOpen(false)} className="text-gray-300 hover:text-white transition-colors w-full text-center">
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="flex flex-col items-center space-y-4 mt-4 w-full">
-          {loginButtonElement}
-          {signupButtonElement}
-        </div>
-      </div>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="sm:hidden flex flex-col items-center w-full overflow-hidden"
+          >
+            <nav className="flex flex-col items-center space-y-6 py-8 text-lg w-full">
+              {navLinksData.map((link) => (
+                <Link key={link.href} to={link.href} onClick={() => setIsOpen(false)} className="text-gray-300 hover:text-white transition-colors w-full text-center font-medium">
+                  {link.label}
+                </Link>
+              ))}
+              <div className="flex flex-col items-center space-y-4 mt-4 w-full px-4">
+                {loginButtonElement}
+                {signupButtonElement}
+              </div>
+            </nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }
