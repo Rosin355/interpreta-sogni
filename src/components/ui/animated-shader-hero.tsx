@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from "react";
 import { StarsCanvas } from "./stars-canvas";
 import BlurTextAnimation from "./blur-text-animation";
+import dreamAlchemistLogo from "@/assets/dreamalchemist_logo.png";
 
 interface HeadlinePhrase {
   line1: string;
