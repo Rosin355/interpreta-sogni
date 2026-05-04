@@ -16,7 +16,7 @@ const ExperienceSection = () => {
   );
 
   return (
-    <section className="relative min-h-[640px] flex items-center justify-center overflow-hidden border-y border-mystic-violet/15">
+    <section className="relative min-h-[500px] flex items-center justify-center overflow-hidden">
       {/* Sfondo cinematico viola/blu profondo */}
       <div
         className="absolute inset-0"
@@ -52,7 +52,7 @@ const ExperienceSection = () => {
       />
 
       <motion.div
-        className="relative z-10 text-center px-6 lg:px-10 max-w-4xl mx-auto py-32"
+        className="relative z-10 text-center px-6 lg:px-10 max-w-4xl mx-auto py-20"
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 1 }}

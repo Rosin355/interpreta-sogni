@@ -7,7 +7,7 @@ const CTASection = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="relative overflow-hidden py-32 lg:py-44 flex items-center justify-center">
+    <section className="relative overflow-hidden py-20 lg:py-28 flex items-center justify-center">
       {/* Sfondo: viola/blu profondo + bagliore centrale magenta */}
       <div
         className="absolute inset-0"

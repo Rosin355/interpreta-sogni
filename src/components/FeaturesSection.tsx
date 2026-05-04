@@ -5,33 +5,33 @@ const chapters = [
     n: "i.",
     title: "Il diario",
     em: "intimo",
-    sub: "Annota il sogno",
-    body: "Scrivi ciò che resta al risveglio: un’immagine, una frase, una sensazione. Anche il frammento più piccolo può diventare una traccia da seguire.",
-    meta: "Capitolo uno · il diario",
+    sub: "ANNOTA IL SOGNO",
+    body: "Scrivi ciò che ricordi appena ti svegli. Anche poche parole possono bastare per conservare qualcosa di importante.",
+    meta: "",
   },
   {
     n: "ii.",
     title: "Il simbolo",
     em: "rivelato",
-    sub: "Lettura simbolica",
-    body: "Alcune immagini ritornano senza spiegarsi subito. Qui impari a fermarti davanti a ciò che insiste, finché il simbolo comincia a prendere voce.",
-    meta: "Capitolo due · il simbolo",
+    sub: "LETTURA SIMBOLICA",
+    body: "Alcune immagini tornano nei sogni più volte. Qui puoi fermarti a guardarle meglio e iniziare a capire cosa evocano.",
+    meta: "",
   },
   {
     n: "iii.",
     title: "Il cielo",
-    em: "sotteso",
-    sub: "Tema natale & risonanze",
-    body: "Il tema natale non dà risposte automatiche, ma offre una cornice sottile. A volte il cielo non spiega il sogno: lo mette semplicemente in una luce più chiara.",
-    meta: "Capitolo tre · il cielo",
+    em: "che orienta",
+    sub: "TEMA NATALE",
+    body: "Il tema natale è una mappa simbolica della nascita. In questo spazio può offrire un contesto in più per leggere i tuoi sogni.",
+    meta: "",
   },
   {
     n: "iv.",
     title: "L'opera",
-    em: "alchemica",
-    sub: "Nigredo, Albedo, Rubedo",
-    body: "Ogni sogno lascia un piccolo resto da integrare nella vita vigile. L’opera comincia quando riconosci quella traccia e scegli di non perderla.",
-    meta: "Capitolo quattro · la trasformazione",
+    em: "interiore",
+    sub: "INTEGRAZIONE",
+    body: "Il sogno non finisce quando ti svegli. Il lavoro interiore comincia quando qualcosa di quel sogno resta con te e prende senso nel tempo.",
+    meta: "",
   },
 ];
 
@@ -39,7 +39,7 @@ const FeaturesSection = () => {
   return (
     <section
       id="features"
-      className="relative py-32 lg:py-40 overflow-hidden"
+      className="relative py-20 lg:py-28 overflow-hidden"
     >
       {/* Sfondo profondo viola/blu */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-mystic-deep/30 to-background" />
@@ -64,14 +64,14 @@ const FeaturesSection = () => {
             <div className="ed-eyebrow">
               <span className="ed-num">ii.</span>
               <span className="ed-dot" />
-              <span>Il lavoro interiore</span>
+              <span>IL LAVORO INTERIORE</span>
             </div>
-            <h2 className="ed-h1 mt-7 max-w-[14ch] text-foreground">
-              Quattro stanze <em>silenziose</em>, una sola casa.
+            <h2 className="ed-h1 mt-7 max-w-[18ch] text-foreground">
+              Un modo semplice per avvicinarti ai sogni.
             </h2>
           </div>
           <p className="ed-lead max-w-[36ch]">
-            Ogni capitolo è una soglia. Aprine una stasera; le altre sapranno attendere.
+            Dream Alchemist ti aiuta a ricordare, osservare e comprendere ciò che arriva nella notte, con strumenti simbolici e astrologici resi accessibili.
           </p>
         </motion.div>
 
@@ -100,11 +100,15 @@ const FeaturesSection = () => {
                 </h3>
                 <div className="ed-meta mt-5 flex items-center gap-3">
                   <span>{c.sub}</span>
-                  <span
-                    className="inline-block w-[3px] h-[3px] rounded-full"
-                    style={{ background: "hsl(var(--mystic-magenta))" }}
-                  />
-                  <span>{c.meta}</span>
+                  {c.meta && (
+                    <>
+                      <span
+                        className="inline-block w-[3px] h-[3px] rounded-full"
+                        style={{ background: "hsl(var(--mystic-magenta))" }}
+                      />
+                      <span>{c.meta}</span>
+                    </>
+                  )}
                 </div>
               </div>
 

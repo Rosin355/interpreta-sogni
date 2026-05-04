@@ -39,7 +39,7 @@ const ResearchSection = () => {
   return (
     <section
       id="research"
-      className="relative py-32 lg:py-40 overflow-hidden"
+      className="relative py-20 lg:py-28 overflow-hidden"
     >
       <div className="absolute inset-0 bg-gradient-to-b from-background via-mystic-deep/40 to-background" />
       <div
