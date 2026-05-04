@@ -14,6 +14,7 @@ import { RouteSwitchOverlay } from "@/components/loading/RouteSwitchOverlay";
 import { RouteLoadingProvider } from "@/contexts/RouteLoadingContext";
 import { startRoutePrefetch } from "@/utils/route-prefetch";
 import { GlassFilter } from "@/components/ui/liquid-glass";
+import { AppLayout } from "@/components/AppLayout";
 
 // Eager load - Landing page
 import Index from "./pages/Index";
@@ -75,32 +76,34 @@ const AppRouter = () => {
       <RouteSwitchOverlay loadingTick={loadingTick} />
       <Suspense fallback={<PageLoader />}>
         <RouteMountMarker onMount={handleMount} />
-        <RouteFadeTransition>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/my-dreams" element={<MyDreams />} />
-            <Route path="/dreams/new" element={<NewDream />} />
-            <Route path="/dreams/:id/edit" element={<EditDream />} />
-            <Route path="/dreams/:id" element={<DreamDetail />} />
+        <AppLayout>
+          <RouteFadeTransition>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/my-dreams" element={<MyDreams />} />
+              <Route path="/dreams/new" element={<NewDream />} />
+              <Route path="/dreams/:id/edit" element={<EditDream />} />
+              <Route path="/dreams/:id" element={<DreamDetail />} />
 
-            <Route path="/explore" element={<Explore />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/astrology" element={<Astrology />} />
-            <Route path="/alchemy" element={<Alchemy />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/professional-verification" element={<ProfessionalVerification />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/shared-dreams" element={<SharedDreams />} />
-            <Route path="/shared-with-me" element={<SharedDreamsReceived />} />
-            <Route path="/dream/shared/:token" element={<SharedDreamPublic />} />
-            <Route path="/audio-library" element={<AudioLibrary />} />
-            <Route path="/admin/audio" element={<AudioAdmin />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </RouteFadeTransition>
+              <Route path="/explore" element={<Explore />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/astrology" element={<Astrology />} />
+              <Route path="/alchemy" element={<Alchemy />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/professional-verification" element={<ProfessionalVerification />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/shared-dreams" element={<SharedDreams />} />
+              <Route path="/shared-with-me" element={<SharedDreamsReceived />} />
+              <Route path="/dream/shared/:token" element={<SharedDreamPublic />} />
+              <Route path="/audio-library" element={<AudioLibrary />} />
+              <Route path="/admin/audio" element={<AudioAdmin />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </RouteFadeTransition>
+        </AppLayout>
       </Suspense>
     </RouteLoadingProvider>
   );
