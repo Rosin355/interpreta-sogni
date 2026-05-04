@@ -32,7 +32,7 @@ serve(async (req) => {
     // Fetch all users with natal chart data and notification preferences
     const { data: profiles, error: profilesError } = await supabaseClient
       .from('profiles')
-      .select('id, birth_date, birth_time, birth_timezone, natal_chart_data')
+      .select('id, birth_date, birth_time, birth_latitude, birth_longitude, birth_timezone, natal_chart_data')
       .not('natal_chart_data', 'is', null);
 
     if (profilesError) throw profilesError;
@@ -45,6 +45,7 @@ serve(async (req) => {
     if (preferencesError) throw preferencesError;
 
     const notifications: TransitNotification[] = [];
+    const rapidApiKey = Deno.env.get('RAPIDAPI_KEY');
 
     // Check for each user
     for (const profile of profiles || []) {
@@ -56,11 +57,71 @@ serve(async (req) => {
 
       // Check if it's time to send notification (within 1 hour window)
       if (Math.abs(currentHour - prefHour) <= 1) {
-        // Calculate moon phase
+        // Calculate moon phase (simplified fallback)
         const moonPhase = calculateMoonPhase(now);
         
-        // Check for significant transits based on natal chart
-        const transits = checkSignificantTransits(profile.natal_chart_data, now);
+        // Check for significant transits
+        let transits: Array<{ description: string; priority: 'low' | 'medium' | 'high' }> = [];
+        
+        if (rapidApiKey && profile.birth_date && profile.birth_latitude && profile.birth_longitude) {
+          try {
+            const [bYear, bMonth, bDay] = profile.birth_date.split('-').map(Number);
+            const [bHour, bMinute] = (profile.birth_time || "12:00").split(':').map(Number);
+            const tzOffset = parseFloat((profile.birth_timezone || "UTC+0").replace('UTC', '').replace('+', '')) || 0;
+
+            const transitBody = {
+              first_subject: {
+                name: "User",
+                year: bYear, month: bMonth, day: bDay,
+                hour: bHour, minute: bMinute,
+                longitude: parseFloat(profile.birth_longitude),
+                latitude: parseFloat(profile.birth_latitude),
+                timezone: tzOffset
+              },
+              transit_subject: {
+                name: "Transit",
+                year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate(),
+                hour: now.getHours(), minute: now.getMinutes(),
+                longitude: parseFloat(profile.birth_longitude),
+                latitude: parseFloat(profile.birth_latitude),
+                timezone: tzOffset
+              }
+            };
+
+            const response = await fetch('https://astrologer.p.rapidapi.com/api/v5/context/transit', {
+              method: 'POST',
+              headers: {
+                'X-RapidAPI-Host': 'astrologer.p.rapidapi.com',
+                'X-RapidAPI-Key': rapidApiKey,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(transitBody)
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              const context = data.context || "";
+              
+              // Extract transits from XML using regex
+              const transitRegex = /<transit>[\s\S]*?<transit_planet>(.*?)<\/transit_planet>[\s\S]*?<natal_planet>(.*?)<\/natal_planet>[\s\S]*?<aspect>(.*?)<\/aspect>[\s\S]*?<interpretation_hint>(.*?)<\/interpretation_hint>[\s\S]*?<\/transit>/g;
+              let match;
+              while ((match = transitRegex.exec(context)) !== null) {
+                const [_, tPlanet, nPlanet, aspect, hint] = match;
+                transits.push({
+                  description: `${tPlanet} in ${aspect} al tuo ${nPlanet}: ${hint}`,
+                  priority: (aspect.toLowerCase() === 'conjunction' || aspect.toLowerCase() === 'opposition') ? 'high' : 'medium'
+                });
+              }
+            }
+          } catch (e) {
+            console.error(`Error fetching real-time transits for user ${profile.id}:`, e);
+          }
+        }
+
+        // Fallback to manual calculation if API fails or no transits found
+        if (transits.length === 0) {
+          transits = checkSignificantTransits(profile.natal_chart_data, now);
+        }
 
         // Create notifications based on transits and moon phase
         if (transits.length > 0) {

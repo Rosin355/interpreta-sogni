@@ -602,6 +602,7 @@ export type Database = {
           has_completed_onboarding: boolean
           id: string
           natal_chart_data: Json | null
+          natal_context: string | null
           updated_at: string | null
           username: string | null
         }
@@ -620,6 +621,7 @@ export type Database = {
           has_completed_onboarding?: boolean
           id: string
           natal_chart_data?: Json | null
+          natal_context?: string | null
           updated_at?: string | null
           username?: string | null
         }
@@ -638,6 +640,7 @@ export type Database = {
           has_completed_onboarding?: boolean
           id?: string
           natal_chart_data?: Json | null
+          natal_context?: string | null
           updated_at?: string | null
           username?: string | null
         }

@@ -203,32 +203,41 @@ serve(async (req) => {
       console.log('Reason: Birth data mismatch');
     }
 
-    // Call Free Astrology API
-    const apiKey = Deno.env.get('FREE_ASTROLOGY_API_KEY');
-    if (!apiKey) {
-      console.error('FREE_ASTROLOGY_API_KEY not configured');
-      throw new Error('FREE_ASTROLOGY_API_KEY not configured');
+    console.log('⚠️ CACHE MISS - API call required');
+    if (!existingProfile?.natal_chart_data) {
+      console.log('Reason: No existing natal_chart_data');
+    } else {
+      console.log('Reason: Birth data mismatch');
     }
 
-    console.log('Calling Free Astrology API with Swiss Ephemeris...');
+    // Call Astrologer API (RapidAPI)
+    const rapidApiKey = Deno.env.get('RAPIDAPI_KEY');
+    if (!rapidApiKey) {
+      console.error('RAPIDAPI_KEY not configured');
+      throw new Error('RAPIDAPI_KEY not configured');
+    }
+
+    console.log('Calling Astrologer API (RapidAPI)...');
     
-    // Prepare request body according to API specification
-    const requestBody = {
-      year,
-      month,
-      date: day,
-      hours,
-      minutes,
-      seconds: 0,
-      latitude,
-      longitude,
-      timezone: timezoneOffset,
-      config: {
-        observation_point: 'topocentric',
-        ayanamsha: 'tropical',
-        house_system: 'Placidus',
-        language: 'en'
+    // Prepare request body for Astrologer API
+    const astrologerBody = {
+      subject: {
+        name: "User",
+        year,
+        month,
+        day,
+        hour: hours,
+        minute: minutes,
+        longitude,
+        latitude,
+        timezone: timezoneOffset
       }
+    };
+
+    const rapidApiHeaders = {
+      'X-RapidAPI-Host': 'astrologer.p.rapidapi.com',
+      'X-RapidAPI-Key': rapidApiKey,
+      'Content-Type': 'application/json',
     };
 
     console.log('=== FINAL API REQUEST DATA ===');
@@ -236,64 +245,74 @@ serve(async (req) => {
     console.log('Time:', { hours, minutes });
     console.log('Location:', { latitude, longitude });
     console.log('Timezone offset:', timezoneOffset);
-    console.log('Is timezone valid?', !isNaN(timezoneOffset) && timezoneOffset >= -12 && timezoneOffset <= 14);
-    console.log('Full Request Body:', JSON.stringify(requestBody, null, 2));
+    console.log('Headers:', { ...rapidApiHeaders, 'X-RapidAPI-Key': '***' });
+    console.log('Full Request Body:', JSON.stringify(astrologerBody, null, 2));
     console.log('==============================');
 
     // Implement retry logic with exponential backoff
     let retries = 3;
-    let apiResponse: Response | null = null;
+    let chartData: any = null;
+    let natalContext: string = "";
     let lastError: Error | null = null;
 
     while (retries > 0) {
       try {
-        apiResponse = await fetch('https://json.freeastrologyapi.com/western/natal-wheel-chart', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-          },
-          body: JSON.stringify(requestBody)
-        });
+        console.log(`API Attempt ${4 - retries}...`);
+        
+        // Parallel calls for data and context
+        const [dataRes, contextRes] = await Promise.all([
+          fetch('https://astrologer.p.rapidapi.com/api/v5/chart-data/birth-chart', {
+            method: 'POST',
+            headers: rapidApiHeaders,
+            body: JSON.stringify(astrologerBody)
+          }),
+          fetch('https://astrologer.p.rapidapi.com/api/v5/context/birth-chart', {
+            method: 'POST',
+            headers: rapidApiHeaders,
+            body: JSON.stringify(astrologerBody)
+          })
+        ]);
 
-        if (apiResponse.ok) {
-          console.log('API call successful');
+        if (dataRes.ok && contextRes.ok) {
+          chartData = await dataRes.json();
+          const contextData = await contextRes.json();
+          natalContext = contextData.context || "";
+          console.log('API calls successful');
           break;
         }
 
-        const errorText = await apiResponse.text();
-        console.error(`Free Astrology API error (${retries} retries left):`, errorText);
+        const dataError = !dataRes.ok ? await dataRes.text() : 'OK';
+        const contextError = !contextRes.ok ? await contextRes.text() : 'OK';
+        console.error(`API error (Data: ${dataRes.status}, Context: ${contextRes.status})`);
+        console.error(`Data response: ${dataError}`);
+        console.error(`Context response: ${contextError}`);
         
-        // ====================================
-        // GESTIONE SPECIFICA "LIMIT EXCEEDED"
-        // ====================================
-        if (errorText.includes('Limit Exceeded') || errorText.includes('limit exceeded')) {
+        // GESTIONE SPECIFICA RATE LIMIT
+        if (dataRes.status === 429 || contextRes.status === 429 || 
+            dataError.toLowerCase().includes('limit exceeded') || 
+            contextError.toLowerCase().includes('limit exceeded')) {
           console.error('🚫 API LIMIT EXCEEDED - No more retries possible');
           throw new Error(
-            'Il servizio di calcolo del tema natale ha raggiunto il limite giornaliero di richieste. ' +
+            'Il servizio di calcolo del tema natale ha raggiunto il limite di richieste. ' +
             'Ti preghiamo di riprovare tra qualche ora. ' +
             'I tuoi dati sono stati salvati e potrai calcolare il tema natale in seguito.'
           );
         }
-        
-        // Don't retry on 400 (validation errors)
-        if (apiResponse.status === 400) {
-          throw new Error(`Invalid request to API: ${errorText}`);
-        }
 
-        lastError = new Error(`API returned ${apiResponse.status}: ${errorText}`);
+        lastError = new Error(`API returned non-200 status. Data: ${dataRes.status}, Context: ${contextRes.status}`);
         retries--;
 
         if (retries > 0) {
-          const waitTime = (4 - retries) * 1000; // 1s, 2s, 3s backoff
+          const waitTime = (4 - retries) * 1000;
           console.log(`Waiting ${waitTime}ms before retry...`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
         }
       } catch (error) {
         lastError = error as Error;
-        retries--;
+        if (error.message.includes('limite di richieste')) throw error;
         
-        if (retries > 0 && !(error as Error).message.includes('Invalid request')) {
+        retries--;
+        if (retries > 0) {
           const waitTime = (4 - retries) * 1000;
           console.log(`Error occurred, waiting ${waitTime}ms before retry...`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
@@ -303,93 +322,11 @@ serve(async (req) => {
       }
     }
 
-    if (!apiResponse || !apiResponse.ok) {
-      const status = apiResponse?.status || 'unknown';
-      const statusText = apiResponse?.statusText || 'unknown';
-      console.error('=== API CALL FAILED ===');
-      console.error('Status:', status);
-      console.error('Status Text:', statusText);
-      console.error('Last Error:', lastError?.message);
-      console.error('=======================');
-      
-      throw new Error(
-        `Impossibile calcolare il tema natale. ` +
-        `Codice errore: ${status}. ` +
-        `${lastError?.message || 'Riprova più tardi.'}`
-      );
+    if (!chartData) {
+      throw new Error(`Impossibile calcolare il tema natale: ${lastError?.message || 'Errore sconosciuto'}`);
     }
 
-    const apiData = await apiResponse.json();
-    console.log('Free Astrology API response status:', apiData.statusCode);
-    console.log('API output keys:', apiData?.output ? Object.keys(apiData.output) : 'no output');
-
-    if (apiData.statusCode !== 200 || !apiData.output) {
-      console.error('Invalid API response structure:', JSON.stringify(apiData, null, 2));
-      throw new Error('Invalid response from Free Astrology API');
-    }
-
-    let planets = apiData?.output?.planets;
-    let houses = apiData?.output?.houses;
-    let aspects = apiData?.output?.aspects;
-
-    if (!planets || !houses) {
-      console.log('Wheel API did not include planets/houses. Fetching dedicated endpoints...');
-      const payload = requestBody; // same body including config
-      const [plRes, hoRes, asRes] = await Promise.all([
-        fetch('https://json.freeastrologyapi.com/western/planets', {
-          method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }, body: JSON.stringify(payload)
-        }),
-        fetch('https://json.freeastrologyapi.com/western/houses', {
-          method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }, body: JSON.stringify(payload)
-        }),
-        fetch('https://json.freeastrologyapi.com/western/aspects', {
-          method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }, body: JSON.stringify(payload)
-        })
-      ]);
-
-      if (!plRes.ok || !hoRes.ok) {
-        const t1 = !plRes.ok ? await plRes.text() : '';
-        const t2 = !hoRes.ok ? await hoRes.text() : '';
-        
-        // Check per Limit Exceeded
-        if (t1.includes('Limit Exceeded') || t2.includes('Limit Exceeded') || 
-            t1.includes('limit exceeded') || t2.includes('limit exceeded')) {
-          console.error('🚫 API LIMIT EXCEEDED on planets/houses call');
-          throw new Error(
-            'Il servizio di calcolo del tema natale ha raggiunto il limite giornaliero di richieste. ' +
-            'Ti preghiamo di riprovare tra qualche ora. ' +
-            'I tuoi dati sono stati salvati e potrai calcolare il tema natale in seguito.'
-          );
-        }
-        
-        console.error('=== API ERROR ===');
-        console.error('Planets API status:', plRes.status, plRes.statusText);
-        console.error('Houses API status:', hoRes.status, hoRes.statusText);
-        console.error('Planets error response:', t1);
-        console.error('Houses error response:', t2);
-        console.error('Request payload:', JSON.stringify(payload, null, 2));
-        console.error('================');
-        throw new Error('Failed to fetch planets/houses');
-      }
-      const [plJson, hoJson, asJson] = await Promise.all([plRes.json(), hoRes.json(), asRes.ok ? asRes.json() : Promise.resolve(null)]);
-      planets = plJson?.output;
-      houses = hoJson?.output;
-      aspects = asJson?.output || [];
-      
-      // DEBUG: Log della struttura completa delle case
-      console.log('=== HOUSES API RESPONSE DEBUG ===');
-      console.log('Houses type:', typeof houses);
-      console.log('Houses is Array?:', Array.isArray(houses));
-      if (houses && typeof houses === 'object') {
-        console.log('Houses keys:', Object.keys(houses));
-        console.log('First house sample:', JSON.stringify(houses[Object.keys(houses)[0]], null, 2));
-      }
-      console.log('===================================');
-    }
-
-    console.log('Processing', (Array.isArray(planets)? planets.length : (planets? Object.keys(planets).length:0)), 'planets,', (Array.isArray(houses)? houses.length : (houses? Object.keys(houses).length:0)), 'houses,', (Array.isArray(aspects)? aspects.length : (aspects? Object.keys(aspects).length:0)), 'aspects');
-
-    // Map planets to our format with improved error handling
+    // Mapping of planet names to our internal format
     const planetMapping: { [key: string]: string } = {
       'Sun': 'sun',
       'Moon': 'moon',
@@ -409,79 +346,49 @@ serve(async (req) => {
     const planetsObject: any = {};
     const planetPositions: { [key: string]: number } = {};
 
-    // Helper function to normalize API responses to arrays
-    const normalizeToArray = (val: any) =>
-      Array.isArray(val) ? val : (val && typeof val === 'object' ? Object.values(val) : []);
+    // Process planets from chartData
+    const apiPlanets = chartData.planets || [];
+    console.log(`Processing ${apiPlanets.length} planets...`);
 
-    // Normalize planets and houses early so they're available everywhere
-    const planetsRaw = normalizeToArray(planets);
-    
-    // STEP 1: Process houses FIRST (we need house cusps to calculate planet houses)
-    const housesArray: any[] = [];
-    let housesRaw = normalizeToArray(houses);
+    for (const planet of apiPlanets) {
+      const name = planet.name;
+      const mappedName = planetMapping[name] || name.toLowerCase().replace(' ', '_');
+      
+      const longitude = planet.abs_pos || planet.position || 0;
+      const sign = planet.sign;
+      const house = planet.house;
+      const retrograde = planet.retrograde || false;
+      const degreeVal = getDegreeInSign(longitude);
 
-    // Controlla sia 'houses' che 'Houses' (case-insensitive)
-    if (houses && !Array.isArray(houses)) {
-      // Prova prima 'Houses' (maiuscola) - formato standard Free Astrology API
-      if (houses.Houses) {
-        console.log('Found nested Houses property (capital H), using it');
-        housesRaw = normalizeToArray(houses.Houses);
-      } 
-      // Poi 'houses' (minuscola) come fallback
-      else if (houses.houses) {
-        console.log('Found nested houses property (lowercase h), using it');
-        housesRaw = normalizeToArray(houses.houses);
-      }
-    }
-    
-    // Se housesRaw è ancora vuoto o ha solo 1 elemento, prova a estrarre da chiavi numeriche
-    if (housesRaw.length < 12 && houses && typeof houses === 'object') {
-      console.log('Attempting to extract houses from numeric keys...');
-      const houseKeys = Object.keys(houses).filter(k => !isNaN(parseInt(k))).sort((a, b) => parseInt(a) - parseInt(b));
-      if (houseKeys.length >= 12) {
-        housesRaw = houseKeys.map(k => houses[k]);
-        console.log(`Extracted ${housesRaw.length} houses from numeric keys`);
-      }
-    }
-    
-    if (housesRaw && housesRaw.length > 0) {
-      for (let i = 0; i < housesRaw.length && i < 12; i++) {
-        const house = housesRaw[i];
-        const longitude = typeof house?.fullDegree === 'number' ? house.fullDegree : (typeof house?.degree === 'number' ? house.degree : ((i) * 30));
-        const sign = house?.zodiac_sign?.name?.en || getZodiacSign(longitude);
-        const degree = typeof house?.normDegree === 'number' ? house.normDegree : getDegreeInSign(longitude);
+      planetsObject[mappedName] = {
+        longitude,
+        sign,
+        degree: parseFloat(degreeVal.toFixed(2)),
+        house,
+        retrograde
+      };
 
-        housesArray.push({
-          number: (house?.number || i + 1),
-          longitude,
-          sign,
-          degree: parseFloat(Number(degree).toFixed(2))
-        });
-      }
+      planetPositions[mappedName] = longitude;
     }
 
-    console.log('Processed houses:', housesArray.length);
-    
-    // Fallback: Se abbiamo meno di 12 case, calcola usando Equal House system
+    // Process houses
+    const apiHouses = chartData.houses || [];
+    const housesArray = apiHouses.map((h: any, index: number) => {
+      const longitude = h.abs_pos || h.position || (index * 30);
+      return {
+        number: h.number || (index + 1),
+        longitude,
+        sign: h.sign || getZodiacSign(longitude),
+        degree: parseFloat(getDegreeInSign(longitude).toFixed(2))
+      };
+    });
+
+    // Ensure we have 12 houses
     if (housesArray.length < 12) {
-      console.log('WARNING: Less than 12 houses from API, using Equal House fallback');
-      housesArray.length = 0; // Clear
-      
-      // Trova l'Ascendente per usarlo come cusp della Casa 1
-      let ascLongitude = 0;
-      const ascendantPlanetTemp = planetsRaw?.find((p: any) => {
-        const name = p?.planet?.en || p?.planet || p?.name;
-        return name?.toLowerCase() === 'ascendant';
-      });
-      
-      if (ascendantPlanetTemp) {
-        ascLongitude = typeof ascendantPlanetTemp?.fullDegree === 'number' 
-          ? ascendantPlanetTemp.fullDegree 
-          : (typeof ascendantPlanetTemp?.degree === 'number' ? ascendantPlanetTemp.degree : 0);
-      }
-      
-      for (let i = 0; i < 12; i++) {
-        const longitude = (ascLongitude + (i * 30)) % 360;
+      console.warn('API returned fewer than 12 houses, using fallback');
+      const startLong = housesArray[0]?.longitude || 0;
+      for (let i = housesArray.length; i < 12; i++) {
+        const longitude = (startLong + (i * 30)) % 360;
         housesArray.push({
           number: i + 1,
           longitude,
@@ -489,157 +396,32 @@ serve(async (req) => {
           degree: parseFloat(getDegreeInSign(longitude).toFixed(2))
         });
       }
-      
-      console.log('Generated 12 houses using Equal House system');
     }
 
-    // Extract house cusps longitudes for planet house calculation
-    const houseCuspsLongitudes = housesArray.map(h => h.longitude);
-
-    // STEP 2: Now process planets using the house cusps
-    if (planetsRaw && planetsRaw.length > 0) {
-      console.log('Processing planets...', planetsRaw.length);
-      for (const planet of planetsRaw) {
-        const planetNameRaw = planet?.planet?.en || planet?.planet || planet?.name;
-        const mappedName = planetMapping[planetNameRaw] || (planetNameRaw ? String(planetNameRaw).toLowerCase() : undefined);
-        if (!mappedName) continue;
-
-        const longitude = typeof planet?.fullDegree === 'number' ? planet.fullDegree : (typeof planet?.degree === 'number' ? planet.degree : 0);
-        const sign = planet?.zodiac_sign?.name?.en || getZodiacSign(longitude);
-        const degreeVal = typeof planet?.normDegree === 'number' ? planet.normDegree : getDegreeInSign(longitude);
-        const retro = planet?.isRetro === 'True' || planet?.isRetro === true || planet?.retrograde === true;
-        
-        // Calculate house using cusps instead of relying on API
-        const houseNum = calculateHouse(longitude, houseCuspsLongitudes);
-
-        planetsObject[mappedName] = {
-          longitude,
-          sign,
-          degree: parseFloat(Number(degreeVal).toFixed(2)),
-          house: houseNum,
-          retrograde: retro
-        };
-
-        planetPositions[mappedName] = longitude;
-        console.log(`  ${mappedName}: ${sign} ${Number(degreeVal).toFixed(2)}° (House ${houseNum})${retro ? ' ℞' : ''}`);
-      }
-    } else {
-      console.error('No planets data in API response. Output keys:', Object.keys(apiData?.output || {}));
-      try { console.error('Sample output preview:', JSON.stringify(apiData?.output, null, 2).slice(0, 800)); } catch {}
-      throw new Error('No planets data returned from API');
-    }
-
-    console.log('Processed planets:', Object.keys(planetsObject));
-
-    // Find Ascendant and Midheaven from planets array
-    const ascendantPlanet = planets?.find((p: any) => 
-      (p.planet?.en === 'Ascendant' || p.name === 'Ascendant')
-    );
-    const ascendantLongitude = ascendantPlanet?.fullDegree || (housesArray[0]?.longitude || 0);
+    // Extract Ascendant and Midheaven
     const ascendantData = {
-      longitude: ascendantLongitude,
-      sign: ascendantPlanet?.zodiac_sign?.name?.en || getZodiacSign(ascendantLongitude),
-      degree: parseFloat((ascendantPlanet?.normDegree || getDegreeInSign(ascendantLongitude)).toFixed(2))
+      longitude: chartData.ascendant?.abs_pos || housesArray[0]?.longitude || 0,
+      sign: chartData.ascendant?.sign || housesArray[0]?.sign || getZodiacSign(0),
+      degree: parseFloat(getDegreeInSign(chartData.ascendant?.abs_pos || housesArray[0]?.longitude || 0).toFixed(2))
     };
 
-    // Midheaven is the 10th house cusp
-    const midheavenHouse = housesArray.find(h => h.number === 10);
-    const midheavenData = midheavenHouse ? {
-      longitude: midheavenHouse.longitude,
-      sign: midheavenHouse.sign,
-      degree: midheavenHouse.degree
-    } : {
-      longitude: (ascendantLongitude + 270) % 360,
-      sign: getZodiacSign((ascendantLongitude + 270) % 360),
-      degree: parseFloat(getDegreeInSign((ascendantLongitude + 270) % 360).toFixed(2))
+    const midheavenData = {
+      longitude: chartData.midheaven?.abs_pos || housesArray[9]?.longitude || 0,
+      sign: chartData.midheaven?.sign || housesArray[9]?.sign || getZodiacSign(0),
+      degree: parseFloat(getDegreeInSign(chartData.midheaven?.abs_pos || housesArray[9]?.longitude || 0).toFixed(2))
     };
 
-    console.log('Ascendant:', ascendantData.sign, 'Midheaven:', midheavenData.sign);
+    // Process aspects
+    const apiAspects = chartData.aspects || [];
+    const aspectsArray = apiAspects.map((a: any) => ({
+      planet1: planetMapping[a.planet1] || a.planet1.toLowerCase().replace(' ', '_'),
+      planet2: planetMapping[a.planet2] || a.planet2.toLowerCase().replace(' ', '_'),
+      type: a.type.toLowerCase(),
+      angle: parseFloat((a.angle || 0).toFixed(2)),
+      orb: parseFloat((a.orb || 0).toFixed(2))
+    }));
 
-    // Process aspects from API or calculate if not provided
-    let aspectsArray: any[] = [];
-    
-    if (aspects && Array.isArray(aspects)) {
-      console.log(`Processing ${aspects.length} aspects from API...`);
-      aspectsArray = aspects
-        .filter((aspect: any) => {
-          // Strict validation of aspect object
-          if (!aspect || typeof aspect !== 'object') return false;
-          if (!aspect.planet1 || typeof aspect.planet1 !== 'string') return false;
-          if (!aspect.planet2 || typeof aspect.planet2 !== 'string') return false;
-          if (!aspect.type || typeof aspect.type !== 'string') return false;
-          return true;
-        })
-        .map((aspect: any) => {
-          const p1 = planetMapping[aspect.planet1] || aspect.planet1.toLowerCase();
-          const p2 = planetMapping[aspect.planet2] || aspect.planet2.toLowerCase();
-          const t = aspect.type.toLowerCase();
-          
-          return {
-            planet1: p1,
-            planet2: p2,
-            type: t,
-            angle: parseFloat((aspect.angle || 0).toFixed(2)),
-            orb: parseFloat((aspect.orb || 0).toFixed(2))
-          };
-        })
-        .filter((aspect: any) => 
-          planetMapping[aspect.planet1] !== undefined || 
-          planetMapping[aspect.planet2] !== undefined
-        );
-      console.log(`Successfully processed ${aspectsArray.length} valid aspects`);
-    } else {
-      // Calculate aspects manually if not provided by API
-      const planetNames = Object.keys(planetPositions);
-      for (let i = 0; i < planetNames.length; i++) {
-        for (let j = i + 1; j < planetNames.length; j++) {
-          const planet1 = planetNames[i];
-          const planet2 = planetNames[j];
-          const pos1 = planetPositions[planet1];
-          const pos2 = planetPositions[planet2];
-          
-          let angle = Math.abs(pos1 - pos2);
-          if (angle > 180) angle = 360 - angle;
-          
-          // Check for major aspects
-          if (Math.abs(angle - 0) < 8) {
-            aspectsArray.push({ 
-              planet1, planet2, type: 'conjunction', 
-              angle: parseFloat(angle.toFixed(2)), 
-              orb: parseFloat(Math.abs(angle - 0).toFixed(2))
-            });
-          } else if (Math.abs(angle - 60) < 6) {
-            aspectsArray.push({ 
-              planet1, planet2, type: 'sextile', 
-              angle: parseFloat(angle.toFixed(2)), 
-              orb: parseFloat(Math.abs(angle - 60).toFixed(2))
-            });
-          } else if (Math.abs(angle - 90) < 8) {
-            aspectsArray.push({ 
-              planet1, planet2, type: 'square', 
-              angle: parseFloat(angle.toFixed(2)), 
-              orb: parseFloat(Math.abs(angle - 90).toFixed(2))
-            });
-          } else if (Math.abs(angle - 120) < 8) {
-            aspectsArray.push({ 
-              planet1, planet2, type: 'trine', 
-              angle: parseFloat(angle.toFixed(2)), 
-              orb: parseFloat(Math.abs(angle - 120).toFixed(2))
-            });
-          } else if (Math.abs(angle - 180) < 8) {
-            aspectsArray.push({ 
-              planet1, planet2, type: 'opposition', 
-              angle: parseFloat(angle.toFixed(2)), 
-              orb: parseFloat(Math.abs(angle - 180).toFixed(2))
-            });
-          }
-        }
-      }
-    }
-
-    console.log('Processed aspects:', aspectsArray.length);
-
-    // Prepare natal chart data
+    // Prepare final natalChartData structure
     const natalChartData = {
       planets: planetsObject,
       houses: housesArray,
@@ -656,11 +438,12 @@ serve(async (req) => {
       }
     };
 
-    // Update user profile with natal chart data
+    // Update user profile with natal chart data AND natal_context
     const { error: updateError } = await supabase
       .from('profiles')
       .update({
         natal_chart_data: natalChartData,
+        natal_context: natalContext,
         birth_date: birthDate,
         birth_time: birthTime,
         birth_place_name: placeName,
@@ -676,8 +459,7 @@ serve(async (req) => {
       throw updateError;
     }
 
-    console.log('✅ Natal chart calculated and saved successfully');
-    console.log('✅ Natal chart saved to database cache for future requests');
+    console.log('✅ Natal chart calculated and saved successfully (with context)');
     console.log('=== Natal Chart Calculation Completed ===');
 
     return new Response(
