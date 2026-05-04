@@ -153,6 +153,10 @@ export default {
 				'nebula-drift': {
 					'0%, 100%': { transform: 'scale(1) translateX(0)' },
 					'50%': { transform: 'scale(1.1) translateX(20px)' }
+				},
+				'move-background': {
+					'0%': { backgroundPosition: '0% 0%' },
+					'100%': { backgroundPosition: '0% -1000%' }
 				}
 			},
 			animation: {
@@ -168,7 +172,8 @@ export default {
 				'star-fall': 'star-fall 4s linear infinite',
 				'aurora': 'aurora 6s ease-in-out infinite',
 				'glow-pulse': 'glow-pulse 4s ease-in-out infinite',
-				'nebula-drift': 'nebula-drift 15s ease-in-out infinite'
+				'nebula-drift': 'nebula-drift 15s ease-in-out infinite',
+				'move-background': 'move-background 60s linear infinite'
 			}
 		}
 	},
