@@ -170,6 +170,26 @@ const Hero: React.FC<HeroProps> = ({
             isFinalPhrase ? "space-y-4 sm:space-y-6" : "space-y-0"
           }`}
         >
+          {isFinalPhrase && (
+            <div className="flex flex-col items-center justify-center gap-3 pb-2 sm:pb-4 animate-cinematic-blur-in" style={{ animationDelay: '0.9s' }}>
+              <img
+                src={dreamAlchemistLogo}
+                alt="Dream Alchemist"
+                className="w-20 h-20 sm:w-24 sm:h-24 object-contain"
+              />
+              <div className="flex flex-col items-center justify-center leading-none">
+                <span className="font-bodoni-heading uppercase tracking-[0.22em] text-foreground text-2xl sm:text-3xl md:text-4xl whitespace-nowrap">
+                  Dream Alchemist
+                </span>
+                <div className="mt-3 flex items-center justify-center gap-3 w-full">
+                  <span className="h-px flex-1 bg-foreground/40 rounded-full" />
+                  <span className="text-foreground/70 text-sm leading-none select-none">☾</span>
+                  <span className="h-px flex-1 bg-foreground/40 rounded-full" />
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="animate-fade-in-up animation-delay-200">
             <BlurTextAnimation
               key={safePhraseIndex}
@@ -202,24 +222,6 @@ const Hero: React.FC<HeroProps> = ({
                   {buttons}
                 </div>
               )}
-
-              <div className="flex items-center justify-center gap-5 sm:gap-7 pt-8 sm:pt-12 animate-cinematic-blur-in" style={{ animationDelay: '0.9s' }}>
-                <img
-                  src={dreamAlchemistLogo}
-                  alt="Dream Alchemist"
-                  className="w-16 h-16 sm:w-20 sm:h-20 object-contain flex-shrink-0"
-                />
-                <div className="flex flex-col items-center justify-center leading-none">
-                  <span className="font-bodoni-heading uppercase tracking-[0.22em] text-foreground text-2xl sm:text-3xl md:text-4xl whitespace-nowrap">
-                    Dream Alchemist
-                  </span>
-                  <div className="mt-3 flex items-center justify-center gap-3 w-full">
-                    <span className="h-px flex-1 bg-foreground/40 rounded-full" />
-                    <span className="text-foreground/70 text-sm leading-none select-none">☾</span>
-                    <span className="h-px flex-1 bg-foreground/40 rounded-full" />
-                  </div>
-                </div>
-              </div>
             </>
           )}
         </div>
