@@ -151,20 +151,31 @@ ${profile?.gender ? `Il sognatore è di genere ${profile.gender}. Considera ques
 
 LESSICO SIMBOLICO ALCHEMICO (usalo come griglia di lettura, non come tassonomia rigida):
 
-🌑 NIGREDO — oscurità, peso, impurità, primordiale, decomposizione, abisso, materia nera.
-Immagini guida: sangue, scimmioni, corvi, rinoceronti, coccodrilli, serpenti, topi, elefanti e altri animali pesanti / sporchi / primordiali; acqua sporca o nera; terra sporca o nera; cieli neri senza stelle né astri; ambienti di paura, putrefazione, dissoluzione.
+🌑 NIGREDO — oscurità, peso, impurità, primordiale, decomposizione, abisso, materia nera, indifferenziazione.
+Animale tipico: il CORVO.
+Immagini guida: sangue; scimmioni, corvi, rinoceronti, coccodrilli, serpenti, topi, elefanti, maiali; animali pesanti, "sporchi" o primordiali come lo squalo, il calamaro gigante, l'orca; acqua sporca o nera; terra sporca o nera; cieli neri senza stelle né astri; ambienti di paura, putrefazione, dissoluzione.
+Nota essenziale: la Nigredo NON è una fase negativa di per sé. È "negativa" nel senso che NEGA la distinzione (Viveka): è una fase di indifferenziazione necessaria, materia prima della trasformazione, mai un giudizio sul sognatore.
 
 🌙 ALBEDO — purificazione, chiarezza, lunarità, bianchezza, leggerezza, grazia, mediazione tra terra, acqua e cielo.
-Immagini guida: luna, stelle, animali e uccelli bianchi dal portamento leggiadro (aironi, colombe, cigni, oche, conigli), unicorno, creature che toccano terra o acqua e si elevano nel cielo; acque limpide, alba, neve, specchi.
+Animale tipico: l'UNICORNO.
+Immagini guida: luna, stelle; animali e uccelli bianchi dal portamento leggiadro (aironi, colombe, cigni, oche, conigli); creature che toccano la terra o l'acqua e si elevano nel cielo; acque limpide, alba, neve, specchi.
 
 ☀️ RUBEDO — integrazione, pienezza, luce solare, fertilità, unione, benedizione, amore irradiato, compimento.
-Immagini guida: campi di grano e immagini di fertilità; sole molto lucente; arcobaleno; nuvole paradisiache; abbracci lucenti che emanano amore estremo; unioni sessuali o romantiche che donano benessere profondo; divinità benevole verso il sognatore; rubino, diamanti, gioielli, oro.
+Simboli tipici: il RUBINO, i DIAMANTI, i GIOIELLI, il SOLE.
+Immagini guida: campi di grano e immagini di fertilità; sole molto lucente; arcobaleno; nuvole paradisiache; abbracci lucenti che emanano amore estremo; unioni sessuali o romantiche che donano sensazioni di estremo benessere; divinità che si comportano in modo benefico nei confronti del sognatore; oro.
 
 REGOLE INTERPRETATIVE:
 - Questi simboli sono SEGNALI, non verdetti: nessun singolo simbolo decide da solo la fase.
 - Pesa ogni immagine insieme a tono emotivo, atmosfera, immagini dominanti e trasformazione narrata.
 - Se il sogno contiene simboli misti, motiva la fase dominante e riconosci eventuali elementi secondari di un'altra fase (es. "Nigredo dominante con aperture di Albedo").
 - Integra il lessico in modo poetico, mai meccanico o didascalico.
+
+SEZIONE "✦ ALCHIMIA" (OBBLIGATORIA in chiusura dell'interpretazione):
+Includi sempre un paragrafo finale dedicato, introdotto da "✦ Alchimia", in cui:
+1. Dichiari la fase dominante (Nigredo / Albedo / Rubedo) e la motivi citando i simboli precisi rilevati nel sogno.
+2. Riconosci eventuali aperture verso un'altra fase, se presenti.
+3. Espandi liberamente con ciò che ritieni più utile al sognatore: significato della fase nel suo percorso, cosa la fase "chiede" di integrare, suggerimenti di consapevolezza e pratiche di attenzione interiore coerenti.
+4. Se la fase è Nigredo, ricorda esplicitamente che non è un giudizio negativo ma una fase di indifferenziazione (Viveka) necessaria alla trasformazione.
 
 Fornisci un'interpretazione approfondita ma accessibile del sogno, considerando:
 - I simboli presenti (anche alla luce del lessico alchemico sopra)

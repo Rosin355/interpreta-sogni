@@ -1,69 +1,52 @@
+## Obiettivo
 
+Arricchire l'IA che interpreta i sogni con le nuove informazioni alchemiche fornite, espandere la sezione "Alchimia" generata e migliorare la catalogazione automatica Nigredo / Albedo / Rubedo.
 
-## Problema
+## Modifiche
 
-Sullo screenshot l'utente vede il loader "VIAGGIO ALCHEMICO / Sto aprendo il tuo spazio interiore… 25%" — è il loader **interno** della pagina `/alchemy` (probabilmente in `useAlchemyJourney` o `Alchemy.tsx`), non il nuovo `RouteSwitchOverlay` (`MysticLoader` con testo "Cambio scenario onirico…").
+### 1. Prompt IA — Edge Functions
 
-Risultato: al cambio rotta vede **due loader diversi e in successione**:
-1. `RouteSwitchOverlay` (mystic, 400ms minimo) — quello che abbiamo appena implementato
-2. Loader interno della pagina (es. Alchemy con barra di progresso) — perché la pagina monta ma i dati non sono ancora pronti
+File interessati:
+- `supabase/functions/interpret-dream/index.ts`
+- `supabase/functions/interpret-dream-with-astrology/index.ts`
 
-L'utente vuole **un unico messaggio coerente** per ogni cambio pagina.
+In entrambi sostituire il blocco "LESSICO SIMBOLICO ALCHEMICO" con la versione estesa che include:
 
-## Diagnosi da fare
+- **Simboli archetipici tipici** evidenziati:
+  - Rubedo → rubino, diamanti, gioielli, sole come simboli tipici
+  - Albedo → unicorno come animale tipico
+  - Nigredo → corvo come animale tipico
+- **Nuovi animali Nigredo**: squalo, calamaro gigante, orca, maiale (in aggiunta a scimmioni, corvi, rinoceronti, coccodrilli, serpenti, topi, elefanti)
+- **Nota filosofica Nigredo**: "La Nigredo non è una fase negativa di per sé: è negativa nel senso che 'nega' la distinzione (Viveka). È una fase di indifferenziazione necessaria, non un giudizio."
+- **Rubedo arricchita**: enfasi su immagini di fertilità (campi di grano), sole molto lucente, arcobaleno, nuvole paradisiache, abbracci che emanano amore estremo, unioni sessuali/romantiche di estremo benessere, divinità benevole verso il sognatore.
+- **Albedo arricchita**: enfasi su animali e uccelli bianchi dal portamento leggiadro (aironi, conigli, oche, colombe, cigni) e creature che mediano fra terra/acqua e cielo.
 
-Devo verificare:
-1. Quali pagine hanno un loader interno che si mostra al mount (Alchemy, Astrology, Dashboard, MyDreams, AlchemistChat…)
-2. Se questi loader sono "fullscreen" o inline
-3. Se il `RouteSwitchOverlay` attuale viene effettivamente coperto/sostituito da questi loader interni
+### 2. Sezione "Alchimia" estesa nell'output
 
-## Soluzione proposta
+Aggiungere alle REGOLE INTERPRETATIVE l'istruzione esplicita:
 
-**Estendere `RouteSwitchOverlay` perché copra anche il fetch dati iniziale delle pagine**, tramite un context globale `RouteLoadingContext`:
+> Includi sempre nell'interpretazione una sezione dedicata "✦ Alchimia" in cui:
+> 1. Dichiari la fase dominante (Nigredo / Albedo / Rubedo) e motivala citando i simboli precisi presenti nel sogno.
+> 2. Riconosci eventuali aperture verso un'altra fase.
+> 3. Espandi liberamente con ciò che ritieni più utile al sognatore (significato della fase nel suo percorso, suggerimenti di consapevolezza, cosa la fase "chiede" di integrare).
+> 4. Se la fase è Nigredo, ricorda che non è negativa ma una fase di indifferenziazione (Viveka) necessaria alla trasformazione.
 
-- Le pagine con caricamento dati pesante (Alchemy, Astrology, Dashboard, ecc.) registrano `setPageLoading(true/false)` invece di renderizzare il proprio fullscreen loader.
-- `RouteSwitchOverlay` resta visibile finché:
-  1. il chunk lazy è montato (già implementato)
-  2. il tempo minimo (400ms) è trascorso (già implementato)
-  3. **NUOVO**: nessuna pagina ha dichiarato `pageLoading = true`
-- I loader interni fullscreen delle pagine vengono **rimossi** (o downgradati a skeleton inline non-fullscreen) per evitare la sovrapposizione.
+### 3. Calcolatore di fase — pesi più precisi
 
-### File coinvolti (da confermare durante l'implementazione)
-- `src/contexts/RouteLoadingContext.tsx` (nuovo)
-- `src/components/loading/RouteSwitchOverlay.tsx` (consuma il context)
-- `src/App.tsx` (provider attorno ad `AppRouter`)
-- Pagine con loader fullscreen interno da rifattorizzare:
-  - `src/pages/Alchemy.tsx` + `src/hooks/useAlchemyJourney.ts` (quello dello screenshot)
-  - `src/pages/Astrology.tsx`
-  - `src/pages/Dashboard.tsx`
-  - `src/pages/MyDreams.tsx` (se presente)
-  - eventuali altri da scoprire con grep su `MysticLoader fullScreen` / `AppLoadingOverlay`
+File: `supabase/functions/_shared/alchemical-calculator.ts`
 
-### Comportamento finale
-- **Un solo overlay** (`RouteSwitchOverlay` con `MysticLoader`) visibile da quando l'utente clicca su un link fino a quando la pagina è completamente pronta (chunk montato + dati caricati + min 400ms).
-- I loader interni delle pagine non scompaiono del tutto: diventano skeleton inline o spinner discreti per refresh successivi (non più fullscreen al primo mount).
-- Testo coerente: "Cambio scenario onirico…" o un testo neutro unico.
+- Alzare il peso dei simboli **tipici** (corvo → 1.0, unicorno → 1.0 già presente, rubino → 1.0, diamante → 0.9, sole → 1.0).
+- Aggiungere nuovi tag/keyword Nigredo: `squalo`, `calamaro`, `calamaro gigante`, `orca`, `maiale` (peso 0.7-0.8).
+- Aggiungere keyword Rubedo mancanti coerenti col nuovo lessico (`abbraccio luminoso`, `divinità benevola` già presenti — verificare e completare).
+- Aggiungere keyword Albedo per "creatura che vola e tocca acqua/terra".
 
-### Cosa NON cambia
-- Logica dati (fetch, hook, query) intatta.
-- `RouteProgressBar` resta com'è.
-- Animazioni e design del `MysticLoader` invariati.
+### 4. Out of scope
 
-## Diagrammi di flusso
+- Nessuna modifica al frontend (la sezione "Alchimia" sarà parte naturale del testo interpretativo restituito).
+- Nessuna nuova tabella né nuova UI.
+- `chat-with-alchemist` non viene toccato (mantiene il suo system prompt attuale).
 
-```text
-PRIMA (problema)
-click → [RouteSwitchOverlay 400ms] → unmount → [Loader interno Alchemy 25%→100%] → pagina
+## Verifica
 
-DOPO (soluzione)
-click → [RouteSwitchOverlay] ───────────────────────────────────────→ pagina
-                  └─ resta visibile finché pageLoading=false
-```
-
-## Note tecniche
-
-- Il context espone `setPageLoading(key: string, loading: boolean)` con map interna, così più pagine/hook possono coesistere senza sovrascrivere lo stato.
-- Cleanup automatico in `useEffect` return delle pagine.
-- Hook helper `usePageLoading(loading: boolean, key?: string)` per ridurre boilerplate.
-- Safety timeout di 8s per evitare overlay bloccato in caso di errori di fetch.
-
+- Build automatica delle Edge Functions.
+- Controllo dei log della prossima interpretazione per confermare la presenza della sezione "✦ Alchimia" e una fase coerente con i nuovi simboli.
