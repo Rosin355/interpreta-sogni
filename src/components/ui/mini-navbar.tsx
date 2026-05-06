@@ -69,7 +69,7 @@ export function MiniNavbar() {
   ];
 
   const loginButtonElement = (
-    <Link to="/auth?mode=login" className="px-4 py-2 sm:px-3 text-xs sm:text-sm border border-[#333] bg-[rgba(31,31,31,0.62)] text-gray-300 rounded-full hover:border-white/50 hover:text-white transition-colors duration-200 w-full sm:w-auto text-center">
+    <Link to="/auth?mode=login" onPointerDown={() => prefetchRoute("/auth")} onFocus={() => prefetchRoute("/auth")} className="relative flex min-h-[48px] w-full items-center justify-center px-4 py-2 sm:min-h-0 sm:w-auto sm:px-3 text-xs sm:text-sm border border-[#333] bg-[rgba(31,31,31,0.62)] text-gray-300 rounded-full hover:border-white/50 hover:text-white transition-colors duration-200 text-center before:pointer-events-none before:absolute before:inset-0 before:rounded-full before:border before:border-primary/25 before:bg-primary/5 before:content-[''] sm:before:hidden">
       Log In
     </Link>
   );
@@ -82,7 +82,7 @@ export function MiniNavbar() {
                      opacity-40 filter blur-lg pointer-events-none
                      transition-all duration-300 ease-out
                      group-hover:opacity-60 group-hover:blur-xl group-hover:-m-3"></div>
-       <Link to="/auth?mode=signup" className="relative z-10 px-4 py-2 sm:px-3 text-xs sm:text-sm font-semibold text-black bg-gradient-to-br from-gray-100 to-gray-300 rounded-full hover:from-gray-200 hover:to-gray-400 transition-all duration-200 w-full sm:w-auto text-center block">
+       <Link to="/auth?mode=signup" onPointerDown={() => prefetchRoute("/auth")} onFocus={() => prefetchRoute("/auth")} className="relative z-10 flex min-h-[48px] w-full items-center justify-center px-4 py-2 sm:min-h-0 sm:w-auto sm:px-3 text-xs sm:text-sm font-semibold text-black bg-gradient-to-br from-gray-100 to-gray-300 rounded-full hover:from-gray-200 hover:to-gray-400 transition-all duration-200 text-center before:pointer-events-none before:absolute before:inset-0 before:rounded-full before:border before:border-primary/25 before:bg-primary/10 before:content-[''] sm:before:hidden">
          Inizia Ora
        </Link>
     </div>
