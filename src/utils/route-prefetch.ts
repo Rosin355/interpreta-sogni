@@ -10,20 +10,36 @@
 
 type Importer = () => Promise<unknown>;
 
+const ROUTE_IMPORTERS: Record<string, Importer> = {
+  "/dashboard": () => import("@/pages/Dashboard"),
+  "/my-dreams": () => import("@/pages/MyDreams"),
+  "/dreams/new": () => import("@/pages/NewDream"),
+  "/astrology": () => import("@/pages/Astrology"),
+  "/alchemy": () => import("@/pages/Alchemy"),
+  "/shared-with-me": () => import("@/pages/SharedDreamsReceived"),
+  "/audio-library": () => import("@/pages/AudioLibrary"),
+  "/about": () => import("@/pages/About"),
+  "/explore": () => import("@/pages/Explore"),
+  "/auth": () => import("@/pages/Auth"),
+};
+
 // Route ad alta probabilità di navigazione subito dopo l'apertura dell'app.
 const HIGH_PRIORITY: Importer[] = [
-  () => import("@/pages/Dashboard"),
-  () => import("@/pages/MyDreams"),
-  () => import("@/pages/Auth"),
+  ROUTE_IMPORTERS["/dashboard"],
+  ROUTE_IMPORTERS["/my-dreams"],
+  ROUTE_IMPORTERS["/astrology"],
+  ROUTE_IMPORTERS["/alchemy"],
+  ROUTE_IMPORTERS["/shared-with-me"],
+  ROUTE_IMPORTERS["/audio-library"],
+  ROUTE_IMPORTERS["/about"],
 ];
 
 // Route secondarie ma comuni nel flusso utente.
 const MEDIUM_PRIORITY: Importer[] = [
-  () => import("@/pages/NewDream"),
-  () => import("@/pages/Alchemy"),
-  () => import("@/pages/Astrology"),
+  ROUTE_IMPORTERS["/dreams/new"],
+  ROUTE_IMPORTERS["/explore"],
+  ROUTE_IMPORTERS["/auth"],
   () => import("@/pages/Profile"),
-  () => import("@/pages/Explore"),
 ];
 
 const idle = (cb: () => void, timeout = 2000) => {
@@ -45,9 +61,15 @@ const runBatch = (batch: Importer[]) => {
   });
 };
 
+export const prefetchRoute = (href: string) => {
+  ROUTE_IMPORTERS[href]?.().catch(() => {
+    /* silent: prefetch best-effort */
+  });
+};
+
 let started = false;
 
-export const startRoutePrefetch = () => {
+export const startRoutePrefetch = (immediate = false) => {
   if (started) return;
   started = true;
 
@@ -59,8 +81,15 @@ export const startRoutePrefetch = () => {
     if (conn?.effectiveType && /(^|-)2g$/.test(conn.effectiveType)) return;
   }
 
-  idle(() => {
+  const prefetch = () => {
     runBatch(HIGH_PRIORITY);
-    idle(() => runBatch(MEDIUM_PRIORITY), 3000);
-  }, 1500);
+    idle(() => runBatch(MEDIUM_PRIORITY), immediate ? 700 : 1200);
+  };
+
+  if (immediate) {
+    prefetch();
+    return;
+  }
+
+  idle(prefetch, 350);
 };
