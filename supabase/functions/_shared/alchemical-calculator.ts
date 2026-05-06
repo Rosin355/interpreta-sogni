@@ -41,13 +41,18 @@ const alchemicalPhases: Record<AlchemicalPhase, PhaseDefinition> = {
       'perdita': 0.7,
       'dolore': 0.7,
       'sangue': 0.9,
-      'corvo': 0.7,
+      'corvo': 1.0,
       'serpente': 0.7,
       'coccodrillo': 0.7,
       'rinoceronte': 0.6,
       'scimmione': 0.6,
       'topo': 0.6,
       'elefante': 0.5,
+      'maiale': 0.7,
+      'squalo': 0.8,
+      'calamaro': 0.7,
+      'calamaro gigante': 0.8,
+      'orca': 0.7,
       'fango': 0.7,
       'palude': 0.7
     },
@@ -57,8 +62,10 @@ const alchemicalPhases: Record<AlchemicalPhase, PhaseDefinition> = {
       'mostro', 'demone', 'sangue', 'violenza', 'distruzione', 'perdita',
       'lutto', 'dolore', 'sofferenza', 'tormento', 'prigionia', 'trappola',
       'scimmione', 'corvo', 'rinoceronte', 'coccodrillo', 'serpente',
-      'topo', 'ratto', 'elefante', 'fango', 'melma', 'palude',
-      'acqua sporca', 'acqua nera', 'terra nera', 'cielo nero', 'putrido'
+      'topo', 'ratto', 'elefante', 'maiale', 'squalo', 'calamaro', 'orca',
+      'fango', 'melma', 'palude',
+      'acqua sporca', 'acqua nera', 'terra nera', 'cielo nero', 'putrido',
+      'indifferenziazione', 'primordiale'
     ]
   },
   albedo: {
