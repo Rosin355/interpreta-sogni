@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import dashboardBg from "@/assets/mystic-dashboard-bg.png";
-import { startRoutePrefetch } from "@/utils/route-prefetch";
+import { prefetchRoute, startRoutePrefetch } from "@/utils/route-prefetch";
 
 interface NavItemProps {
   icon: React.ElementType;
@@ -179,9 +179,11 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
                 <Link
                   key={item.href}
                   to={item.href}
+                  onPointerDown={() => prefetchRoute(item.href)}
+                  onFocus={() => prefetchRoute(item.href)}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={cn(
-                    "relative flex w-full min-h-[64px] items-center gap-4 rounded-xl px-4 py-3 text-2xl font-bodoni-heading tracking-wide active:bg-white/5 before:pointer-events-none before:absolute before:inset-0 before:rounded-xl before:border before:border-primary/25 before:bg-primary/5 before:opacity-0 before:content-[''] active:before:opacity-100",
+                    "relative flex w-full min-h-[64px] items-center gap-4 rounded-xl px-4 py-3 text-2xl font-bodoni-heading tracking-wide active:bg-white/5 before:pointer-events-none before:absolute before:inset-0 before:rounded-xl before:border before:border-primary/25 before:bg-primary/5 before:content-['']",
                     location.pathname === item.href ? "text-primary" : "text-white/60"
                   )}
                 >
