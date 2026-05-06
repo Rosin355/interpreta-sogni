@@ -138,7 +138,7 @@ export function MiniNavbar() {
           >
             <nav className="flex flex-col items-center space-y-6 py-8 text-lg w-full">
               {navLinksData.map((link) => (
-                <Link key={link.href} to={link.href} onClick={() => setIsOpen(false)} className="text-gray-300 hover:text-white transition-colors w-full text-center font-medium">
+                <Link key={link.href} to={link.href} onClick={() => setIsOpen(false)} className="text-gray-300 hover:text-white transition-colors w-full text-center font-bodoni-heading tracking-wide py-2">
                   {link.label}
                 </Link>
               ))}
