@@ -21,10 +21,10 @@ const AnimatedNavLink = ({ href, children }: { href: string; children: React.Rea
           ease: [0.23, 1, 0.32, 1]
         }}
       >
-        <span className="h-[20px] flex items-center text-gray-300 text-sm font-medium whitespace-nowrap tracking-wide">
+        <span className="h-[20px] flex items-center text-gray-300 text-sm font-bodoni-heading whitespace-nowrap tracking-wide">
           {children}
         </span>
-        <span className="h-[20px] flex items-center text-white text-sm font-medium whitespace-nowrap tracking-wide">
+        <span className="h-[20px] flex items-center text-white text-sm font-bodoni-heading whitespace-nowrap tracking-wide">
           {children}
         </span>
       </motion.div>
