@@ -119,7 +119,7 @@ export function MiniNavbar() {
           {signupButtonElement}
         </div>
 
-        <button className="sm:hidden flex items-center justify-center w-8 h-8 text-gray-300 focus:outline-none" onClick={toggleMenu} aria-label={isOpen ? 'Close Menu' : 'Open Menu'}>
+        <button className="sm:hidden -mr-2 flex min-h-11 min-w-11 items-center justify-center text-gray-300 focus:outline-none" onClick={toggleMenu} aria-label={isOpen ? 'Close Menu' : 'Open Menu'}>
           {isOpen ? (
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           ) : (
@@ -136,10 +136,10 @@ export function MiniNavbar() {
             exit={{ height: 0, opacity: 0 }}
             className="sm:hidden flex flex-col items-center w-full overflow-hidden"
           >
-            <nav className="flex flex-col items-center space-y-6 py-8 text-lg w-full">
+            <nav className="flex flex-col items-stretch gap-3 py-8 text-lg w-full">
               {navLinksData.map((link) => (
-                <Link key={link.href} to={link.href} onClick={() => setIsOpen(false)} className="text-gray-300 hover:text-white transition-colors w-full text-center font-bodoni-heading tracking-wide py-2">
-                  {link.label}
+                <Link key={link.href} to={link.href} onClick={() => setIsOpen(false)} className="flex min-h-[56px] w-full items-center justify-center text-center text-gray-300 hover:text-white active:text-white transition-colors font-bodoni-heading tracking-wide">
+                  <span>{link.label}</span>
                 </Link>
               ))}
               <div className="flex flex-col items-center space-y-4 mt-4 w-full px-4">
