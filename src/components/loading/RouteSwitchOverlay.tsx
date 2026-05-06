@@ -1,26 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { MysticLoader } from "@/components/ui/MysticLoader";
-import { useRouteLoading } from "@/contexts/RouteLoadingContext";
 
 /**
  * Overlay unico mostrato ad ogni cambio rotta.
- * Resta visibile finché TUTTE queste condizioni sono vere:
- *   1) il nuovo chunk lazy è montato (loadingTick è cambiato)
- *   2) il tempo minimo è trascorso (MIN_VISIBLE_MS)
- *   3) nessuna pagina ha dichiarato pageLoading=true (via usePageLoading)
+ * Resta visibile solo finché il nuovo chunk lazy è montato e il tempo minimo
+ * è trascorso. Il caricamento dati delle pagine viene gestito dagli skeleton
+ * interni, così il primo tap del menu non resta bloccato da fetch lenti.
  *
  * Safety: dopo MAX_VISIBLE_MS l'overlay viene chiuso comunque per evitare
  * blocchi in caso di errori di fetch.
  *
  * Rispetta prefers-reduced-motion: nessun overlay.
  */
-const MIN_VISIBLE_MS = 400;
-const MAX_VISIBLE_MS = 8000;
+const MIN_VISIBLE_MS = 180;
+const MAX_VISIBLE_MS = 1800;
 
 export const RouteSwitchOverlay = ({ loadingTick }: { loadingTick?: number }) => {
   const location = useLocation();
-  const { isAnyPageLoading } = useRouteLoading();
 
   const [visible, setVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -83,14 +80,14 @@ export const RouteSwitchOverlay = ({ loadingTick }: { loadingTick?: number }) =>
 
   // Chiudi quando tutte le condizioni sono soddisfatte
   useEffect(() => {
-    if (visible && mounted && minElapsed && !isAnyPageLoading) {
+    if (visible && mounted && minElapsed) {
       setVisible(false);
       if (maxTimerRef.current) {
         window.clearTimeout(maxTimerRef.current);
         maxTimerRef.current = null;
       }
     }
-  }, [visible, mounted, minElapsed, isAnyPageLoading]);
+  }, [visible, mounted, minElapsed]);
 
   const [progress, setProgress] = useState(0);
 
