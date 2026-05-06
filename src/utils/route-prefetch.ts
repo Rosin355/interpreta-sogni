@@ -47,7 +47,7 @@ const runBatch = (batch: Importer[]) => {
 
 let started = false;
 
-export const startRoutePrefetch = () => {
+export const startRoutePrefetch = (immediate = false) => {
   if (started) return;
   started = true;
 
@@ -59,8 +59,15 @@ export const startRoutePrefetch = () => {
     if (conn?.effectiveType && /(^|-)2g$/.test(conn.effectiveType)) return;
   }
 
-  idle(() => {
+  const prefetch = () => {
     runBatch(HIGH_PRIORITY);
-    idle(() => runBatch(MEDIUM_PRIORITY), 3000);
-  }, 1500);
+    idle(() => runBatch(MEDIUM_PRIORITY), immediate ? 700 : 1200);
+  };
+
+  if (immediate) {
+    prefetch();
+    return;
+  }
+
+  idle(prefetch, 350);
 };
