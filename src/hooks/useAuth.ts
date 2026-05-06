@@ -36,7 +36,7 @@ supabase.auth.getSession().then(({ data: { session }, error }) => {
 supabase.auth.onAuthStateChange(async (event, session) => {
   console.log("[useAuth] Auth Event:", event, !!session);
   
-  if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+  if (event === 'SIGNED_OUT') {
     globalUser = null;
   } else if (session) {
     globalUser = session.user;
