@@ -21,10 +21,10 @@ const AnimatedNavLink = ({ href, children }: { href: string; children: React.Rea
           ease: [0.23, 1, 0.32, 1]
         }}
       >
-        <span className="h-[20px] flex items-center text-gray-300 text-sm font-medium whitespace-nowrap tracking-wide">
+        <span className="h-[20px] flex items-center text-gray-300 text-sm font-bodoni-heading whitespace-nowrap tracking-wide">
           {children}
         </span>
-        <span className="h-[20px] flex items-center text-white text-sm font-medium whitespace-nowrap tracking-wide">
+        <span className="h-[20px] flex items-center text-white text-sm font-bodoni-heading whitespace-nowrap tracking-wide">
           {children}
         </span>
       </motion.div>
@@ -138,7 +138,7 @@ export function MiniNavbar() {
           >
             <nav className="flex flex-col items-center space-y-6 py-8 text-lg w-full">
               {navLinksData.map((link) => (
-                <Link key={link.href} to={link.href} onClick={() => setIsOpen(false)} className="text-gray-300 hover:text-white transition-colors w-full text-center font-medium">
+                <Link key={link.href} to={link.href} onClick={() => setIsOpen(false)} className="text-gray-300 hover:text-white transition-colors w-full text-center font-bodoni-heading tracking-wide py-2">
                   {link.label}
                 </Link>
               ))}
