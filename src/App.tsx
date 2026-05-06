@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -61,10 +61,10 @@ const RouteMountMarker = ({ onMount }: { onMount: () => void }) => {
 const AppRouter = () => {
   const [loadingTick, setLoadingTick] = useState(0);
   const tickRef = useRef(0);
-  const handleMount = () => {
+  const handleMount = useCallback(() => {
     tickRef.current += 1;
     setLoadingTick(tickRef.current);
-  };
+  }, []);
 
   useEffect(() => {
     startRoutePrefetch();
