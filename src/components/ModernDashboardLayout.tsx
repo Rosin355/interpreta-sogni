@@ -46,7 +46,7 @@ const NavItem = ({ icon: Icon, label, href, active, collapsed }: NavItemProps) =
     >
       <Icon className={cn("w-5 h-5 shrink-0", active ? "text-white" : "group-hover:scale-110 transition-transform")} />
       {!collapsed && (
-        <span className="text-sm font-medium tracking-wide">{label}</span>
+        <span className="text-sm font-bodoni-heading tracking-wide">{label}</span>
       )}
       {active && (
         <motion.div 
@@ -166,21 +166,21 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-2xl lg:hidden flex flex-col p-8 pt-24"
+            className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-2xl lg:hidden flex flex-col p-8 pt-24 pointer-events-auto"
           >
-            <nav className="flex-1 space-y-4">
+            <nav className="flex-1 space-y-2">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
                   to={item.href}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={cn(
-                    "flex items-center gap-4 text-2xl font-semibold",
+                    "flex w-full min-h-[64px] items-center gap-4 rounded-xl px-1 py-3 text-2xl font-bodoni-heading tracking-wide active:bg-white/5",
                     location.pathname === item.href ? "text-primary" : "text-white/60"
                   )}
                 >
-                  <item.icon className="w-8 h-8" />
-                  {item.label}
+                  <item.icon className="w-8 h-8 shrink-0" />
+                  <span className="flex-1 leading-none">{item.label}</span>
                 </Link>
               ))}
             </nav>
