@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import dashboardBg from "@/assets/mystic-dashboard-bg.png";
+import { startRoutePrefetch } from "@/utils/route-prefetch";
 
 interface NavItemProps {
   icon: React.ElementType;
@@ -80,6 +81,11 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
     navigate("/");
   };
 
+  const openMobileMenu = () => {
+    startRoutePrefetch(true);
+    setIsMobileMenuOpen((open) => !open);
+  };
+
   return (
     <div className="relative h-screen bg-[#030303] text-white overflow-hidden font-sans flex">
       {/* Background Image Layer (Fixed to Viewport) */}
@@ -106,8 +112,8 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
           <span className="font-editorial uppercase tracking-[0.1em] text-sm">DREAM ALCHEMIST</span>
         </div>
         <button 
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 text-white/70 hover:text-white"
+          onClick={openMobileMenu}
+          className="-mr-2 flex min-h-12 min-w-12 items-center justify-center rounded-full text-white/70 hover:text-white active:bg-white/10"
         >
           {isMobileMenuOpen ? <X /> : <Menu />}
         </button>
@@ -166,16 +172,16 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-2xl lg:hidden flex flex-col p-8 pt-24 pointer-events-auto"
+            className="fixed inset-0 z-[70] bg-black/90 backdrop-blur-2xl lg:hidden flex flex-col p-4 pt-24 pointer-events-auto"
           >
-            <nav className="flex-1 space-y-2">
+            <nav className="flex-1 space-y-2" data-touch-debug="menu-mobile">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
                   to={item.href}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={cn(
-                    "flex w-full min-h-[64px] items-center gap-4 rounded-xl px-1 py-3 text-2xl font-bodoni-heading tracking-wide active:bg-white/5",
+                    "relative flex w-full min-h-[64px] items-center gap-4 rounded-xl px-4 py-3 text-2xl font-bodoni-heading tracking-wide active:bg-white/5 before:pointer-events-none before:absolute before:inset-0 before:rounded-xl before:border before:border-primary/25 before:bg-primary/5 before:opacity-0 before:content-[''] active:before:opacity-100",
                     location.pathname === item.href ? "text-primary" : "text-white/60"
                   )}
                 >
