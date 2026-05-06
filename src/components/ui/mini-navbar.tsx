@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils";
 import dreamAlchemistLogo from "@/assets/dreamalchemist_logo.png";
-import { startRoutePrefetch } from "@/utils/route-prefetch";
+import { prefetchRoute, startRoutePrefetch } from "@/utils/route-prefetch";
 
 const AnimatedNavLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
   return (
@@ -140,7 +140,7 @@ export function MiniNavbar() {
           >
             <nav className="flex flex-col items-stretch gap-3 py-8 text-lg w-full" data-touch-debug="menu-mobile-pubblico">
               {navLinksData.map((link) => (
-                <Link key={link.href} to={link.href} onClick={() => setIsOpen(false)} className="relative flex min-h-[64px] w-full items-center justify-center rounded-xl px-4 text-center text-gray-300 hover:text-white active:text-white active:bg-white/5 transition-colors font-bodoni-heading tracking-wide before:pointer-events-none before:absolute before:inset-0 before:rounded-xl before:border before:border-primary/25 before:bg-primary/5 before:opacity-0 before:content-[''] active:before:opacity-100">
+                <Link key={link.href} to={link.href} onPointerDown={() => prefetchRoute(link.href)} onFocus={() => prefetchRoute(link.href)} onClick={() => setIsOpen(false)} className="relative flex min-h-[64px] w-full items-center justify-center rounded-xl px-4 text-center text-gray-300 hover:text-white active:text-white active:bg-white/5 transition-colors font-bodoni-heading tracking-wide before:pointer-events-none before:absolute before:inset-0 before:rounded-xl before:border before:border-primary/25 before:bg-primary/5 before:content-['']">
                   <span>{link.label}</span>
                 </Link>
               ))}
