@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, startTransition } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -165,59 +165,63 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
         </div>
       </aside>
 
-      {/* Mobile Menu Overlay */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="fixed inset-0 z-[70] bg-black/90 backdrop-blur-2xl lg:hidden flex flex-col p-4 pt-24 pointer-events-auto"
-          >
-            <nav className="flex-1 space-y-2" data-touch-debug="menu-mobile">
-              {navItems.map((item) => {
-                const isActive = location.pathname === item.href;
-                const handleNav = (e: React.MouseEvent | React.PointerEvent) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  // Naviga immediatamente, poi chiudi (evita race con exit animation)
-                  if (!isActive) navigate(item.href);
-                  setIsMobileMenuOpen(false);
-                };
-                return (
-                  <button
-                    type="button"
-                    key={item.href}
-                    onPointerDown={() => prefetchRoute(item.href)}
-                    onFocus={() => prefetchRoute(item.href)}
-                    onClick={handleNav}
-                    className={cn(
-                      "relative flex w-full min-h-[64px] items-center gap-4 rounded-xl px-4 py-3 text-2xl font-bodoni-heading tracking-wide text-left active:bg-white/10 transition-colors touch-manipulation",
-                      isActive ? "text-primary bg-white/5" : "text-white/70"
-                    )}
-                  >
-                    <item.icon className="w-8 h-8 shrink-0" />
-                    <span className="flex-1 leading-none">{item.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-            <Button 
-              type="button"
-              onPointerDown={() => prefetchRoute("/dreams/new")}
-              onClick={(e) => {
+      {/* Mobile Menu Overlay - no AnimatePresence to avoid exit animation race */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-[70] bg-black/90 backdrop-blur-2xl lg:hidden flex flex-col p-4 pt-24"
+          style={{ animation: "menuFadeIn 140ms ease-out both" }}
+        >
+          <nav className="flex-1 space-y-2">
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.href;
+              const handleNav = (e: React.MouseEvent | React.PointerEvent) => {
                 e.preventDefault();
                 e.stopPropagation();
-                navigate("/dreams/new");
+                // Chiudi subito il menu, poi naviga in un microtask con startTransition
+                // così il cambio rotta non viene bloccato da fetch in corso.
                 setIsMobileMenuOpen(false);
-              }}
-              className="w-full bg-primary text-white py-6 text-xl rounded-2xl mt-8 touch-manipulation"
-            >
-              Nuovo Sogno
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                if (!isActive) {
+                  Promise.resolve().then(() => {
+                    startTransition(() => navigate(item.href));
+                  });
+                }
+              };
+              return (
+                <button
+                  type="button"
+                  key={item.href}
+                  onPointerDown={() => prefetchRoute(item.href)}
+                  onFocus={() => prefetchRoute(item.href)}
+                  onClick={handleNav}
+                  className={cn(
+                    "relative flex w-full min-h-[64px] items-center gap-4 rounded-xl px-4 py-3 text-2xl font-bodoni-heading tracking-wide text-left active:bg-white/10 transition-colors touch-manipulation",
+                    isActive ? "text-primary bg-white/5" : "text-white/70"
+                  )}
+                >
+                  <item.icon className="w-8 h-8 shrink-0" />
+                  <span className="flex-1 leading-none">{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+          <Button
+            type="button"
+            onPointerDown={() => prefetchRoute("/dreams/new")}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsMobileMenuOpen(false);
+              Promise.resolve().then(() => {
+                startTransition(() => navigate("/dreams/new"));
+              });
+            }}
+            className="w-full bg-primary text-white py-6 text-xl rounded-2xl mt-8 touch-manipulation"
+          >
+            Nuovo Sogno
+          </Button>
+          <style>{`@keyframes menuFadeIn { from { opacity: 0 } to { opacity: 1 } }`}</style>
+        </div>
+      )}
 
       {/* Main Content Area - Fixed Height with Internal Scroll */}
       <main className={cn(
