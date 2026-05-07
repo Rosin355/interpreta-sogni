@@ -82,7 +82,7 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
   };
 
   const openMobileMenu = () => {
-    startRoutePrefetch(true);
+    // Prefetch differito: non saturare il main thread al primo tap del menu
     setIsMobileMenuOpen((open) => !open);
   };
 
