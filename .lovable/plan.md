@@ -1,52 +1,24 @@
-## Obiettivo
+Obiettivo: rendere ogni voce del menu mobile realmente tappabile al primo tocco, soprattutto “I Miei Sogni”, evitando che l’utente resti nella schermata del menu mentre la pagina sta caricando.
 
-Arricchire l'IA che interpreta i sogni con le nuove informazioni alchemiche fornite, espandere la sezione "Alchimia" generata e migliorare la catalogazione automatica Nigredo / Albedo / Rubedo.
+Piano di intervento:
 
-## Modifiche
+1. Consolidare la navigazione del menu mobile autenticato
+- Sostituire la sola navigazione tramite `<Link>` nel menu mobile con un handler esplicito `navigate(href)`.
+- Chiudere il menu in modo controllato subito dopo aver avviato la navigazione.
+- Gestire il caso in cui l’utente tocchi la voce della pagina corrente: chiudere comunque il menu, così non sembra bloccato.
 
-### 1. Prompt IA — Edge Functions
+2. Evitare conflitti tra overlay/menu/caricamento
+- Verificare e correggere gli z-index: il menu mobile deve stare sopra l’overlay di cambio rotta finché riceve il tap.
+- Dopo il tap, il menu deve chiudersi e lasciare visibile la pagina/skeleton di destinazione, non restare aperto.
+- Mantenere l’overlay di debug delle aree touch, ma renderlo utile e non interferente (`pointer-events-none`).
 
-File interessati:
-- `supabase/functions/interpret-dream/index.ts`
-- `supabase/functions/interpret-dream-with-astrology/index.ts`
+3. Rendere il primo tap più reattivo
+- Prefetch della route al `pointerdown`, ma navigazione effettiva su click/tap in modo deterministico.
+- Per “I Miei Sogni”, assicurare che il caricamento dati della pagina mostri subito lo skeleton invece di far sembrare che il menu non abbia risposto.
 
-In entrambi sostituire il blocco "LESSICO SIMBOLICO ALCHEMICO" con la versione estesa che include:
-
-- **Simboli archetipici tipici** evidenziati:
-  - Rubedo → rubino, diamanti, gioielli, sole come simboli tipici
-  - Albedo → unicorno come animale tipico
-  - Nigredo → corvo come animale tipico
-- **Nuovi animali Nigredo**: squalo, calamaro gigante, orca, maiale (in aggiunta a scimmioni, corvi, rinoceronti, coccodrilli, serpenti, topi, elefanti)
-- **Nota filosofica Nigredo**: "La Nigredo non è una fase negativa di per sé: è negativa nel senso che 'nega' la distinzione (Viveka). È una fase di indifferenziazione necessaria, non un giudizio."
-- **Rubedo arricchita**: enfasi su immagini di fertilità (campi di grano), sole molto lucente, arcobaleno, nuvole paradisiache, abbracci che emanano amore estremo, unioni sessuali/romantiche di estremo benessere, divinità benevole verso il sognatore.
-- **Albedo arricchita**: enfasi su animali e uccelli bianchi dal portamento leggiadro (aironi, conigli, oche, colombe, cigni) e creature che mediano fra terra/acqua e cielo.
-
-### 2. Sezione "Alchimia" estesa nell'output
-
-Aggiungere alle REGOLE INTERPRETATIVE l'istruzione esplicita:
-
-> Includi sempre nell'interpretazione una sezione dedicata "✦ Alchimia" in cui:
-> 1. Dichiari la fase dominante (Nigredo / Albedo / Rubedo) e motivala citando i simboli precisi presenti nel sogno.
-> 2. Riconosci eventuali aperture verso un'altra fase.
-> 3. Espandi liberamente con ciò che ritieni più utile al sognatore (significato della fase nel suo percorso, suggerimenti di consapevolezza, cosa la fase "chiede" di integrare).
-> 4. Se la fase è Nigredo, ricorda che non è negativa ma una fase di indifferenziazione (Viveka) necessaria alla trasformazione.
-
-### 3. Calcolatore di fase — pesi più precisi
-
-File: `supabase/functions/_shared/alchemical-calculator.ts`
-
-- Alzare il peso dei simboli **tipici** (corvo → 1.0, unicorno → 1.0 già presente, rubino → 1.0, diamante → 0.9, sole → 1.0).
-- Aggiungere nuovi tag/keyword Nigredo: `squalo`, `calamaro`, `calamaro gigante`, `orca`, `maiale` (peso 0.7-0.8).
-- Aggiungere keyword Rubedo mancanti coerenti col nuovo lessico (`abbraccio luminoso`, `divinità benevola` già presenti — verificare e completare).
-- Aggiungere keyword Albedo per "creatura che vola e tocca acqua/terra".
-
-### 4. Out of scope
-
-- Nessuna modifica al frontend (la sezione "Alchimia" sarà parte naturale del testo interpretativo restituito).
-- Nessuna nuova tabella né nuova UI.
-- `chat-with-alchemist` non viene toccato (mantiene il suo system prompt attuale).
-
-## Verifica
-
-- Build automatica delle Edge Functions.
-- Controllo dei log della prossima interpretazione per confermare la presenza della sezione "✦ Alchimia" e una fase coerente con i nuovi simboli.
+4. Verifica mobile
+- Testare su viewport mobile 390x844:
+  - apri menu;
+  - tap su “I Miei Sogni” dalla Dashboard;
+  - conferma che l’URL diventi `/my-dreams` e che il menu si chiuda subito;
+  - ripetere su almeno un’altra voce per controllare che non sia un fix isolato.
