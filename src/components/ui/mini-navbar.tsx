@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, startTransition } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils";
@@ -42,8 +42,10 @@ export function MiniNavbar() {
   const goTo = (href: string) => (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    navigate(href);
     setIsOpen(false);
+    Promise.resolve().then(() => {
+      startTransition(() => navigate(href));
+    });
   };
 
   const toggleMenu = () => {
