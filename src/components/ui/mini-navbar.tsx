@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils";
 import dreamAlchemistLogo from "@/assets/dreamalchemist_logo.png";
@@ -34,9 +34,17 @@ const AnimatedNavLink = ({ href, children }: { href: string; children: React.Rea
 };
 
 export function MiniNavbar() {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [headerShapeClass, setHeaderShapeClass] = useState('rounded-full');
   const shapeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const goTo = (href: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate(href);
+    setIsOpen(false);
+  };
 
   const toggleMenu = () => {
     startRoutePrefetch(true);
@@ -140,9 +148,9 @@ export function MiniNavbar() {
           >
             <nav className="flex flex-col items-stretch gap-3 py-8 text-lg w-full" data-touch-debug="menu-mobile-pubblico">
               {navLinksData.map((link) => (
-                <Link key={link.href} to={link.href} onPointerDown={() => prefetchRoute(link.href)} onFocus={() => prefetchRoute(link.href)} onClick={() => setIsOpen(false)} className="relative flex min-h-[64px] w-full items-center justify-center rounded-xl px-4 text-center text-gray-300 hover:text-white active:text-white active:bg-white/5 transition-colors font-bodoni-heading tracking-wide before:pointer-events-none before:absolute before:inset-0 before:rounded-xl before:border before:border-primary/25 before:bg-primary/5 before:content-['']">
+                <button type="button" key={link.href} onPointerDown={() => prefetchRoute(link.href)} onFocus={() => prefetchRoute(link.href)} onClick={goTo(link.href)} className="relative flex min-h-[64px] w-full items-center justify-center rounded-xl px-4 text-center text-gray-300 hover:text-white active:text-white active:bg-white/10 transition-colors font-bodoni-heading tracking-wide touch-manipulation">
                   <span>{link.label}</span>
-                </Link>
+                </button>
               ))}
               <div className="flex flex-col items-center space-y-4 mt-4 w-full px-4">
                 {loginButtonElement}
