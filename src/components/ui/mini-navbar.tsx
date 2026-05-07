@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils";
 import dreamAlchemistLogo from "@/assets/dreamalchemist_logo.png";
@@ -34,9 +34,17 @@ const AnimatedNavLink = ({ href, children }: { href: string; children: React.Rea
 };
 
 export function MiniNavbar() {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [headerShapeClass, setHeaderShapeClass] = useState('rounded-full');
   const shapeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const goTo = (href: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate(href);
+    setIsOpen(false);
+  };
 
   const toggleMenu = () => {
     startRoutePrefetch(true);
