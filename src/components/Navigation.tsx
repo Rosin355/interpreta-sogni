@@ -35,7 +35,12 @@ const Navigation = () => {
   if (user) return null;
 
   // If user is guest, show the premium mini-navbar
-  return <MiniNavbar />;
+  return (
+    <>
+      <LaunchAnnouncementBar />
+      <MiniNavbar />
+    </>
+  );
 };
 
 export default Navigation;
