@@ -32,6 +32,8 @@ const AdminDashboard = () => {
       }
 
       setIsAdmin(true);
+      const { data: superData } = await supabase.rpc('is_super_admin', { _user_id: user.id });
+      setIsSuperAdmin(!!superData);
       await logAuditEvent({ action: 'admin_action', tableName: 'professional_profiles', details: { specificAction: 'accessed_admin_dashboard' } });
       setLoading(false);
     };
