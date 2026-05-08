@@ -1,29 +1,32 @@
-import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
 import { ModernDashboardLayout } from "./ModernDashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
+import { useLaunchAcknowledgment } from "@/hooks/useLaunchAcknowledgment";
+import { LaunchAnnouncementDialog } from "./LaunchAnnouncementDialog";
 
 export const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
+  const { needsAck, markAcknowledged, userId } = useLaunchAcknowledgment();
 
-  // Public routes that should NEVER have the dashboard layout (e.g., Auth, Landing)
-  // Actually, Index (Landing) should probably redirect to Dashboard if logged in,
-  // but if the user stays on Index, maybe they want the guest view?
-  // User said: "cambiarla come visuale quando uno è loggato" -> implies universal change.
-  
   const isAuthPage = location.pathname === "/auth";
   const isPublicSharedDream = location.pathname.startsWith("/dream/shared/");
 
   if (loading) return null;
 
-  // If logged in AND not on a "pure" public page like Auth or Public Shared Dream
+  const showLaunchDialog =
+    !!user && !isAuthPage && !isPublicSharedDream && needsAck && !!userId;
+
   if (user && !isAuthPage && !isPublicSharedDream) {
-    return <ModernDashboardLayout>{children}</ModernDashboardLayout>;
+    return (
+      <ModernDashboardLayout>
+        {children}
+        {showLaunchDialog && (
+          <LaunchAnnouncementDialog userId={userId!} onAcknowledged={markAcknowledged} />
+        )}
+      </ModernDashboardLayout>
+    );
   }
 
-  // Guest view (or Auth/Shared Dream view)
   return <>{children}</>;
 };
