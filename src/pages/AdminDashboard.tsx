@@ -11,6 +11,7 @@ import AdminStatsCards from "@/components/admin/AdminStatsCards";
 import AdminUsersList from "@/components/admin/AdminUsersList";
 import AdminProfessionalApprovals from "@/components/admin/AdminProfessionalApprovals";
 import AdminErrorsList from "@/components/admin/AdminErrorsList";
+import AdminLaunchEmailsList from "@/components/admin/AdminLaunchEmailsList";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
