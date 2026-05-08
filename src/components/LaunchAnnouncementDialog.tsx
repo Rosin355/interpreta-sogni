@@ -70,7 +70,10 @@ export const LaunchAnnouncementDialog = ({ userId, onAcknowledged }: Props) => {
   return (
     <Dialog open onOpenChange={() => {}}>
       <DialogContent
-        hideClose
+        hideCloseButton
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
         className="max-w-lg border border-primary/30 bg-gradient-to-b from-[#0a0010] via-[#15001f] to-[#030303] text-white shadow-[0_0_60px_rgba(217,70,239,0.25)]"
       >
         <div className="flex flex-col items-center text-center pt-2 pb-4">
