@@ -26,7 +26,7 @@ const AdminLaunchEmailsList = () => {
       setRows((data as Row[]) || []);
       setLoading(false);
       await logSuperAdminAccess(
-        "audit_logs",
+        "profiles",
         "view_launch_acknowledgments",
         undefined,
         { count: data?.length ?? 0 }
