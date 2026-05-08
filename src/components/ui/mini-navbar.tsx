@@ -99,8 +99,10 @@ export function MiniNavbar() {
   );
 
   return (
-    <header className={cn(
-      "fixed top-12 left-1/2 transform -translate-x-1/2 z-50",
+    <header
+      style={{ top: "calc(1rem + var(--launch-bar-h, 0px))" }}
+      className={cn(
+      "fixed left-1/2 transform -translate-x-1/2 z-50",
       "flex flex-col items-center",
       "pl-6 pr-6 py-3 backdrop-blur-sm",
       headerShapeClass,

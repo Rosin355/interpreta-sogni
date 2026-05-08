@@ -12,6 +12,7 @@ import AdminUsersList from "@/components/admin/AdminUsersList";
 import AdminProfessionalApprovals from "@/components/admin/AdminProfessionalApprovals";
 import AdminErrorsList from "@/components/admin/AdminErrorsList";
 import AdminLaunchEmailsList from "@/components/admin/AdminLaunchEmailsList";
+import { AdminLaunchToggle } from "@/components/admin/AdminLaunchToggle";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -96,6 +97,7 @@ const AdminDashboard = () => {
 
             {isSuperAdmin && (
               <TabsContent value="launch">
+                <AdminLaunchToggle />
                 <AdminLaunchEmailsList />
               </TabsContent>
             )}
