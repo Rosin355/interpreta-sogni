@@ -97,6 +97,7 @@ const AdminDashboard = () => {
 
             {isSuperAdmin && (
               <TabsContent value="launch">
+                <AdminLaunchToggle />
                 <AdminLaunchEmailsList />
               </TabsContent>
             )}
