@@ -16,7 +16,8 @@ import {
   X,
   Settings,
   User as UserIcon,
-  LogOut
+  LogOut,
+  Shield
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import UserMenu from "./UserMenu";
@@ -64,6 +65,18 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.rpc('is_super_admin', { _user_id: user.id });
+      if (!cancelled) setIsSuperAdmin(!!data);
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
@@ -73,6 +86,7 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
     { icon: Users, label: "Sogni Condivisi", href: "/shared-with-me" },
     { icon: Headphones, label: "Percorsi Audio", href: "/audio-library" },
     { icon: Info, label: "Chi Siamo", href: "/about" },
+    ...(isSuperAdmin ? [{ icon: Shield, label: "Admin", href: "/admin" }] : []),
   ];
 
   const handleLogout = async () => {
