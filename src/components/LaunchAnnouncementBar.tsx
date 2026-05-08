@@ -29,6 +29,25 @@ export const LaunchAnnouncementBar = () => {
     setVisible(false);
   };
 
+  // Sync bar height as CSS var so navbar can offset itself responsively
+  useEffect(() => {
+    const active = !loading && enabled && visible;
+    const root = document.documentElement;
+    const update = () => {
+      const isMobile = window.matchMedia("(max-width: 639px)").matches;
+      root.style.setProperty(
+        "--launch-bar-h",
+        active ? (isMobile ? "36px" : "32px") : "0px",
+      );
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      root.style.setProperty("--launch-bar-h", "0px");
+    };
+  }, [loading, enabled, visible]);
+
   if (loading || !enabled || !visible) return null;
 
   const items = Array.from({ length: 6 });
