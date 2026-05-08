@@ -440,6 +440,33 @@ export type Database = {
           },
         ]
       }
+      launch_announcement_acknowledgments: {
+        Row: {
+          acknowledged_at: string
+          created_at: string
+          email: string | null
+          id: string
+          user_id: string
+          wants_updates: boolean
+        }
+        Insert: {
+          acknowledged_at?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          user_id: string
+          wants_updates?: boolean
+        }
+        Update: {
+          acknowledged_at?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          user_id?: string
+          wants_updates?: boolean
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           created_at: string

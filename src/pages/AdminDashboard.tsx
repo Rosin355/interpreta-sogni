@@ -11,12 +11,14 @@ import AdminStatsCards from "@/components/admin/AdminStatsCards";
 import AdminUsersList from "@/components/admin/AdminUsersList";
 import AdminProfessionalApprovals from "@/components/admin/AdminProfessionalApprovals";
 import AdminErrorsList from "@/components/admin/AdminErrorsList";
+import AdminLaunchEmailsList from "@/components/admin/AdminLaunchEmailsList";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -30,6 +32,8 @@ const AdminDashboard = () => {
       }
 
       setIsAdmin(true);
+      const { data: superData } = await supabase.rpc('is_super_admin', { _user_id: user.id });
+      setIsSuperAdmin(!!superData);
       await logAuditEvent({ action: 'admin_action', tableName: 'professional_profiles', details: { specificAction: 'accessed_admin_dashboard' } });
       setLoading(false);
     };
@@ -75,6 +79,7 @@ const AdminDashboard = () => {
               <TabsTrigger value="professionals">Professionisti</TabsTrigger>
               <TabsTrigger value="users">Utenti</TabsTrigger>
               <TabsTrigger value="errors">Errori</TabsTrigger>
+              {isSuperAdmin && <TabsTrigger value="launch">Pre-Lancio</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="professionals">
@@ -88,6 +93,12 @@ const AdminDashboard = () => {
             <TabsContent value="errors">
               <AdminErrorsList />
             </TabsContent>
+
+            {isSuperAdmin && (
+              <TabsContent value="launch">
+                <AdminLaunchEmailsList />
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       </div>
