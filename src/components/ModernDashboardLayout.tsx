@@ -16,7 +16,8 @@ import {
   X,
   Settings,
   User as UserIcon,
-  LogOut
+  LogOut,
+  Shield
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import UserMenu from "./UserMenu";
