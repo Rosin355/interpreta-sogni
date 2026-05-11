@@ -286,8 +286,12 @@ serve(async (req) => {
         console.log(`[chart-data] Response: status=${dataRes.status} in ${elapsed}ms`);
 
         if (dataRes.ok) {
-          chartData = await dataRes.json();
-          console.log(`[chart-data] ✅ OK — planets=${(chartData.planets || []).length}, houses=${(chartData.houses || []).length}`);
+          const rawJson = await dataRes.json();
+          // Astrologer v5 annida i dati sotto chartData.data
+          chartData = rawJson?.data ?? rawJson;
+          console.log(`[chart-data] Response keys: ${Object.keys(rawJson).join(', ')} → using ${rawJson?.data ? 'rawJson.data' : 'rawJson'}`);
+          console.log(`[chart-data] Normalized keys: ${Object.keys(chartData || {}).join(', ')}`);
+          console.log(`[chart-data] ✅ OK — planets=${(chartData.planets || []).length}, houses=${(chartData.houses || []).length}, aspects=${(chartData.aspects || []).length}`);
           break;
         }
 
@@ -343,6 +347,16 @@ serve(async (req) => {
       return errorResponse('UPSTREAM_UNAVAILABLE', msg, { provider: 'rapidapi' });
     }
 
+    // Sanity check: la risposta deve contenere planets o houses, altrimenti non salviamo un tema vuoto
+    const _planetsLen = Array.isArray(chartData.planets) ? chartData.planets.length : 0;
+    const _housesLen = Array.isArray(chartData.houses) ? chartData.houses.length : 0;
+    if (_planetsLen === 0 && _housesLen === 0) {
+      const keys = Object.keys(chartData || {}).join(', ');
+      const technical = `Astrologer response shape unexpected (no planets/houses). Keys: [${keys}]`;
+      console.error('[chart-data] 🛑', technical);
+      return errorResponse('UPSTREAM_UNAVAILABLE', technical, { provider: 'rapidapi' });
+    }
+
     // /context (best-effort, non blocca il salvataggio)
     try {
       console.log('[context] → POST /api/v5/context/birth-chart');
@@ -355,8 +369,9 @@ serve(async (req) => {
       console.log(`[context] Response: status=${contextRes.status} in ${elapsed}ms`);
 
       if (contextRes.ok) {
-        const contextData = await contextRes.json();
-        natalContext = contextData.context || "";
+        const ctxRaw = await contextRes.json();
+        const ctxPayload = ctxRaw?.data ?? ctxRaw;
+        natalContext = ctxPayload?.context || ctxRaw?.context || "";
         console.log(`[context] ✅ OK — context length=${natalContext.length}`);
       } else {
         const contextError = await contextRes.text();
