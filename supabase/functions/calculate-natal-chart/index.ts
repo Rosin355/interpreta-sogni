@@ -272,31 +272,35 @@ serve(async (req) => {
     let lastError: Error | null = null;
 
     while (retries > 0) {
+      const attempt = 4 - retries;
       try {
-        console.log(`API Attempt ${4 - retries} (chart-data)...`);
+        console.log(`[chart-data] Attempt ${attempt}/3 → POST /api/v5/chart-data/birth-chart`);
+        const t0 = Date.now();
 
         const dataRes = await fetch(
           'https://astrologer.p.rapidapi.com/api/v5/chart-data/birth-chart',
           { method: 'POST', headers: rapidApiHeaders, body: JSON.stringify(dataBody) }
         );
 
+        const elapsed = Date.now() - t0;
+        console.log(`[chart-data] Response: status=${dataRes.status} in ${elapsed}ms`);
+
         if (dataRes.ok) {
           chartData = await dataRes.json();
-          console.log('chart-data OK');
+          console.log(`[chart-data] ✅ OK — planets=${(chartData.planets || []).length}, houses=${(chartData.houses || []).length}`);
           break;
         }
 
         const dataError = await dataRes.text();
-        console.error(`chart-data error ${dataRes.status}: ${dataError}`);
+        console.error(`[chart-data] ❌ ERROR ${dataRes.status} (attempt ${attempt}/3): ${dataError}`);
 
-        // QUOTA / RATE LIMIT
         if (
           dataRes.status === 429 ||
           dataError.toLowerCase().includes('limit exceeded') ||
           dataError.toLowerCase().includes('quota') ||
           dataError.toLowerCase().includes('too many requests')
         ) {
-          console.error('🚫 RAPIDAPI QUOTA EXCEEDED');
+          console.error('[chart-data] 🚫 RAPIDAPI QUOTA EXCEEDED');
           const technical = `RapidAPI Astrologer quota exceeded — chart-data:${dataRes.status} — ${dataError}`;
           notifyQuotaToAdmins({
             provider: 'rapidapi',
@@ -307,19 +311,26 @@ serve(async (req) => {
           return errorResponse('API_QUOTA_EXCEEDED', technical, { provider: 'rapidapi' });
         }
 
+        if (dataRes.status === 422 || dataRes.status === 400) {
+          console.error('[chart-data] 🛑 Validation error — aborting retries (payload issue)');
+          lastError = new Error(`chart-data validation failed (${dataRes.status}): ${dataError}`);
+          break;
+        }
+
         lastError = new Error(`chart-data returned ${dataRes.status}: ${dataError}`);
         retries--;
         if (retries > 0) {
           const waitTime = (4 - retries) * 1000;
-          console.log(`Waiting ${waitTime}ms before retry...`);
+          console.log(`[chart-data] Waiting ${waitTime}ms before retry...`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
         }
       } catch (error) {
+        console.error(`[chart-data] 💥 Network/fetch exception (attempt ${attempt}/3):`, error);
         lastError = error as Error;
         retries--;
         if (retries > 0) {
           const waitTime = (4 - retries) * 1000;
-          console.log(`Error occurred, waiting ${waitTime}ms before retry...`);
+          console.log(`[chart-data] Waiting ${waitTime}ms before retry...`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
         } else {
           break;
