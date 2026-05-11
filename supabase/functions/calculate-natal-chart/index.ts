@@ -369,8 +369,9 @@ serve(async (req) => {
       console.log(`[context] Response: status=${contextRes.status} in ${elapsed}ms`);
 
       if (contextRes.ok) {
-        const contextData = await contextRes.json();
-        natalContext = contextData.context || "";
+        const ctxRaw = await contextRes.json();
+        const ctxPayload = ctxRaw?.data ?? ctxRaw;
+        natalContext = ctxPayload?.context || ctxRaw?.context || "";
         console.log(`[context] ✅ OK — context length=${natalContext.length}`);
       } else {
         const contextError = await contextRes.text();
