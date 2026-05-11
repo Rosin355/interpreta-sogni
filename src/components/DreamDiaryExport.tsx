@@ -37,6 +37,7 @@ export const DreamDiaryExport = ({
   const [open, setOpen] = useState(false);
   const [exportMethod, setExportMethod] = useState<"download" | "email">("download");
   const [exporting, setExporting] = useState(false);
+  const isSuperAdmin = useIsSuperAdmin();
 
   const handleExport = async () => {
     setExporting(true);
