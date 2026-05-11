@@ -286,8 +286,12 @@ serve(async (req) => {
         console.log(`[chart-data] Response: status=${dataRes.status} in ${elapsed}ms`);
 
         if (dataRes.ok) {
-          chartData = await dataRes.json();
-          console.log(`[chart-data] ✅ OK — planets=${(chartData.planets || []).length}, houses=${(chartData.houses || []).length}`);
+          const rawJson = await dataRes.json();
+          // Astrologer v5 annida i dati sotto chartData.data
+          chartData = rawJson?.data ?? rawJson;
+          console.log(`[chart-data] Response keys: ${Object.keys(rawJson).join(', ')} → using ${rawJson?.data ? 'rawJson.data' : 'rawJson'}`);
+          console.log(`[chart-data] Normalized keys: ${Object.keys(chartData || {}).join(', ')}`);
+          console.log(`[chart-data] ✅ OK — planets=${(chartData.planets || []).length}, houses=${(chartData.houses || []).length}, aspects=${(chartData.aspects || []).length}`);
           break;
         }
 
