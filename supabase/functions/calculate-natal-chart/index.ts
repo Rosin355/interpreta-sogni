@@ -235,28 +235,21 @@ serve(async (req) => {
       ? placeName.split(',')[0].trim()
       : 'Unknown';
 
-    // Payload per /chart-data (timezone numerico — schema corrente funziona)
-    const dataBody = {
-      subject: {
-        name: "User",
-        year, month, day,
-        hour: hours, minute: minutes,
-        longitude, latitude,
-        timezone: timezoneOffset,
-      }
+    // Payload condiviso: l'API Astrologer v5 richiede city (stringa) e timezone (stringa IANA)
+    // per ENTRAMBI gli endpoint /chart-data e /context. In passato /chart-data accettava
+    // anche timezone numerico, ma lo schema attuale rifiuta sia il numero che l'assenza di city.
+    const subjectPayload = {
+      name: "User",
+      year, month, day,
+      hour: hours, minute: minutes,
+      longitude, latitude,
+      city: cityName,
+      nation: "IT",
+      timezone: tzString,
     };
 
-    // Payload per /context (richiede city stringa + timezone stringa IANA)
-    const contextBody = {
-      subject: {
-        name: "User",
-        year, month, day,
-        hour: hours, minute: minutes,
-        longitude, latitude,
-        city: cityName,
-        timezone: tzString,
-      }
-    };
+    const dataBody = { subject: subjectPayload };
+    const contextBody = { subject: subjectPayload };
 
     const rapidApiHeaders = {
       'X-RapidAPI-Host': 'astrologer.p.rapidapi.com',
