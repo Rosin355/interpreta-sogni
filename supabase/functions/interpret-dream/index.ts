@@ -230,18 +230,32 @@ Fornisci un'interpretazione dettagliata e significativa.`;
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error('Errore Lovable AI:', aiResponse.status, errorText);
-      
+
       if (aiResponse.status === 429) {
+        const { notifyQuotaToAdmins } = await import("../_shared/error-response.ts");
+        notifyQuotaToAdmins({
+          provider: "lovable-ai",
+          errorCode: "AI_RATE_LIMIT",
+          functionName: "interpret-dream",
+          technicalMessage: `Lovable AI 429: ${errorText}`,
+        }).catch(() => {});
         return new Response(
-          JSON.stringify({ error: 'Limite di richieste superato. Riprova tra poco.' }),
+          JSON.stringify({ errorCode: "AI_RATE_LIMIT", error: `Lovable AI rate limit: ${errorText}` }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      
+
       if (aiResponse.status === 402) {
+        const { notifyQuotaToAdmins } = await import("../_shared/error-response.ts");
+        notifyQuotaToAdmins({
+          provider: "lovable-ai",
+          errorCode: "AI_CREDITS_EXHAUSTED",
+          functionName: "interpret-dream",
+          technicalMessage: `Lovable AI 402: ${errorText}`,
+        }).catch(() => {});
         return new Response(
-          JSON.stringify({ error: 'Crediti esauriti. Aggiungi crediti al tuo workspace Lovable.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ errorCode: "AI_CREDITS_EXHAUSTED", error: `Lovable AI credits exhausted: ${errorText}` }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
