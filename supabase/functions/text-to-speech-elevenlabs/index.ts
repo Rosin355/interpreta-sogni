@@ -185,10 +185,12 @@ serve(async (req) => {
       userMessage = 'Problema di connessione al servizio audio. Riprova tra poco.';
     }
     
+    const code = errorMsg.includes('dns') || errorMsg.includes('network') || errorMsg.includes('fetch')
+      ? 'NETWORK_ERROR' : 'INTERNAL_ERROR';
     return new Response(
-      JSON.stringify({ error: userMessage }),
+      JSON.stringify({ errorCode: code, error: errorMsg || userMessage }),
       {
-        status: 500,
+        status: code === 'NETWORK_ERROR' ? 502 : 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
