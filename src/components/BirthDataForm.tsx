@@ -238,26 +238,25 @@ export function BirthDataForm({ onSuccess, initialData }: BirthDataFormProps) {
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Data di Nascita</FormLabel>
-              <div className="flex gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "flex-1 pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, "dd/MM/yyyy")
-                        ) : (
-                          <span>Seleziona la data</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, "dd/MM/yyyy")
+                      ) : (
+                        <span>Seleziona la data</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
@@ -273,21 +272,9 @@ export function BirthDataForm({ onSuccess, initialData }: BirthDataFormProps) {
                     toYear={new Date().getFullYear()}
                   />
                 </PopoverContent>
-                </Popover>
-                <Input
-                  type="date"
-                  value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
-                  onChange={(e) => {
-                    const date = e.target.value ? new Date(e.target.value) : undefined;
-                    field.onChange(date);
-                  }}
-                  min="1900-01-01"
-                  max={format(new Date(), "yyyy-MM-dd")}
-                  className="w-36"
-                />
-              </div>
+              </Popover>
               <FormDescription>
-                Seleziona dal calendario o inserisci manualmente
+                Seleziona la data dal calendario (usa i menu in alto per cambiare anno e mese)
               </FormDescription>
               <FormMessage />
             </FormItem>
