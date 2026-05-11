@@ -254,16 +254,30 @@ export const AlchemistChat = ({ dreamId, hasInterpretation, exportButton }: Alch
         body: { audio: base64 },
       });
 
-      if (error) throw error;
-
-      if (data?.text) {
+      if (error || data?.errorCode) {
+        await handleEdgeError({
+          error,
+          data,
+          functionName: "speech-to-text-elevenlabs",
+          toast,
+          isSuperAdmin,
+          dreamId,
+          fallbackMessage: "Impossibile trascrivere l'audio. Riprova.",
+        });
+      } else if (data?.text) {
         setInput((prev) => (prev ? prev + " " + data.text : data.text));
       } else {
         toast({ title: "Trascrizione vuota", description: "Non è stato possibile trascrivere l'audio", variant: "destructive" });
       }
     } catch (error) {
-      console.error("Transcription error:", error);
-      toast({ title: "Errore trascrizione", description: "Impossibile trascrivere l'audio", variant: "destructive" });
+      await handleEdgeError({
+        error,
+        functionName: "speech-to-text-elevenlabs",
+        toast,
+        isSuperAdmin,
+        dreamId,
+        fallbackMessage: "Impossibile trascrivere l'audio. Riprova.",
+      });
     } finally {
       setIsTranscribing(false);
     }
