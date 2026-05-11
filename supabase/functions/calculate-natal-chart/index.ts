@@ -348,12 +348,13 @@ serve(async (req) => {
       return errorResponse('UPSTREAM_UNAVAILABLE', msg, { provider: 'rapidapi' });
     }
 
-    // Sanity check: la risposta deve contenere planets o houses, altrimenti non salviamo un tema vuoto
-    const _planetsLen = Array.isArray(chartData.planets) ? chartData.planets.length : 0;
-    const _housesLen = Array.isArray(chartData.houses) ? chartData.houses.length : 0;
-    if (_planetsLen === 0 && _housesLen === 0) {
+    // Astrologer v5 mette i pianeti e le case dentro chart_data.subject (oggetti per nome)
+    const subject: any = chartData?.subject ?? {};
+    const _subjectKeys = Object.keys(subject);
+    console.log(`[chart-data] subject keys count=${_subjectKeys.length}`);
+    if (!subject || _subjectKeys.length === 0) {
       const keys = Object.keys(chartData || {}).join(', ');
-      const technical = `Astrologer response shape unexpected (no planets/houses). Keys: [${keys}]`;
+      const technical = `Astrologer response shape unexpected (no subject). Keys: [${keys}]`;
       console.error('[chart-data] 🛑', technical);
       return errorResponse('UPSTREAM_UNAVAILABLE', technical, { provider: 'rapidapi' });
     }
