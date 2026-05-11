@@ -114,10 +114,16 @@ export const AlchemistChat = ({ dreamId, hasInterpretation, exportButton }: Alch
         body: { dreamId, message: text.trim() },
       });
 
-      if (error) throw error;
-
-      if (data?.error) {
-        toast({ title: "Errore", description: data.error, variant: "destructive" });
+      if (error || data?.errorCode || data?.error) {
+        await handleEdgeError({
+          error,
+          data,
+          functionName: "chat-with-alchemist",
+          toast,
+          isSuperAdmin,
+          dreamId,
+          fallbackMessage: "Impossibile inviare il messaggio. Riprova.",
+        });
         setMessages((prev) => prev.filter((m) => m.id !== userMsg.id));
         return;
       }
@@ -131,8 +137,14 @@ export const AlchemistChat = ({ dreamId, hasInterpretation, exportButton }: Alch
 
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (error: any) {
-      console.error("Error sending message:", error);
-      toast({ title: "Errore", description: "Impossibile inviare il messaggio. Riprova.", variant: "destructive" });
+      await handleEdgeError({
+        error,
+        functionName: "chat-with-alchemist",
+        toast,
+        isSuperAdmin,
+        dreamId,
+        fallbackMessage: "Impossibile inviare il messaggio. Riprova.",
+      });
       setMessages((prev) => prev.filter((m) => m.id !== userMsg.id));
     } finally {
       setSending(false);
