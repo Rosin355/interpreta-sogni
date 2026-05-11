@@ -4,7 +4,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
 import { CalendarIcon, Loader2, MapPin } from "lucide-react";
-import { toast } from "sonner";
+import { toast as sonner } from "sonner";
+import { toast } from "@/hooks/use-toast";
+import { handleEdgeError } from "@/utils/handle-edge-error";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { searchPlaces, getTimezone, GeocodingResult } from "@/utils/geocoding";
 
@@ -87,6 +90,7 @@ export function BirthDataForm({ onSuccess, initialData }: BirthDataFormProps) {
   );
   const [searchingPlaces, setSearchingPlaces] = useState(false);
   const [openPlaceCombobox, setOpenPlaceCombobox] = useState(false);
+  const isSuperAdmin = useIsSuperAdmin();
 
   const form = useForm<BirthDataFormValues>({
     resolver: zodResolver(birthDataSchema),
@@ -116,61 +120,35 @@ export function BirthDataForm({ onSuccess, initialData }: BirthDataFormProps) {
   };
 
   const onSubmit = async (data: BirthDataFormValues) => {
-    // Validazione place selezionato
     if (!selectedPlace) {
-      toast.error("Seleziona un luogo dalla lista dei risultati");
+      sonner.error("Seleziona un luogo dalla lista dei risultati");
       return;
     }
-
-    // Validazione coordinate
     const lat = selectedPlace.latitude;
     const lon = selectedPlace.longitude;
-    
-    if (typeof lat !== 'number' || typeof lon !== 'number') {
-      toast.error("Coordinate del luogo non valide. Seleziona un altro luogo.");
+    if (typeof lat !== 'number' || typeof lon !== 'number' || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      sonner.error("Coordinate del luogo non valide. Seleziona un altro luogo.");
       return;
     }
 
-    if (lat < -90 || lat > 90) {
-      toast.error("Latitudine non valida. Deve essere tra -90 e 90 gradi.");
+    const timezone = getTimezone(lat, lon);
+    if (!timezone || !timezone.startsWith('UTC')) {
+      sonner.error("Impossibile determinare il fuso orario per questo luogo");
       return;
     }
 
-    if (lon < -180 || lon > 180) {
-      toast.error("Longitudine non valida. Deve essere tra -180 e 180 gradi.");
-      return;
-    }
-
-    // Toast iniziale
-    toast.info("Calcolo del tema natale in corso...", { 
+    sonner.info("Calcolo del tema natale in corso...", {
       description: "Sto elaborando i dati di nascita",
-      duration: 2000 
+      duration: 2000,
     });
 
     setIsLoading(true);
 
     const MAX_RETRIES = 2;
     let attempt = 0;
-    let lastError: any = null;
 
     while (attempt <= MAX_RETRIES) {
       try {
-        if (attempt > 0) {
-          toast.loading(`Nuovo tentativo ${attempt + 1} di ${MAX_RETRIES + 1}...`, { 
-            id: 'retry-toast',
-            description: "Riprovo a contattare il servizio di calcolo"
-          });
-        }
-
-        const timezone = getTimezone(selectedPlace.latitude, selectedPlace.longitude);
-        
-        // Validazione timezone
-        if (!timezone || !timezone.startsWith('UTC')) {
-          toast.error("Impossibile determinare il fuso orario per questo luogo");
-          setIsLoading(false);
-          return;
-        }
-
         const { data: functionData, error: functionError } = await supabase.functions.invoke(
           'calculate-natal-chart',
           {
@@ -178,8 +156,8 @@ export function BirthDataForm({ onSuccess, initialData }: BirthDataFormProps) {
               birthDate: format(data.birthDate, "yyyy-MM-dd"),
               birthTime: data.birthTime,
               birthPlace: {
-                latitude: selectedPlace.latitude,
-                longitude: selectedPlace.longitude,
+                latitude: lat,
+                longitude: lon,
                 placeName: selectedPlace.displayName,
                 timezone,
               },
@@ -187,122 +165,67 @@ export function BirthDataForm({ onSuccess, initialData }: BirthDataFormProps) {
           }
         );
 
-        if (functionError) {
-          lastError = functionError;
-          console.error(`Tentativo ${attempt + 1} fallito:`, functionError);
-          
-          if (attempt < MAX_RETRIES) {
+        const hasError = !!functionError || !!functionData?.errorCode || functionData?.success === false;
+
+        if (hasError) {
+          // Retry solo per errori non legati a quota/input
+          let errorCode: string | undefined = functionData?.errorCode;
+          if (!errorCode && functionError) {
+            try {
+              const body = (functionError as any).context ? await (functionError as any).context.json() : null;
+              errorCode = body?.errorCode;
+            } catch { /* ignore */ }
+          }
+          const isTransient = !errorCode || errorCode === 'UPSTREAM_UNAVAILABLE' || errorCode === 'NETWORK_ERROR';
+          if (isTransient && attempt < MAX_RETRIES) {
             attempt++;
             await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
             continue;
           }
-          
-          toast.dismiss('retry-toast');
-          
-          // Messaggi di errore specifici in italiano
-          const errorMsg = functionError.message || '';
-          if (errorMsg.includes('Invalid request')) {
-            toast.error("Dati di nascita non validi", {
-              description: "Verifica che data, ora e luogo siano corretti",
-              duration: 6000
-            });
-          } else if (errorMsg.includes('No planets')) {
-            toast.error("Errore nel calcolo delle posizioni planetarie", {
-              description: "Il servizio di calcolo astrologico ha riscontrato un problema",
-              duration: 6000
-            });
-          } else if (errorMsg.includes('timeout') || errorMsg.includes('network')) {
-            toast.error("Problema di connessione", {
-              description: "Verifica la tua connessione internet e riprova",
-              duration: 6000
-            });
-          } else {
-            toast.error("Impossibile calcolare il tema natale", {
-              description: errorMsg || 'Errore del server',
-              duration: 6000
-            });
-          }
-          break;
+
+          await handleEdgeError({
+            error: functionError,
+            data: functionData,
+            functionName: 'calculate-natal-chart',
+            toast,
+            isSuperAdmin,
+            fallbackMessage: "Impossibile calcolare il tema natale. Riprova più tardi.",
+          });
+          setIsLoading(false);
+          return;
         }
 
-        if (!functionData?.success) {
-          lastError = functionData;
-          console.error(`Tentativo ${attempt + 1} - risposta non valida:`, functionData);
-          
-          if (attempt < MAX_RETRIES) {
-            attempt++;
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-            continue;
-          }
-          
-          toast.dismiss('retry-toast');
-          const errorDetail = functionData?.error || 'Risposta non valida';
-          if (errorDetail.includes('planets')) {
-            toast.error("Dati planetari incompleti", {
-              description: "Il servizio non ha restituito tutte le posizioni necessarie",
-              duration: 6000
-            });
-          } else {
-            toast.error("Errore nel calcolo", {
-              description: errorDetail,
-              duration: 6000
-            });
-          }
-          break;
-        }
-
-        // Successo!
-        toast.dismiss('retry-toast');
-        console.log('Natal chart calculated successfully:', functionData);
-        toast.success("Tema natale calcolato con successo!", {
-          description: "I dati astrologici sono stati elaborati correttamente"
+        sonner.success("Tema natale calcolato con successo!", {
+          description: "I dati astrologici sono stati elaborati correttamente",
         });
-        
+
         setTimeout(() => {
           form.reset();
           setSelectedPlace(null);
           setPlaceSearch("");
-          
-          if (onSuccess) {
-            onSuccess();
-          }
+          if (onSuccess) onSuccess();
         }, 500);
-        
+
         setIsLoading(false);
         return;
-
       } catch (error: any) {
-        lastError = error;
-        console.error(`Tentativo ${attempt + 1} - eccezione:`, error);
-        
         if (attempt < MAX_RETRIES) {
           attempt++;
           await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
           continue;
         }
-        
-        toast.dismiss('retry-toast');
-        const errorMsg = error.message || 'Errore di connessione';
-        if (errorMsg.includes('fetch')) {
-          toast.error("Errore di connessione", {
-            description: "Impossibile contattare il servizio. Riprova tra qualche minuto.",
-            duration: 6000
-          });
-        } else if (errorMsg.includes('auth') || errorMsg.includes('unauthorized')) {
-          toast.error("Errore di autenticazione", {
-            description: "La tua sessione potrebbe essere scaduta. Ricarica la pagina.",
-            duration: 6000
-          });
-        } else {
-          toast.error("Errore imprevisto", {
-            description: errorMsg,
-            duration: 6000
-          });
-        }
-        break;
+        await handleEdgeError({
+          error,
+          functionName: 'calculate-natal-chart',
+          toast,
+          isSuperAdmin,
+          fallbackMessage: "Impossibile calcolare il tema natale. Riprova più tardi.",
+        });
+        setIsLoading(false);
+        return;
       }
     }
-    
+
     setIsLoading(false);
   };
 

@@ -131,19 +131,26 @@ serve(async (req) => {
       
       if (response.status === 401) {
         return new Response(
-          JSON.stringify({ error: 'Servizio audio non configurato. Contatta l\'assistenza.' }),
+          JSON.stringify({ errorCode: 'INTERNAL_ERROR', error: `ElevenLabs auth failed: ${errorText}` }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } else if (response.status === 429) {
+        const { notifyQuotaToAdmins } = await import("../_shared/error-response.ts");
+        notifyQuotaToAdmins({
+          provider: 'elevenlabs',
+          errorCode: 'TTS_QUOTA_EXCEEDED',
+          functionName: 'text-to-speech-elevenlabs',
+          technicalMessage: `ElevenLabs TTS 429: ${errorText}`,
+        }).catch(() => {});
         return new Response(
-          JSON.stringify({ error: 'Troppe richieste al servizio audio. Riprova tra qualche minuto.' }),
+          JSON.stringify({ errorCode: 'TTS_QUOTA_EXCEEDED', error: `ElevenLabs TTS quota: ${errorText}` }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
       return new Response(
-        JSON.stringify({ error: 'Servizio audio temporaneamente non disponibile. Riprova tra poco.' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ errorCode: 'UPSTREAM_UNAVAILABLE', error: `ElevenLabs TTS ${response.status}: ${errorText}` }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -178,10 +185,12 @@ serve(async (req) => {
       userMessage = 'Problema di connessione al servizio audio. Riprova tra poco.';
     }
     
+    const code = errorMsg.includes('dns') || errorMsg.includes('network') || errorMsg.includes('fetch')
+      ? 'NETWORK_ERROR' : 'INTERNAL_ERROR';
     return new Response(
-      JSON.stringify({ error: userMessage }),
+      JSON.stringify({ errorCode: code, error: errorMsg || userMessage }),
       {
-        status: 500,
+        status: code === 'NETWORK_ERROR' ? 502 : 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );

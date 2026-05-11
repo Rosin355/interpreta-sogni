@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2, Check, X, Edit, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { handleEdgeError } from "@/utils/handle-edge-error";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import {
   Dialog,
   DialogContent,
@@ -57,6 +59,7 @@ export const VoiceRecorder = ({ onTranscription }: VoiceRecorderProps) => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const mimeTypeRef = useRef<string>('audio/webm');
+  const isSuperAdmin = useIsSuperAdmin();
 
   const startRecording = async () => {
     try {
@@ -115,7 +118,18 @@ export const VoiceRecorder = ({ onTranscription }: VoiceRecorderProps) => {
         body: { audio: base64Audio, mimeType: mimeTypeRef.current }
       });
 
-      if (error) throw error;
+      if (error || data?.errorCode) {
+        await handleEdgeError({
+          error,
+          data,
+          functionName: "speech-to-text-elevenlabs",
+          toast,
+          isSuperAdmin,
+          fallbackMessage: "Impossibile trascrivere l'audio. Riprova.",
+        });
+        setIsTranscribing(false);
+        return;
+      }
 
       if (!data?.text || data.text.trim() === '') {
         toast({
@@ -131,11 +145,12 @@ export const VoiceRecorder = ({ onTranscription }: VoiceRecorderProps) => {
       setShowPreview(true);
       setIsTranscribing(false);
     } catch (error) {
-      console.error('Error transcribing audio:', error);
-      toast({
-        title: "Errore",
-        description: "Impossibile trascrivere l'audio. Riprova.",
-        variant: "destructive",
+      await handleEdgeError({
+        error,
+        functionName: "speech-to-text-elevenlabs",
+        toast,
+        isSuperAdmin,
+        fallbackMessage: "Impossibile trascrivere l'audio. Riprova.",
       });
       setIsTranscribing(false);
     }

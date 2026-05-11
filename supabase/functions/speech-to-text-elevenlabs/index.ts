@@ -153,7 +153,23 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('[STT] ElevenLabs STT API error:', response.status, errorText);
-      throw new Error(`ElevenLabs STT API error: ${errorText}`);
+      if (response.status === 429) {
+        const { notifyQuotaToAdmins } = await import("../_shared/error-response.ts");
+        notifyQuotaToAdmins({
+          provider: 'elevenlabs',
+          errorCode: 'STT_QUOTA_EXCEEDED',
+          functionName: 'speech-to-text-elevenlabs',
+          technicalMessage: `ElevenLabs STT 429: ${errorText}`,
+        }).catch(() => {});
+        return new Response(
+          JSON.stringify({ errorCode: 'STT_QUOTA_EXCEEDED', error: `ElevenLabs STT quota: ${errorText}` }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      return new Response(
+        JSON.stringify({ errorCode: 'UPSTREAM_UNAVAILABLE', error: `ElevenLabs STT ${response.status}: ${errorText}` }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const result = await response.json();
@@ -175,7 +191,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('[STT] FATAL ERROR:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ errorCode: 'INTERNAL_ERROR', error: error.message }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { handleEdgeError } from "@/utils/handle-edge-error";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,6 +61,7 @@ export const AlchemistChat = ({ dreamId, hasInterpretation, exportButton }: Alch
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const isSuperAdmin = useIsSuperAdmin();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -111,10 +114,16 @@ export const AlchemistChat = ({ dreamId, hasInterpretation, exportButton }: Alch
         body: { dreamId, message: text.trim() },
       });
 
-      if (error) throw error;
-
-      if (data?.error) {
-        toast({ title: "Errore", description: data.error, variant: "destructive" });
+      if (error || data?.errorCode || data?.error) {
+        await handleEdgeError({
+          error,
+          data,
+          functionName: "chat-with-alchemist",
+          toast,
+          isSuperAdmin,
+          dreamId,
+          fallbackMessage: "Impossibile inviare il messaggio. Riprova.",
+        });
         setMessages((prev) => prev.filter((m) => m.id !== userMsg.id));
         return;
       }
@@ -128,8 +137,14 @@ export const AlchemistChat = ({ dreamId, hasInterpretation, exportButton }: Alch
 
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (error: any) {
-      console.error("Error sending message:", error);
-      toast({ title: "Errore", description: "Impossibile inviare il messaggio. Riprova.", variant: "destructive" });
+      await handleEdgeError({
+        error,
+        functionName: "chat-with-alchemist",
+        toast,
+        isSuperAdmin,
+        dreamId,
+        fallbackMessage: "Impossibile inviare il messaggio. Riprova.",
+      });
       setMessages((prev) => prev.filter((m) => m.id !== userMsg.id));
     } finally {
       setSending(false);
@@ -239,16 +254,30 @@ export const AlchemistChat = ({ dreamId, hasInterpretation, exportButton }: Alch
         body: { audio: base64 },
       });
 
-      if (error) throw error;
-
-      if (data?.text) {
+      if (error || data?.errorCode) {
+        await handleEdgeError({
+          error,
+          data,
+          functionName: "speech-to-text-elevenlabs",
+          toast,
+          isSuperAdmin,
+          dreamId,
+          fallbackMessage: "Impossibile trascrivere l'audio. Riprova.",
+        });
+      } else if (data?.text) {
         setInput((prev) => (prev ? prev + " " + data.text : data.text));
       } else {
         toast({ title: "Trascrizione vuota", description: "Non è stato possibile trascrivere l'audio", variant: "destructive" });
       }
     } catch (error) {
-      console.error("Transcription error:", error);
-      toast({ title: "Errore trascrizione", description: "Impossibile trascrivere l'audio", variant: "destructive" });
+      await handleEdgeError({
+        error,
+        functionName: "speech-to-text-elevenlabs",
+        toast,
+        isSuperAdmin,
+        dreamId,
+        fallbackMessage: "Impossibile trascrivere l'audio. Riprova.",
+      });
     } finally {
       setIsTranscribing(false);
     }

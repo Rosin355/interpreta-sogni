@@ -1,11 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders, errorResponse, notifyQuotaToAdmins } from "../_shared/error-response.ts";
 
 const ZODIAC_SIGNS = [
   'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
@@ -287,16 +283,24 @@ serve(async (req) => {
         console.error(`Data response: ${dataError}`);
         console.error(`Context response: ${contextError}`);
         
-        // GESTIONE SPECIFICA RATE LIMIT
+        // GESTIONE SPECIFICA RATE LIMIT / QUOTA
         if (dataRes.status === 429 || contextRes.status === 429 || 
             dataError.toLowerCase().includes('limit exceeded') || 
-            contextError.toLowerCase().includes('limit exceeded')) {
-          console.error('🚫 API LIMIT EXCEEDED - No more retries possible');
-          throw new Error(
-            'Il servizio di calcolo del tema natale ha raggiunto il limite di richieste. ' +
-            'Ti preghiamo di riprovare tra qualche ora. ' +
-            'I tuoi dati sono stati salvati e potrai calcolare il tema natale in seguito.'
-          );
+            contextError.toLowerCase().includes('limit exceeded') ||
+            dataError.toLowerCase().includes('quota') ||
+            contextError.toLowerCase().includes('quota')) {
+          console.error('🚫 RAPIDAPI QUOTA EXCEEDED');
+          const technical = `RapidAPI Astrologer quota exceeded — data:${dataRes.status} context:${contextRes.status} — ${dataError || contextError}`;
+          // Notifica super admin (best-effort, non blocca)
+          notifyQuotaToAdmins({
+            provider: 'rapidapi',
+            errorCode: 'API_QUOTA_EXCEEDED',
+            functionName: 'calculate-natal-chart',
+            technicalMessage: technical,
+          }).catch(() => {});
+          return errorResponse('API_QUOTA_EXCEEDED', technical, {
+            provider: 'rapidapi',
+          });
         }
 
         lastError = new Error(`API returned non-200 status. Data: ${dataRes.status}, Context: ${contextRes.status}`);
@@ -309,7 +313,7 @@ serve(async (req) => {
         }
       } catch (error) {
         lastError = error as Error;
-        if (error.message.includes('limite di richieste')) throw error;
+        if (error.message?.includes('quota')) throw error;
         
         retries--;
         if (retries > 0) {
@@ -475,14 +479,13 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in calculate-natal-chart function:', error);
-    return new Response(
-      JSON.stringify({
-        error: error.message || 'Internal server error'
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
-      }
-    );
+    const msg = (error as Error)?.message || 'Internal server error';
+    if (/unauthor/i.test(msg) || /authorization header/i.test(msg)) {
+      return errorResponse('UNAUTHORIZED', msg);
+    }
+    if (/invalid|missing required|format/i.test(msg)) {
+      return errorResponse('INVALID_INPUT', msg);
+    }
+    return errorResponse('INTERNAL_ERROR', msg);
   }
 });

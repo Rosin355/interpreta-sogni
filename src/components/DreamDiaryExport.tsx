@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { handleEdgeError } from "@/utils/handle-edge-error";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { Button } from "@/components/ui/button";
 import { Download, Mail, Loader2, BookOpen } from "lucide-react";
 import {
@@ -35,6 +37,7 @@ export const DreamDiaryExport = ({
   const [open, setOpen] = useState(false);
   const [exportMethod, setExportMethod] = useState<"download" | "email">("download");
   const [exporting, setExporting] = useState(false);
+  const isSuperAdmin = useIsSuperAdmin();
 
   const handleExport = async () => {
     setExporting(true);
@@ -76,14 +79,25 @@ export const DreamDiaryExport = ({
           return;
         }
 
-        const { error } = await supabase.functions.invoke("send-dream-diary", {
+        const { data, error } = await supabase.functions.invoke("send-dream-diary", {
           body: {
             mode,
             dreamId: mode === "single" ? dream?.id : undefined,
           },
         });
 
-        if (error) throw error;
+        if (error || data?.errorCode) {
+          await handleEdgeError({
+            error,
+            data,
+            functionName: "send-dream-diary",
+            toast,
+            isSuperAdmin,
+            dreamId: mode === "single" ? dream?.id : undefined,
+            fallbackMessage: "Si è verificato un errore durante l'invio email.",
+          });
+          return;
+        }
 
         toast({
           title: "Email inviata!",
@@ -92,11 +106,12 @@ export const DreamDiaryExport = ({
       }
       setOpen(false);
     } catch (error) {
-      console.error("Export error:", error);
-      toast({
-        title: "Errore",
-        description: "Si è verificato un errore durante l'esportazione.",
-        variant: "destructive",
+      await handleEdgeError({
+        error,
+        functionName: "send-dream-diary",
+        toast,
+        isSuperAdmin,
+        fallbackMessage: "Si è verificato un errore durante l'esportazione.",
       });
     } finally {
       setExporting(false);
