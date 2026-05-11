@@ -371,7 +371,7 @@ serve(async (req) => {
 
       if (contextRes.ok) {
         const ctxRaw = await contextRes.json();
-        const ctxPayload = ctxRaw?.data ?? ctxRaw;
+        const ctxPayload = ctxRaw?.data ?? ctxRaw?.chart_data ?? ctxRaw;
         natalContext = ctxPayload?.context || ctxRaw?.context || "";
         console.log(`[context] ✅ OK — context length=${natalContext.length}`);
       } else {
