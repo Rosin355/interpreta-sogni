@@ -214,19 +214,47 @@ serve(async (req) => {
     }
 
     console.log('Calling Astrologer API (RapidAPI)...');
-    
-    // Prepare request body for Astrologer API
-    const astrologerBody = {
+
+    // IANA timezone string per l'endpoint /context (richiede stringa).
+    // Strategia: se offset è intero usiamo "Etc/GMT±N" (segno invertito da convenzione POSIX).
+    // Per offset frazionari usiamo formato "+HH:MM".
+    const buildTimezoneString = (offset: number): string => {
+      if (Number.isInteger(offset)) {
+        const sign = offset >= 0 ? '-' : '+'; // POSIX-inverted
+        return `Etc/GMT${sign}${Math.abs(offset)}`;
+      }
+      const sign = offset >= 0 ? '+' : '-';
+      const abs = Math.abs(offset);
+      const hh = String(Math.floor(abs)).padStart(2, '0');
+      const mm = String(Math.round((abs - Math.floor(abs)) * 60)).padStart(2, '0');
+      return `${sign}${hh}:${mm}`;
+    };
+
+    const tzString = buildTimezoneString(timezoneOffset);
+    const cityName = (placeName && typeof placeName === 'string' && placeName.trim().length > 0)
+      ? placeName.split(',')[0].trim()
+      : 'Unknown';
+
+    // Payload per /chart-data (timezone numerico — schema corrente funziona)
+    const dataBody = {
       subject: {
         name: "User",
-        year,
-        month,
-        day,
-        hour: hours,
-        minute: minutes,
-        longitude,
-        latitude,
-        timezone: timezoneOffset
+        year, month, day,
+        hour: hours, minute: minutes,
+        longitude, latitude,
+        timezone: timezoneOffset,
+      }
+    };
+
+    // Payload per /context (richiede city stringa + timezone stringa IANA)
+    const contextBody = {
+      subject: {
+        name: "User",
+        year, month, day,
+        hour: hours, minute: minutes,
+        longitude, latitude,
+        city: cityName,
+        timezone: tzString,
       }
     };
 
@@ -239,13 +267,11 @@ serve(async (req) => {
     console.log('=== FINAL API REQUEST DATA ===');
     console.log('Date:', { year, month, day });
     console.log('Time:', { hours, minutes });
-    console.log('Location:', { latitude, longitude });
-    console.log('Timezone offset:', timezoneOffset);
-    console.log('Headers:', { ...rapidApiHeaders, 'X-RapidAPI-Key': '***' });
-    console.log('Full Request Body:', JSON.stringify(astrologerBody, null, 2));
+    console.log('Location:', { latitude, longitude, city: cityName });
+    console.log('Timezone offset / IANA:', timezoneOffset, '/', tzString);
     console.log('==============================');
 
-    // Implement retry logic with exponential backoff
+    // Retry per il solo /chart-data (è il dato critico). /context è "nice to have".
     let retries = 3;
     let chartData: any = null;
     let natalContext: string = "";
@@ -253,59 +279,42 @@ serve(async (req) => {
 
     while (retries > 0) {
       try {
-        console.log(`API Attempt ${4 - retries}...`);
-        
-        // Parallel calls for data and context
-        const [dataRes, contextRes] = await Promise.all([
-          fetch('https://astrologer.p.rapidapi.com/api/v5/chart-data/birth-chart', {
-            method: 'POST',
-            headers: rapidApiHeaders,
-            body: JSON.stringify(astrologerBody)
-          }),
-          fetch('https://astrologer.p.rapidapi.com/api/v5/context/birth-chart', {
-            method: 'POST',
-            headers: rapidApiHeaders,
-            body: JSON.stringify(astrologerBody)
-          })
-        ]);
+        console.log(`API Attempt ${4 - retries} (chart-data)...`);
 
-        if (dataRes.ok && contextRes.ok) {
+        const dataRes = await fetch(
+          'https://astrologer.p.rapidapi.com/api/v5/chart-data/birth-chart',
+          { method: 'POST', headers: rapidApiHeaders, body: JSON.stringify(dataBody) }
+        );
+
+        if (dataRes.ok) {
           chartData = await dataRes.json();
-          const contextData = await contextRes.json();
-          natalContext = contextData.context || "";
-          console.log('API calls successful');
+          console.log('chart-data OK');
           break;
         }
 
-        const dataError = !dataRes.ok ? await dataRes.text() : 'OK';
-        const contextError = !contextRes.ok ? await contextRes.text() : 'OK';
-        console.error(`API error (Data: ${dataRes.status}, Context: ${contextRes.status})`);
-        console.error(`Data response: ${dataError}`);
-        console.error(`Context response: ${contextError}`);
-        
-        // GESTIONE SPECIFICA RATE LIMIT / QUOTA
-        if (dataRes.status === 429 || contextRes.status === 429 || 
-            dataError.toLowerCase().includes('limit exceeded') || 
-            contextError.toLowerCase().includes('limit exceeded') ||
-            dataError.toLowerCase().includes('quota') ||
-            contextError.toLowerCase().includes('quota')) {
+        const dataError = await dataRes.text();
+        console.error(`chart-data error ${dataRes.status}: ${dataError}`);
+
+        // QUOTA / RATE LIMIT
+        if (
+          dataRes.status === 429 ||
+          dataError.toLowerCase().includes('limit exceeded') ||
+          dataError.toLowerCase().includes('quota') ||
+          dataError.toLowerCase().includes('too many requests')
+        ) {
           console.error('🚫 RAPIDAPI QUOTA EXCEEDED');
-          const technical = `RapidAPI Astrologer quota exceeded — data:${dataRes.status} context:${contextRes.status} — ${dataError || contextError}`;
-          // Notifica super admin (best-effort, non blocca)
+          const technical = `RapidAPI Astrologer quota exceeded — chart-data:${dataRes.status} — ${dataError}`;
           notifyQuotaToAdmins({
             provider: 'rapidapi',
             errorCode: 'API_QUOTA_EXCEEDED',
             functionName: 'calculate-natal-chart',
             technicalMessage: technical,
           }).catch(() => {});
-          return errorResponse('API_QUOTA_EXCEEDED', technical, {
-            provider: 'rapidapi',
-          });
+          return errorResponse('API_QUOTA_EXCEEDED', technical, { provider: 'rapidapi' });
         }
 
-        lastError = new Error(`API returned non-200 status. Data: ${dataRes.status}, Context: ${contextRes.status}`);
+        lastError = new Error(`chart-data returned ${dataRes.status}: ${dataError}`);
         retries--;
-
         if (retries > 0) {
           const waitTime = (4 - retries) * 1000;
           console.log(`Waiting ${waitTime}ms before retry...`);
@@ -313,21 +322,46 @@ serve(async (req) => {
         }
       } catch (error) {
         lastError = error as Error;
-        if (error.message?.includes('quota')) throw error;
-        
         retries--;
         if (retries > 0) {
           const waitTime = (4 - retries) * 1000;
           console.log(`Error occurred, waiting ${waitTime}ms before retry...`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
         } else {
-          throw error;
+          break;
         }
       }
     }
 
     if (!chartData) {
-      throw new Error(`Impossibile calcolare il tema natale: ${lastError?.message || 'Errore sconosciuto'}`);
+      const msg = `Impossibile calcolare il tema natale: ${lastError?.message || 'Errore sconosciuto'}`;
+      return errorResponse('UPSTREAM_UNAVAILABLE', msg, { provider: 'rapidapi' });
+    }
+
+    // /context (best-effort, non blocca il salvataggio)
+    try {
+      const contextRes = await fetch(
+        'https://astrologer.p.rapidapi.com/api/v5/context/birth-chart',
+        { method: 'POST', headers: rapidApiHeaders, body: JSON.stringify(contextBody) }
+      );
+      if (contextRes.ok) {
+        const contextData = await contextRes.json();
+        natalContext = contextData.context || "";
+        console.log('context OK');
+      } else {
+        const contextError = await contextRes.text();
+        console.warn(`⚠️ context endpoint failed (${contextRes.status}), proceeding without natal_context: ${contextError}`);
+        if (contextRes.status === 429) {
+          notifyQuotaToAdmins({
+            provider: 'rapidapi',
+            errorCode: 'API_QUOTA_EXCEEDED',
+            functionName: 'calculate-natal-chart',
+            technicalMessage: `context endpoint quota: ${contextError}`,
+          }).catch(() => {});
+        }
+      }
+    } catch (ctxErr) {
+      console.warn('⚠️ context endpoint exception, proceeding without natal_context:', ctxErr);
     }
 
     // Mapping of planet names to our internal format
