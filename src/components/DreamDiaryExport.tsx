@@ -79,14 +79,25 @@ export const DreamDiaryExport = ({
           return;
         }
 
-        const { error } = await supabase.functions.invoke("send-dream-diary", {
+        const { data, error } = await supabase.functions.invoke("send-dream-diary", {
           body: {
             mode,
             dreamId: mode === "single" ? dream?.id : undefined,
           },
         });
 
-        if (error) throw error;
+        if (error || data?.errorCode) {
+          await handleEdgeError({
+            error,
+            data,
+            functionName: "send-dream-diary",
+            toast,
+            isSuperAdmin,
+            dreamId: mode === "single" ? dream?.id : undefined,
+            fallbackMessage: "Si è verificato un errore durante l'invio email.",
+          });
+          return;
+        }
 
         toast({
           title: "Email inviata!",
@@ -95,11 +106,12 @@ export const DreamDiaryExport = ({
       }
       setOpen(false);
     } catch (error) {
-      console.error("Export error:", error);
-      toast({
-        title: "Errore",
-        description: "Si è verificato un errore durante l'esportazione.",
-        variant: "destructive",
+      await handleEdgeError({
+        error,
+        functionName: "send-dream-diary",
+        toast,
+        isSuperAdmin,
+        fallbackMessage: "Si è verificato un errore durante l'esportazione.",
       });
     } finally {
       setExporting(false);
