@@ -204,23 +204,37 @@ Le tue risposte devono:
 
     if (!aiResponse.ok) {
       const statusCode = aiResponse.status;
+      const errorText = await aiResponse.text().catch(() => "");
       if (statusCode === 429) {
+        const { notifyQuotaToAdmins } = await import("../_shared/error-response.ts");
+        notifyQuotaToAdmins({
+          provider: "lovable-ai",
+          errorCode: "AI_RATE_LIMIT",
+          functionName: "chat-with-alchemist",
+          technicalMessage: `Lovable AI 429: ${errorText}`,
+        }).catch(() => {});
         return new Response(
-          JSON.stringify({ error: "Limite richieste raggiunto. Riprova tra qualche minuto." }),
+          JSON.stringify({ errorCode: "AI_RATE_LIMIT", error: `Lovable AI rate limit: ${errorText}` }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       if (statusCode === 402) {
+        const { notifyQuotaToAdmins } = await import("../_shared/error-response.ts");
+        notifyQuotaToAdmins({
+          provider: "lovable-ai",
+          errorCode: "AI_CREDITS_EXHAUSTED",
+          functionName: "chat-with-alchemist",
+          technicalMessage: `Lovable AI 402: ${errorText}`,
+        }).catch(() => {});
         return new Response(
-          JSON.stringify({ error: "Crediti AI esauriti." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ errorCode: "AI_CREDITS_EXHAUSTED", error: `Lovable AI credits exhausted: ${errorText}` }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      const errorText = await aiResponse.text();
       console.error("AI gateway error:", statusCode, errorText);
       return new Response(
-        JSON.stringify({ error: "Errore nella generazione della risposta" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ errorCode: "UPSTREAM_UNAVAILABLE", error: `AI gateway ${statusCode}: ${errorText}` }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -230,7 +244,7 @@ Le tue risposte devono:
     if (!assistantMessage) {
       console.error("No content in AI response:", JSON.stringify(aiData));
       return new Response(
-        JSON.stringify({ error: "Risposta AI vuota" }),
+        JSON.stringify({ errorCode: "INTERNAL_ERROR", error: "Risposta AI vuota" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -250,7 +264,7 @@ Le tue risposte devono:
   } catch (error) {
     console.error("chat-with-alchemist error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Errore sconosciuto" }),
+      JSON.stringify({ errorCode: "INTERNAL_ERROR", error: error instanceof Error ? error.message : "Errore sconosciuto" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
