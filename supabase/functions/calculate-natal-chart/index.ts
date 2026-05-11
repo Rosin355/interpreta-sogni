@@ -235,28 +235,21 @@ serve(async (req) => {
       ? placeName.split(',')[0].trim()
       : 'Unknown';
 
-    // Payload per /chart-data (timezone numerico — schema corrente funziona)
-    const dataBody = {
-      subject: {
-        name: "User",
-        year, month, day,
-        hour: hours, minute: minutes,
-        longitude, latitude,
-        timezone: timezoneOffset,
-      }
+    // Payload condiviso: l'API Astrologer v5 richiede city (stringa) e timezone (stringa IANA)
+    // per ENTRAMBI gli endpoint /chart-data e /context. In passato /chart-data accettava
+    // anche timezone numerico, ma lo schema attuale rifiuta sia il numero che l'assenza di city.
+    const subjectPayload = {
+      name: "User",
+      year, month, day,
+      hour: hours, minute: minutes,
+      longitude, latitude,
+      city: cityName,
+      nation: "IT",
+      timezone: tzString,
     };
 
-    // Payload per /context (richiede city stringa + timezone stringa IANA)
-    const contextBody = {
-      subject: {
-        name: "User",
-        year, month, day,
-        hour: hours, minute: minutes,
-        longitude, latitude,
-        city: cityName,
-        timezone: tzString,
-      }
-    };
+    const dataBody = { subject: subjectPayload };
+    const contextBody = { subject: subjectPayload };
 
     const rapidApiHeaders = {
       'X-RapidAPI-Host': 'astrologer.p.rapidapi.com',
@@ -267,8 +260,9 @@ serve(async (req) => {
     console.log('=== FINAL API REQUEST DATA ===');
     console.log('Date:', { year, month, day });
     console.log('Time:', { hours, minutes });
-    console.log('Location:', { latitude, longitude, city: cityName });
+    console.log('Location:', { latitude, longitude, city: cityName, nation: 'IT' });
     console.log('Timezone offset / IANA:', timezoneOffset, '/', tzString);
+    console.log('Subject payload (sent to BOTH endpoints):', JSON.stringify(subjectPayload));
     console.log('==============================');
 
     // Retry per il solo /chart-data (è il dato critico). /context è "nice to have".
@@ -278,31 +272,35 @@ serve(async (req) => {
     let lastError: Error | null = null;
 
     while (retries > 0) {
+      const attempt = 4 - retries;
       try {
-        console.log(`API Attempt ${4 - retries} (chart-data)...`);
+        console.log(`[chart-data] Attempt ${attempt}/3 → POST /api/v5/chart-data/birth-chart`);
+        const t0 = Date.now();
 
         const dataRes = await fetch(
           'https://astrologer.p.rapidapi.com/api/v5/chart-data/birth-chart',
           { method: 'POST', headers: rapidApiHeaders, body: JSON.stringify(dataBody) }
         );
 
+        const elapsed = Date.now() - t0;
+        console.log(`[chart-data] Response: status=${dataRes.status} in ${elapsed}ms`);
+
         if (dataRes.ok) {
           chartData = await dataRes.json();
-          console.log('chart-data OK');
+          console.log(`[chart-data] ✅ OK — planets=${(chartData.planets || []).length}, houses=${(chartData.houses || []).length}`);
           break;
         }
 
         const dataError = await dataRes.text();
-        console.error(`chart-data error ${dataRes.status}: ${dataError}`);
+        console.error(`[chart-data] ❌ ERROR ${dataRes.status} (attempt ${attempt}/3): ${dataError}`);
 
-        // QUOTA / RATE LIMIT
         if (
           dataRes.status === 429 ||
           dataError.toLowerCase().includes('limit exceeded') ||
           dataError.toLowerCase().includes('quota') ||
           dataError.toLowerCase().includes('too many requests')
         ) {
-          console.error('🚫 RAPIDAPI QUOTA EXCEEDED');
+          console.error('[chart-data] 🚫 RAPIDAPI QUOTA EXCEEDED');
           const technical = `RapidAPI Astrologer quota exceeded — chart-data:${dataRes.status} — ${dataError}`;
           notifyQuotaToAdmins({
             provider: 'rapidapi',
@@ -313,19 +311,26 @@ serve(async (req) => {
           return errorResponse('API_QUOTA_EXCEEDED', technical, { provider: 'rapidapi' });
         }
 
+        if (dataRes.status === 422 || dataRes.status === 400) {
+          console.error('[chart-data] 🛑 Validation error — aborting retries (payload issue)');
+          lastError = new Error(`chart-data validation failed (${dataRes.status}): ${dataError}`);
+          break;
+        }
+
         lastError = new Error(`chart-data returned ${dataRes.status}: ${dataError}`);
         retries--;
         if (retries > 0) {
           const waitTime = (4 - retries) * 1000;
-          console.log(`Waiting ${waitTime}ms before retry...`);
+          console.log(`[chart-data] Waiting ${waitTime}ms before retry...`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
         }
       } catch (error) {
+        console.error(`[chart-data] 💥 Network/fetch exception (attempt ${attempt}/3):`, error);
         lastError = error as Error;
         retries--;
         if (retries > 0) {
           const waitTime = (4 - retries) * 1000;
-          console.log(`Error occurred, waiting ${waitTime}ms before retry...`);
+          console.log(`[chart-data] Waiting ${waitTime}ms before retry...`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
         } else {
           break;
@@ -340,17 +345,22 @@ serve(async (req) => {
 
     // /context (best-effort, non blocca il salvataggio)
     try {
+      console.log('[context] → POST /api/v5/context/birth-chart');
+      const t0 = Date.now();
       const contextRes = await fetch(
         'https://astrologer.p.rapidapi.com/api/v5/context/birth-chart',
         { method: 'POST', headers: rapidApiHeaders, body: JSON.stringify(contextBody) }
       );
+      const elapsed = Date.now() - t0;
+      console.log(`[context] Response: status=${contextRes.status} in ${elapsed}ms`);
+
       if (contextRes.ok) {
         const contextData = await contextRes.json();
         natalContext = contextData.context || "";
-        console.log('context OK');
+        console.log(`[context] ✅ OK — context length=${natalContext.length}`);
       } else {
         const contextError = await contextRes.text();
-        console.warn(`⚠️ context endpoint failed (${contextRes.status}), proceeding without natal_context: ${contextError}`);
+        console.warn(`[context] ⚠️ FAILED ${contextRes.status} — proceeding without natal_context: ${contextError}`);
         if (contextRes.status === 429) {
           notifyQuotaToAdmins({
             provider: 'rapidapi',
@@ -361,7 +371,7 @@ serve(async (req) => {
         }
       }
     } catch (ctxErr) {
-      console.warn('⚠️ context endpoint exception, proceeding without natal_context:', ctxErr);
+      console.warn('[context] 💥 Network/fetch exception, proceeding without natal_context:', ctxErr);
     }
 
     // Mapping of planet names to our internal format
