@@ -391,100 +391,137 @@ serve(async (req) => {
       console.warn('[context] 💥 Network/fetch exception, proceeding without natal_context:', ctxErr);
     }
 
-    // Mapping of planet names to our internal format
-    const planetMapping: { [key: string]: string } = {
-      'Sun': 'sun',
-      'Moon': 'moon',
-      'Mercury': 'mercury',
-      'Venus': 'venus',
-      'Mars': 'mars',
-      'Jupiter': 'jupiter',
-      'Saturn': 'saturn',
-      'Uranus': 'uranus',
-      'Neptune': 'neptune',
-      'Pluto': 'pluto',
-      'North Node': 'north_node',
-      'South Node': 'south_node',
-      'Chiron': 'chiron'
+    // === Astrologer v5: pianeti e case sono dentro chart_data.subject (oggetti per chiave) ===
+
+    // Mappa segni 3-letter → nome inglese completo (formato atteso dal resto dell'app)
+    const SIGN_FULL: Record<string, string> = {
+      Ari: 'Aries', Tau: 'Taurus', Gem: 'Gemini', Can: 'Cancer',
+      Leo: 'Leo', Vir: 'Virgo', Lib: 'Libra', Sco: 'Scorpio',
+      Sag: 'Sagittarius', Cap: 'Capricorn', Aqu: 'Aquarius', Pis: 'Pisces',
+    };
+    const normalizeSign = (s: any): string => {
+      if (!s || typeof s !== 'string') return getZodiacSign(0);
+      return SIGN_FULL[s] || s;
+    };
+
+    // Mappa nome casa Astrologer ("First_House") → numero
+    const HOUSE_NAME_TO_NUMBER: Record<string, number> = {
+      First_House: 1, Second_House: 2, Third_House: 3, Fourth_House: 4,
+      Fifth_House: 5, Sixth_House: 6, Seventh_House: 7, Eighth_House: 8,
+      Ninth_House: 9, Tenth_House: 10, Eleventh_House: 11, Twelfth_House: 12,
+    };
+
+    // Pianeti da estrarre dal subject (chiavi lowercase)
+    const PLANET_KEYS: Array<{ key: string; mapped: string }> = [
+      { key: 'sun', mapped: 'sun' },
+      { key: 'moon', mapped: 'moon' },
+      { key: 'mercury', mapped: 'mercury' },
+      { key: 'venus', mapped: 'venus' },
+      { key: 'mars', mapped: 'mars' },
+      { key: 'jupiter', mapped: 'jupiter' },
+      { key: 'saturn', mapped: 'saturn' },
+      { key: 'uranus', mapped: 'uranus' },
+      { key: 'neptune', mapped: 'neptune' },
+      { key: 'pluto', mapped: 'pluto' },
+      { key: 'chiron', mapped: 'chiron' },
+      { key: 'true_north_lunar_node', mapped: 'north_node' },
+      { key: 'mean_north_lunar_node', mapped: 'north_node' },
+      { key: 'true_south_lunar_node', mapped: 'south_node' },
+      { key: 'mean_south_lunar_node', mapped: 'south_node' },
+    ];
+
+    // Mappa nome API ("Sun", "True_North_Lunar_Node", "Ascendant") → chiave interna lowercase
+    const API_NAME_TO_INTERNAL: Record<string, string> = {
+      Sun: 'sun', Moon: 'moon', Mercury: 'mercury', Venus: 'venus', Mars: 'mars',
+      Jupiter: 'jupiter', Saturn: 'saturn', Uranus: 'uranus', Neptune: 'neptune',
+      Pluto: 'pluto', Chiron: 'chiron',
+      Ascendant: 'ascendant', Descendant: 'descendant',
+      Medium_Coeli: 'mc', Imum_Coeli: 'ic',
+      True_North_Lunar_Node: 'north_node', Mean_North_Lunar_Node: 'north_node',
+      True_South_Lunar_Node: 'south_node', Mean_South_Lunar_Node: 'south_node',
+      Mean_Lilith: 'lilith',
     };
 
     const planetsObject: any = {};
-    const planetPositions: { [key: string]: number } = {};
-
-    // Process planets from chartData
-    const apiPlanets = chartData.planets || [];
-    console.log(`Processing ${apiPlanets.length} planets...`);
-
-    for (const planet of apiPlanets) {
-      const name = planet.name;
-      const mappedName = planetMapping[name] || name.toLowerCase().replace(' ', '_');
-      
-      const longitude = planet.abs_pos || planet.position || 0;
-      const sign = planet.sign;
-      const house = planet.house;
-      const retrograde = planet.retrograde || false;
-      const degreeVal = getDegreeInSign(longitude);
-
-      planetsObject[mappedName] = {
+    for (const { key, mapped } of PLANET_KEYS) {
+      const p = subject[key];
+      if (!p || typeof p !== 'object') continue;
+      if (planetsObject[mapped]) continue; // preferisci la prima occorrenza (es. true_node prima di mean_node)
+      const longitude = typeof p.abs_pos === 'number' ? p.abs_pos : (typeof p.position === 'number' ? p.position : 0);
+      planetsObject[mapped] = {
         longitude,
-        sign,
-        degree: parseFloat(degreeVal.toFixed(2)),
-        house,
-        retrograde
+        sign: normalizeSign(p.sign),
+        degree: parseFloat(getDegreeInSign(longitude).toFixed(2)),
+        house: HOUSE_NAME_TO_NUMBER[p.house] || p.house || null,
+        retrograde: !!p.retrograde,
       };
-
-      planetPositions[mappedName] = longitude;
     }
+    console.log(`[chart-data] parsed planets=${Object.keys(planetsObject).length}: ${Object.keys(planetsObject).join(',')}`);
 
-    // Process houses
-    const apiHouses = chartData.houses || [];
-    const housesArray = apiHouses.map((h: any, index: number) => {
-      const longitude = h.abs_pos || h.position || (index * 30);
-      return {
-        number: h.number || (index + 1),
-        longitude,
-        sign: h.sign || getZodiacSign(longitude),
-        degree: parseFloat(getDegreeInSign(longitude).toFixed(2))
-      };
-    });
-
-    // Ensure we have 12 houses
-    if (housesArray.length < 12) {
-      console.warn('API returned fewer than 12 houses, using fallback');
-      const startLong = housesArray[0]?.longitude || 0;
-      for (let i = housesArray.length; i < 12; i++) {
-        const longitude = (startLong + (i * 30)) % 360;
+    // Case
+    const HOUSE_KEYS = [
+      'first_house','second_house','third_house','fourth_house','fifth_house','sixth_house',
+      'seventh_house','eighth_house','ninth_house','tenth_house','eleventh_house','twelfth_house',
+    ];
+    const housesArray: any[] = [];
+    HOUSE_KEYS.forEach((hk, idx) => {
+      const h = subject[hk];
+      if (h && typeof h === 'object') {
+        const longitude = typeof h.abs_pos === 'number' ? h.abs_pos : (typeof h.position === 'number' ? h.position : (idx * 30));
         housesArray.push({
-          number: i + 1,
+          number: idx + 1,
           longitude,
-          sign: getZodiacSign(longitude),
-          degree: parseFloat(getDegreeInSign(longitude).toFixed(2))
+          sign: normalizeSign(h.sign),
+          degree: parseFloat(getDegreeInSign(longitude).toFixed(2)),
         });
       }
+    });
+    console.log(`[chart-data] parsed houses=${housesArray.length}`);
+
+    // Validazione: serve almeno Sole + Luna + 12 case
+    if (!planetsObject.sun || !planetsObject.moon || housesArray.length !== 12) {
+      const technical = `Astrologer subject incomplete: planets=${Object.keys(planetsObject).length}, houses=${housesArray.length}, hasSun=${!!planetsObject.sun}, hasMoon=${!!planetsObject.moon}`;
+      console.error('[chart-data] 🛑', technical);
+      return errorResponse('UPSTREAM_UNAVAILABLE', technical, { provider: 'rapidapi' });
     }
 
-    // Extract Ascendant and Midheaven
+    // Ascendente / Medio Cielo
+    const ascRaw = subject.ascendant || {};
+    const ascLong = typeof ascRaw.abs_pos === 'number' ? ascRaw.abs_pos : (housesArray[0]?.longitude || 0);
     const ascendantData = {
-      longitude: chartData.ascendant?.abs_pos || housesArray[0]?.longitude || 0,
-      sign: chartData.ascendant?.sign || housesArray[0]?.sign || getZodiacSign(0),
-      degree: parseFloat(getDegreeInSign(chartData.ascendant?.abs_pos || housesArray[0]?.longitude || 0).toFixed(2))
+      longitude: ascLong,
+      sign: normalizeSign(ascRaw.sign) || housesArray[0]?.sign,
+      degree: parseFloat(getDegreeInSign(ascLong).toFixed(2)),
     };
 
+    const mcRaw = subject.medium_coeli || {};
+    const mcLong = typeof mcRaw.abs_pos === 'number' ? mcRaw.abs_pos : (housesArray[9]?.longitude || 0);
     const midheavenData = {
-      longitude: chartData.midheaven?.abs_pos || housesArray[9]?.longitude || 0,
-      sign: chartData.midheaven?.sign || housesArray[9]?.sign || getZodiacSign(0),
-      degree: parseFloat(getDegreeInSign(chartData.midheaven?.abs_pos || housesArray[9]?.longitude || 0).toFixed(2))
+      longitude: mcLong,
+      sign: normalizeSign(mcRaw.sign) || housesArray[9]?.sign,
+      degree: parseFloat(getDegreeInSign(mcLong).toFixed(2)),
     };
 
-    // Process aspects
-    const apiAspects = chartData.aspects || [];
-    const aspectsArray = apiAspects.map((a: any) => ({
-      planet1: planetMapping[a.planet1] || a.planet1.toLowerCase().replace(' ', '_'),
-      planet2: planetMapping[a.planet2] || a.planet2.toLowerCase().replace(' ', '_'),
-      type: a.type.toLowerCase(),
-      angle: parseFloat((a.angle || 0).toFixed(2)),
-      orb: parseFloat((a.orb || 0).toFixed(2))
-    }));
+    // Aspetti (formato v5: p1_name, p2_name, aspect, orbit, aspect_degrees, diff)
+    const apiAspects = Array.isArray(chartData.aspects) ? chartData.aspects : [];
+    const aspectsArray = apiAspects
+      .map((a: any) => {
+        const p1 = API_NAME_TO_INTERNAL[a.p1_name] || (typeof a.p1_name === 'string' ? a.p1_name.toLowerCase() : null);
+        const p2 = API_NAME_TO_INTERNAL[a.p2_name] || (typeof a.p2_name === 'string' ? a.p2_name.toLowerCase() : null);
+        if (!p1 || !p2) return null;
+        return {
+          planet1: p1,
+          planet2: p2,
+          type: typeof a.aspect === 'string' ? a.aspect.toLowerCase() : 'unknown',
+          angle: parseFloat(((a.aspect_degrees ?? a.diff ?? 0) as number).toFixed(2)),
+          orb: parseFloat(((a.orbit ?? 0) as number).toFixed(2)),
+        };
+      })
+      .filter(Boolean);
+    console.log(`[chart-data] parsed aspects=${aspectsArray.length}`);
+
+    const houseSystemName: string | undefined =
+      subject.houses_system_name || subject.houses_system_identifier || undefined;
 
     // Prepare final natalChartData structure
     const natalChartData = {
@@ -493,6 +530,7 @@ serve(async (req) => {
       ascendant: ascendantData,
       midheaven: midheavenData,
       aspects: aspectsArray,
+      houseSystem: houseSystemName,
       calculationDetails: {
         date: birthDate,
         time: birthTime,
