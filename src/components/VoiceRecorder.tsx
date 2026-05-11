@@ -118,7 +118,18 @@ export const VoiceRecorder = ({ onTranscription }: VoiceRecorderProps) => {
         body: { audio: base64Audio, mimeType: mimeTypeRef.current }
       });
 
-      if (error) throw error;
+      if (error || data?.errorCode) {
+        await handleEdgeError({
+          error,
+          data,
+          functionName: "speech-to-text-elevenlabs",
+          toast,
+          isSuperAdmin,
+          fallbackMessage: "Impossibile trascrivere l'audio. Riprova.",
+        });
+        setIsTranscribing(false);
+        return;
+      }
 
       if (!data?.text || data.text.trim() === '') {
         toast({
@@ -134,11 +145,12 @@ export const VoiceRecorder = ({ onTranscription }: VoiceRecorderProps) => {
       setShowPreview(true);
       setIsTranscribing(false);
     } catch (error) {
-      console.error('Error transcribing audio:', error);
-      toast({
-        title: "Errore",
-        description: "Impossibile trascrivere l'audio. Riprova.",
-        variant: "destructive",
+      await handleEdgeError({
+        error,
+        functionName: "speech-to-text-elevenlabs",
+        toast,
+        isSuperAdmin,
+        fallbackMessage: "Impossibile trascrivere l'audio. Riprova.",
       });
       setIsTranscribing(false);
     }
