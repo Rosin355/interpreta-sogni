@@ -37,14 +37,37 @@ interface HandleEdgeErrorOptions {
 }
 
 const extractErrorBody = async (error: unknown): Promise<any | null> => {
-  try {
-    const ctx: any = (error as any)?.context;
-    if (ctx && typeof ctx.json === "function") {
-      return await ctx.json();
+  const ctx: any = (error as any)?.context;
+  if (!ctx) return null;
+
+  // Tenta JSON direttamente (clone per non consumare il body originale)
+  if (typeof ctx.clone === "function" && typeof ctx.json === "function") {
+    try {
+      return await ctx.clone().json();
+    } catch (jsonErr) {
+      console.warn("[handleEdgeError] ctx.json() failed, trying text()", jsonErr);
     }
-  } catch {
-    /* ignore */
   }
+
+  // Fallback: leggi come testo e prova a parsarlo
+  if (typeof ctx.clone === "function" && typeof ctx.text === "function") {
+    try {
+      const txt = await ctx.clone().text();
+      if (!txt) return null;
+      try {
+        return JSON.parse(txt);
+      } catch {
+        return { error: txt };
+      }
+    } catch (txtErr) {
+      console.warn(
+        "[handleEdgeError] ctx.text() failed",
+        { status: ctx.status, contentType: ctx.headers?.get?.("content-type") },
+        txtErr
+      );
+    }
+  }
+
   return null;
 };
 
