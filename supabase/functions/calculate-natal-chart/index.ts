@@ -283,16 +283,24 @@ serve(async (req) => {
         console.error(`Data response: ${dataError}`);
         console.error(`Context response: ${contextError}`);
         
-        // GESTIONE SPECIFICA RATE LIMIT
+        // GESTIONE SPECIFICA RATE LIMIT / QUOTA
         if (dataRes.status === 429 || contextRes.status === 429 || 
             dataError.toLowerCase().includes('limit exceeded') || 
-            contextError.toLowerCase().includes('limit exceeded')) {
-          console.error('🚫 API LIMIT EXCEEDED - No more retries possible');
-          throw new Error(
-            'Il servizio di calcolo del tema natale ha raggiunto il limite di richieste. ' +
-            'Ti preghiamo di riprovare tra qualche ora. ' +
-            'I tuoi dati sono stati salvati e potrai calcolare il tema natale in seguito.'
-          );
+            contextError.toLowerCase().includes('limit exceeded') ||
+            dataError.toLowerCase().includes('quota') ||
+            contextError.toLowerCase().includes('quota')) {
+          console.error('🚫 RAPIDAPI QUOTA EXCEEDED');
+          const technical = `RapidAPI Astrologer quota exceeded — data:${dataRes.status} context:${contextRes.status} — ${dataError || contextError}`;
+          // Notifica super admin (best-effort, non blocca)
+          notifyQuotaToAdmins({
+            provider: 'rapidapi',
+            errorCode: 'API_QUOTA_EXCEEDED',
+            functionName: 'calculate-natal-chart',
+            technicalMessage: technical,
+          }).catch(() => {});
+          return errorResponse('API_QUOTA_EXCEEDED', technical, {
+            provider: 'rapidapi',
+          });
         }
 
         lastError = new Error(`API returned non-200 status. Data: ${dataRes.status}, Context: ${contextRes.status}`);
@@ -305,7 +313,7 @@ serve(async (req) => {
         }
       } catch (error) {
         lastError = error as Error;
-        if (error.message.includes('limite di richieste')) throw error;
+        if (error.message?.includes('quota')) throw error;
         
         retries--;
         if (retries > 0) {
