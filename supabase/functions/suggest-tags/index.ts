@@ -236,7 +236,7 @@ Ogni tag dovrebbe essere breve (1-3 parole) e pertinente al contenuto del sogno.
     console.error('[suggest-tags] FATAL ERROR:', error);
     console.error('[suggest-tags] Error stack:', error.stack);
     return new Response(
-      JSON.stringify({ error: error.message, tags: [] }),
+      JSON.stringify({ errorCode: 'INTERNAL_ERROR', error: error.message, tags: [] }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
