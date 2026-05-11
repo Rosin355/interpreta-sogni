@@ -260,8 +260,9 @@ serve(async (req) => {
     console.log('=== FINAL API REQUEST DATA ===');
     console.log('Date:', { year, month, day });
     console.log('Time:', { hours, minutes });
-    console.log('Location:', { latitude, longitude, city: cityName });
+    console.log('Location:', { latitude, longitude, city: cityName, nation: 'IT' });
     console.log('Timezone offset / IANA:', timezoneOffset, '/', tzString);
+    console.log('Subject payload (sent to BOTH endpoints):', JSON.stringify(subjectPayload));
     console.log('==============================');
 
     // Retry per il solo /chart-data (è il dato critico). /context è "nice to have".
