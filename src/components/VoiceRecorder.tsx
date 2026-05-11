@@ -59,6 +59,7 @@ export const VoiceRecorder = ({ onTranscription }: VoiceRecorderProps) => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const mimeTypeRef = useRef<string>('audio/webm');
+  const isSuperAdmin = useIsSuperAdmin();
 
   const startRecording = async () => {
     try {
