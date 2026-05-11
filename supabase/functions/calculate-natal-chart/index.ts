@@ -345,17 +345,22 @@ serve(async (req) => {
 
     // /context (best-effort, non blocca il salvataggio)
     try {
+      console.log('[context] → POST /api/v5/context/birth-chart');
+      const t0 = Date.now();
       const contextRes = await fetch(
         'https://astrologer.p.rapidapi.com/api/v5/context/birth-chart',
         { method: 'POST', headers: rapidApiHeaders, body: JSON.stringify(contextBody) }
       );
+      const elapsed = Date.now() - t0;
+      console.log(`[context] Response: status=${contextRes.status} in ${elapsed}ms`);
+
       if (contextRes.ok) {
         const contextData = await contextRes.json();
         natalContext = contextData.context || "";
-        console.log('context OK');
+        console.log(`[context] ✅ OK — context length=${natalContext.length}`);
       } else {
         const contextError = await contextRes.text();
-        console.warn(`⚠️ context endpoint failed (${contextRes.status}), proceeding without natal_context: ${contextError}`);
+        console.warn(`[context] ⚠️ FAILED ${contextRes.status} — proceeding without natal_context: ${contextError}`);
         if (contextRes.status === 429) {
           notifyQuotaToAdmins({
             provider: 'rapidapi',
@@ -366,7 +371,7 @@ serve(async (req) => {
         }
       }
     } catch (ctxErr) {
-      console.warn('⚠️ context endpoint exception, proceeding without natal_context:', ctxErr);
+      console.warn('[context] 💥 Network/fetch exception, proceeding without natal_context:', ctxErr);
     }
 
     // Mapping of planet names to our internal format
