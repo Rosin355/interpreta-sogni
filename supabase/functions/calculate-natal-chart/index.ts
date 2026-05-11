@@ -479,14 +479,13 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in calculate-natal-chart function:', error);
-    return new Response(
-      JSON.stringify({
-        error: error.message || 'Internal server error'
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
-      }
-    );
+    const msg = (error as Error)?.message || 'Internal server error';
+    if (/unauthor/i.test(msg) || /authorization header/i.test(msg)) {
+      return errorResponse('UNAUTHORIZED', msg);
+    }
+    if (/invalid|missing required|format/i.test(msg)) {
+      return errorResponse('INVALID_INPUT', msg);
+    }
+    return errorResponse('INTERNAL_ERROR', msg);
   }
 });
