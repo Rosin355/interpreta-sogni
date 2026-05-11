@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2, Check, X, Edit, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { handleEdgeError } from "@/utils/handle-edge-error";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import {
   Dialog,
   DialogContent,
