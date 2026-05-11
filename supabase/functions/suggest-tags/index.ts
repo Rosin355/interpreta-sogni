@@ -181,12 +181,17 @@ Ogni tag dovrebbe essere breve (1-3 parole) e pertinente al contenuto del sogno.
     });
 
     if (response.status === 429 || response.status === 402) {
+      const code = response.status === 429 ? 'AI_RATE_LIMIT' : 'AI_CREDITS_EXHAUSTED';
+      const { notifyQuotaToAdmins } = await import("../_shared/error-response.ts");
+      notifyQuotaToAdmins({
+        provider: 'lovable-ai',
+        errorCode: code,
+        functionName: 'suggest-tags',
+        technicalMessage: `Lovable AI ${response.status}`,
+      }).catch(() => {});
       return new Response(
-        JSON.stringify({ 
-          error: response.status === 429 ? 'Rate limit raggiunto' : 'Crediti insufficienti',
-          tags: []
-        }),
-        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ errorCode: code, error: `Lovable AI ${response.status}`, tags: [] }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
