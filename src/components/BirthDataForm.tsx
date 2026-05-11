@@ -90,6 +90,7 @@ export function BirthDataForm({ onSuccess, initialData }: BirthDataFormProps) {
   );
   const [searchingPlaces, setSearchingPlaces] = useState(false);
   const [openPlaceCombobox, setOpenPlaceCombobox] = useState(false);
+  const isSuperAdmin = useIsSuperAdmin();
 
   const form = useForm<BirthDataFormValues>({
     resolver: zodResolver(birthDataSchema),
