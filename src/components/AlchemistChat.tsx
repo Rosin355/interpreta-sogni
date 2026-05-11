@@ -61,6 +61,7 @@ export const AlchemistChat = ({ dreamId, hasInterpretation, exportButton }: Alch
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const isSuperAdmin = useIsSuperAdmin();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
