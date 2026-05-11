@@ -1,53 +1,74 @@
-## Problema
+## Diagnosi
 
-Dai log Edge dell'ultima chiamata:
-- `POST /api/v5/chart-data/birth-chart` → **429** (Too many requests)
-- `POST /api/v5/context/birth-chart` → **422** Validation failed
-  - `subject.city: Field required`
-  - `subject.timezone: Input should be a valid string`
+Hai due problemi distinti, entrambi confermati.
 
-Il payload attuale invia `timezone: 1` (numero) e nessun campo `city`. L'endpoint `chart-data` lo accettava (errore 429 era solo quota), ma `context` ha schema più stretto e fallisce **sempre**, anche con quota piena. Quindi anche dopo l'upgrade RapidAPI il tema natale continuerà a fallire al secondo endpoint.
+### 1. Doppio input data → confusione
 
-In più, il client mostra all'utente solo "INTERNAL_ERROR" / messaggio fallback: `handleEdgeError` non riesce a leggere il body strutturato (`API_QUOTA_EXCEEDED`, dettagli per admin) perché `extractErrorBody` ingoia eccezioni e perché su `FunctionsHttpError` conviene anche provare a leggere `error.context` come testo prima di fare `JSON.parse`.
+In `src/components/BirthDataForm.tsx` (campo `birthDate`) sono renderizzati **due controlli**:
+- un `Button` con `Popover` + `Calendar` (con dropdown anno)
+- un `<Input type="date">` nativo HTML5
+
+Entrambi modificano lo stesso `field.value`, ma all'utente sembrano due campi diversi → blocca/confonde la compilazione (e se ne lascia uno vuoto → submit fallisce).
+
+### 2. Pagina vuota dopo il salvataggio
+
+Verificato sul DB: il profilo dell'utente `decatilinae` ha:
+- `planets: {}` (vuoto)
+- `aspects: []` (vuoto)
+- `houses`: 12 case generate dal **fallback** (non dall'API)
+- `ascendant`: Ariete 0° (default)
+
+L'API RapidAPI ha risposto 200 OK (niente errore), ma il parser in `calculate-natal-chart` non ha trovato nulla. La causa è la **struttura della risposta** dell'endpoint Astrologer v5 `/chart-data/birth-chart`: i dati sono annidati sotto una chiave `data` (es. `{ status, data: { planets: [...], houses: [...], aspects: [...] } }`), mentre il codice legge direttamente `chartData.planets`, `chartData.houses`, `chartData.aspects`, `chartData.ascendant`, `chartData.midheaven`. Risultato: array vuoti → la UI mostra le tab "Pianeti / Case / Aspetti" senza contenuto, come nello screenshot.
+
+(Nota: il profilo di Romesh ha ancora 22 pianeti perché era stato calcolato con una versione precedente del codice/API, prima del nuovo payload.)
 
 ## Modifiche
 
-### 1. `supabase/functions/calculate-natal-chart/index.ts`
+### 1. `src/components/BirthDataForm.tsx` — un solo selettore data
 
-Costruire un `subject` valido per **entrambi** gli endpoint:
+Rimuovere il `<Input type="date">` nativo e lasciare **solo** il `Popover` con `Calendar` + dropdown anno (più coerente con il design "Editorial Mystic" e con il resto del form, e già supporta navigazione veloce per anno dal 1900). Aggiornare il `FormDescription` da "Seleziona dal calendario o inserisci manualmente" a qualcosa come "Seleziona dal calendario".
 
-- Aggiungere `city: placeName` (stringa, derivata da `birthPlace.placeName`, fallback `"Unknown"`).
-- Aggiungere `nation: "IT"` come default (o estrarlo dall'ultima parola di `placeName` quando possibile — opzionale).
-- Inviare `timezone` come **stringa IANA** (es. `"Europe/Rome"`) usando `tz-lookup` dalle coordinate. Se non disponibile, fallback a stringa offset tipo `"Etc/GMT-1"` derivata dal numero (regola: `Etc/GMT` usa segno invertito).
-- Mantenere `longitude`/`latitude`/`year`/`month`/`day`/`hour`/`minute` come oggi.
-- Costruire due payload separati se i due endpoint hanno schemi diversi: `astrologerDataBody` (può continuare con timezone numerico se già funziona) e `astrologerContextBody` (con city + timezone stringa).
-- Se il context endpoint fallisce ma data riesce: salvare comunque il tema natale e impostare `natal_context = ""` con un warning nei log, restituendo `success: true` (il context è "nice to have").
-- Se entrambi falliscono per quota → continuare a restituire `API_QUOTA_EXCEEDED` (già OK).
-- Se data riesce e context dà 422 → loggare e proseguire senza context, **non** restituire errore all'utente.
+Se preferisci tenere il nativo (più rapido su mobile/iOS) invece del popover, fammelo sapere prima dell'implementazione — vedi la domanda finale.
 
-Per `tz-lookup` in Deno usare `npm:tz-lookup@6` (no native deps). In alternativa, mappa hardcoded delle 30 timezone più comuni + fallback `Etc/GMT±N` calcolato dall'offset.
+### 2. `supabase/functions/calculate-natal-chart/index.ts` — parser risposta
 
-### 2. `src/utils/handle-edge-error.ts`
+Dopo il `chartData = await dataRes.json()`, normalizzare la struttura:
 
-Rendere `extractErrorBody` più robusto:
+```ts
+// Astrologer v5 può restituire i dati sotto chartData.data
+const payload = chartData?.data ?? chartData;
+const apiPlanets = payload.planets || [];
+const apiHouses = payload.houses || [];
+const apiAspects = payload.aspects || [];
+const apiAscendant = payload.ascendant;
+const apiMidheaven = payload.midheaven;
+```
 
-- Provare prima `await ctx.clone().json()`.
-- Se fallisce, fare `await ctx.clone().text()` e tentare `JSON.parse`.
-- Loggare a `console.warn` quando la lettura fallisce (con status, content-type) per diagnosi futura.
-- Inoltre, se `data` passato in input contiene `errorCode`, usarlo direttamente (già fatto) — ok.
+E usare queste variabili al posto di `chartData.planets`, `chartData.houses`, `chartData.aspects`, `chartData.ascendant`, `chartData.midheaven`.
 
-Nessuna modifica al contratto pubblico della funzione.
+In più, aggiungere un check di sanità: se `apiPlanets.length === 0` **e** `apiHouses.length === 0`, restituire `UPSTREAM_UNAVAILABLE` con dettaglio admin (`response shape unexpected: <keys>`) invece di salvare un tema vuoto. Loggare anche `Object.keys(payload)` per diagnosi.
 
-### 3. `src/components/BirthDataForm.tsx`
+### 3. Recovery dato già corrotto
 
-Verifica veloce: confermare che venga passato `isSuperAdmin: true` quando l'utente loggato è super admin (così Romesh vede `[ADMIN] ...` con dettagli reali invece del messaggio generico). Se manca, usare `useIsSuperAdmin()` e passarlo a `handleEdgeError`.
-
-## Verifica
-
-1. Test manuale del tema natale come Romesh: con quota RapidAPI riattivata, dovrebbe completare. Con quota esaurita, l'utente vede il messaggio neutro e l'admin riceve email + toast `[ADMIN]` con il vero motivo.
-2. Controllare i log Edge: niente più 422 da `context/birth-chart`.
-3. Se l'API `context` continua a dare 422 con il nuovo payload, il tema natale **viene comunque salvato** (campo `natal_context` vuoto).
+Una volta deployata la fix, l'utente `decatilinae` può ricalcolare il tema natale dal pulsante "Modifica Dati" e i dati verranno sovrascritti correttamente. Nessuna migrazione DB necessaria.
 
 ## Fuori scope
 
-Niente cambi a UI o ad altre edge function: il problema è circoscritto a `calculate-natal-chart` + estrazione errori client.
+- Nessuna modifica a UI della pagina `/astrology` (le tab funzioneranno automaticamente quando i dati saranno popolati).
+- Nessuna modifica all'error-handling system, già unificato.
+- Nessuna modifica a `birthTime` o `birthPlace`.
+
+## Verifica
+
+1. Aprire `/astrology` come `decatilinae`, cliccare "Modifica Dati", confermare dati di nascita.
+2. Edge logs devono mostrare `[chart-data] ✅ OK — planets=10+, houses=12`.
+3. Tornare alla pagina: pilastri (Sole/Luna/Ascendente), griglia aspetti e tab "Pianeti / Case / Aspetti" devono essere popolati.
+4. Verificare che il form mostri **un solo** selettore data.
+
+## Domanda
+
+Per il selettore data, quale preferisci?
+- (A) Solo il **Popover Calendar** (con dropdown anno 1900→oggi) — più coerente con il design.
+- (B) Solo l'input **nativo `<input type="date">`** — più veloce su mobile/iOS (in linea con la strategia native iOS del progetto).
+
+Nel piano sopra ho assunto (A); confermami o cambia.
