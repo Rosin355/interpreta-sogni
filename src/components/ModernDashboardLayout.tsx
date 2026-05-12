@@ -180,11 +180,12 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
 
         <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto custom-scrollbar">
           {navItems.map((item) => (
-            <NavItem 
-              key={item.href} 
-              {...item} 
-              active={location.pathname === item.href} 
-              collapsed={false} 
+            <NavItem
+              key={item.href}
+              {...item}
+              active={location.pathname === item.href}
+              collapsed={false}
+              onComingSoonClick={() => setComingSoonOpen(true)}
             />
           ))}
         </nav>
