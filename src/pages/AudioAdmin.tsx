@@ -83,7 +83,7 @@ const AudioAdmin = () => {
   const handleSubmit = async () => {
     if (!title.trim()) return;
 
-    const formData = { title, description, category, access_tier: accessTier, is_published: isPublished, is_featured: isFeatured, sort_order: sortOrder };
+    const formData = { title, subtitle, description, preface, category, access_tier: accessTier, is_published: isPublished, is_featured: isFeatured, sort_order: sortOrder };
 
     let success: boolean;
     if (editingTrack) {
