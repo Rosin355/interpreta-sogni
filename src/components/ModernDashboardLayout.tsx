@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import UserMenu from "./UserMenu";
+import ComingSoonDialog from "./ComingSoonDialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -33,9 +34,36 @@ interface NavItemProps {
   href: string;
   active?: boolean;
   collapsed?: boolean;
+  comingSoon?: boolean;
+  onComingSoonClick?: () => void;
 }
 
-const NavItem = ({ icon: Icon, label, href, active, collapsed }: NavItemProps) => {
+const NavItem = ({ icon: Icon, label, href, active, collapsed, comingSoon, onComingSoonClick }: NavItemProps) => {
+  if (comingSoon) {
+    return (
+      <button
+        type="button"
+        onClick={onComingSoonClick}
+        className={cn(
+          "w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-300 group relative text-left",
+          "text-white/45 hover:text-white/80 hover:bg-white/5"
+        )}
+      >
+        <Icon className="w-5 h-5 shrink-0 group-hover:scale-110 transition-transform" />
+        {!collapsed && (
+          <>
+            <span className="text-sm font-bodoni-heading tracking-wide flex-1">{label}</span>
+            <span
+              className="text-[9px] uppercase tracking-[0.22em]"
+              style={{ color: "hsl(var(--mystic-glow))" }}
+            >
+              Presto
+            </span>
+          </>
+        )}
+      </button>
+    );
+  }
   return (
     <Link
       to={href}
@@ -66,6 +94,7 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [comingSoonOpen, setComingSoonOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,11 +107,12 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
     return () => { cancelled = true; };
   }, []);
 
-  const navItems = [
+  const navItems: Array<{ icon: React.ElementType; label: string; href: string; comingSoon?: boolean }> = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
     { icon: BookOpen, label: "I Miei Sogni", href: "/my-dreams" },
     { icon: Sparkles, label: "Astrologia", href: "/astrology" },
     { icon: Beaker, label: "Alchimia", href: "/alchemy" },
+    { icon: Headphones, label: "Percorsi Sonori", href: "/audio-library", comingSoon: true },
     { icon: Users, label: "Sogni Condivisi", href: "/shared-with-me" },
     { icon: Info, label: "Chi Siamo", href: "/about" },
     ...(isSuperAdmin ? [{ icon: Shield, label: "Admin", href: "/admin" }] : []),
@@ -150,11 +180,12 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
 
         <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto custom-scrollbar">
           {navItems.map((item) => (
-            <NavItem 
-              key={item.href} 
-              {...item} 
-              active={location.pathname === item.href} 
-              collapsed={false} 
+            <NavItem
+              key={item.href}
+              {...item}
+              active={location.pathname === item.href}
+              collapsed={false}
+              onComingSoonClick={() => setComingSoonOpen(true)}
             />
           ))}
         </nav>
@@ -190,9 +221,11 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
               const handleNav = (e: React.MouseEvent | React.PointerEvent) => {
                 e.preventDefault();
                 e.stopPropagation();
-                // Chiudi subito il menu, poi naviga in un microtask con startTransition
-                // così il cambio rotta non viene bloccato da fetch in corso.
                 setIsMobileMenuOpen(false);
+                if (item.comingSoon) {
+                  Promise.resolve().then(() => setComingSoonOpen(true));
+                  return;
+                }
                 if (!isActive) {
                   Promise.resolve().then(() => {
                     startTransition(() => navigate(item.href));
@@ -203,16 +236,24 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
                 <button
                   type="button"
                   key={item.href}
-                  onPointerDown={() => prefetchRoute(item.href)}
-                  onFocus={() => prefetchRoute(item.href)}
+                  onPointerDown={() => { if (!item.comingSoon) prefetchRoute(item.href); }}
+                  onFocus={() => { if (!item.comingSoon) prefetchRoute(item.href); }}
                   onClick={handleNav}
                   className={cn(
                     "relative flex w-full min-h-[64px] items-center gap-4 rounded-xl px-4 py-3 text-2xl font-bodoni-heading tracking-wide text-left active:bg-white/10 transition-colors touch-manipulation",
-                    isActive ? "text-primary bg-white/5" : "text-white/70"
+                    item.comingSoon ? "text-white/45" : isActive ? "text-primary bg-white/5" : "text-white/70"
                   )}
                 >
                   <item.icon className="w-8 h-8 shrink-0" />
                   <span className="flex-1 leading-none">{item.label}</span>
+                  {item.comingSoon && (
+                    <span
+                      className="text-[10px] uppercase tracking-[0.24em]"
+                      style={{ color: "hsl(var(--mystic-glow))" }}
+                    >
+                      Presto
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -283,6 +324,7 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
           </footer>
         </div>
       </main>
+      <ComingSoonDialog open={comingSoonOpen} onOpenChange={setComingSoonOpen} />
     </div>
   );
 };

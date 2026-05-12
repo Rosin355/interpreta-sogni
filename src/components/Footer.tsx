@@ -1,12 +1,17 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import ComingSoonDialog from "./ComingSoonDialog";
 
-const cols = [
+type FooterLink = { label: string; to?: string; comingSoon?: boolean };
+
+const cols: { title: string; links: FooterLink[] }[] = [
   {
     title: "L'opera",
     links: [
       { label: "Il diario", to: "/my-dreams" },
       { label: "Astrologia", to: "/astrology" },
       { label: "Alchimia", to: "/alchemy" },
+      { label: "Percorsi Sonori", comingSoon: true },
     ],
   },
   {
@@ -28,6 +33,7 @@ const cols = [
 ];
 
 const Footer = () => {
+  const [comingSoonOpen, setComingSoonOpen] = useState(false);
   return (
     <footer
       className="relative pt-24 pb-12 border-t border-mystic-violet/15"
@@ -69,12 +75,22 @@ const Footer = () => {
               <ul className="flex flex-col gap-4">
                 {col.links.map((l) => (
                   <li key={l.label}>
-                    <Link
-                      to={l.to}
-                      className="font-editorial italic text-base text-foreground/65 hover:text-mystic-pink transition-colors"
-                    >
-                      {l.label}
-                    </Link>
+                    {l.comingSoon ? (
+                      <button
+                        type="button"
+                        onClick={() => setComingSoonOpen(true)}
+                        className="font-editorial italic text-base text-foreground/65 hover:text-mystic-pink transition-colors text-left"
+                      >
+                        {l.label} <span className="text-foreground/35">…</span>
+                      </button>
+                    ) : (
+                      <Link
+                        to={l.to!}
+                        className="font-editorial italic text-base text-foreground/65 hover:text-mystic-pink transition-colors"
+                      >
+                        {l.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -93,6 +109,7 @@ const Footer = () => {
           </div>
         </div>
       </div>
+      <ComingSoonDialog open={comingSoonOpen} onOpenChange={setComingSoonOpen} />
     </footer>
   );
 };
