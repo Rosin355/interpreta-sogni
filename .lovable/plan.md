@@ -1,34 +1,38 @@
 ## Obiettivo
-Nascondere la voce "Percorsi Audio" dal menu utente (Footer + Dashboard sidebar), mantenendo:
-- la rotta `/i` funzionante (per accesso diretto/QA)
-- la pagina admin `/admin/audio` pienamente operativa
-- aggiungere ai brani i campi **sottotitolo** e **prefazione** caricabili dall'admin
+Ripristinare la voce "Percorsi Sonori" nei menu (Footer + Sidebar Dashboard), ma invece di navigare a `/audio-library`, mostrare un piccolo pannello/dialog di anticipazione nel tono editoriale-mistico del sito.
 
 ## Cambiamenti
 
-### 1. Nascondere la voce dal menu
-- `src/components/Footer.tsx` — rimuovere l'item `{ label: "Percorsi audio", to: "/i" }`.
-- `src/components/ModernDashboardLayout.tsx` — rimuovere l'item `{ icon: Headphones, label: "Percorsi Audio", href: "/i" }`.
-- La rotta `/i` in `App.tsx` resta attiva (accessibile solo via URL diretto). Nessuna rimozione di file/pagina.
+### 1. Nuovo componente `ComingSoonDialog`
+File: `src/components/ComingSoonDialog.tsx`
+- Wrapper su `Dialog` di shadcn (già presente in `src/components/ui/dialog.tsx`).
+- Props: `open`, `onOpenChange`.
+- Contenuto:
+  - Titolo: **"Percorsi Sonori"** (font editorial, uppercase, tracking ampio)
+  - Asterismo decorativo `※` con linee (stile `ed-asterism` già usato nel Footer)
+  - Testo: *"I Percorsi Sonori stanno prendendo forma nel laboratorio onirico. Arriveranno presto."* (italic, font editorial)
+  - Meta line: `MMXXVI · In cantiere` (stile `ed-meta`)
+  - Bottone secondario "Chiudi"
+- Tema scuro coerente: bordi `mystic-violet/15`, glow leggero magenta.
 
-### 2. Database — nuovi campi su `audio_tracks`
-Migration:
-- `subtitle text NULL`
-- `preface text NULL` (testo libero, prefazione/intro al brano)
+### 2. Footer (`src/components/Footer.tsx`)
+- Re-aggiungere nella colonna "Esplora" (o "L'opera") la voce **"Percorsi Sonori"**.
+- Sostituire `<Link to="/audio-library">` con un `<button>` che apre il dialog.
+- Aggiungere stato locale `comingSoonOpen` e renderizzare `<ComingSoonDialog />`.
+- Stesso styling degli altri link (italic, hover mystic-pink) + piccola icona `Sparkles` o ellipsis `…` opzionale per suggerire "in arrivo".
 
-Nessun cambio RLS.
+### 3. Sidebar Dashboard (`src/components/ModernDashboardLayout.tsx`)
+- Re-aggiungere voce **"Percorsi Sonori"** (`icon: Headphones`) nell'array `navItems`.
+- Estendere `NavItem` o gestire un caso speciale: se `item.href === "__coming_soon__"` (sentinella) o se item ha flag `comingSoon`, renderizzare `<button>` invece di `<Link>` che apre il dialog.
+- Aggiungere stato `comingSoonOpen` nel layout.
+- Stesso trattamento per la versione mobile menu (button → apre dialog, non naviga).
+- Mostrare un piccolo badge testuale "Presto" accanto alla label (uppercase, tracking, colore `mystic-glow`).
 
-### 3. Tipi e Admin
-- `src/types/audio-tracks.ts` — aggiungere `subtitle: string | null` e `preface: string | null` a `AudioTrack` e a `TrackFormData`.
-- `src/hooks/useAudioAdmin.ts` — includere `subtitle` e `preface` in `createTrack`/`updateTrack`.
-- `src/pages/AudioAdmin.tsx` — aggiungere due campi nel form:
-  - `Input` per **Sottotitolo** (sotto al Titolo)
-  - `Textarea` per **Prefazione** (sotto alla Descrizione)
-  - Stato `subtitle`/`preface`, reset in `resetForm`, prefill in `handleEdit`.
-
-### 4. Frontend pubblico
-Nessuna modifica visiva alla pagina `/i` in questa iterazione (è oscurata dal menu). I nuovi campi saranno mostrati quando rimetteremo online la sezione.
+### 4. Rotta e admin
+- Lasciare attiva la rotta `/audio-library` in `App.tsx` (accesso diretto/QA).
+- Lasciare invariata la pagina admin `/admin/audio` (con i nuovi campi subtitle/preface già implementati).
 
 ## Note
-- Nessuna modifica a Storage, edge functions, o componenti `audio/*`.
-- Quando vorrai rimettere online la sezione basterà ripristinare i due item di menu.
+- Nessuna modifica a database, edge functions, hooks audio.
+- Quando si vorrà rendere live la sezione, basterà rimuovere il dialog e ripristinare la navigazione normale a `/audio-library`.
+- Tono di voce coerente con la memoria "Editorial Mystic Design Language" e "Standard Homepage".
