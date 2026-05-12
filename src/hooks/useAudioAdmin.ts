@@ -4,7 +4,9 @@ import type { AudioTrack, AudioTrackCategory, AccessTier } from '@/types/audio-t
 
 interface TrackFormData {
   title: string;
+  subtitle: string;
   description: string;
+  preface: string;
   category: AudioTrackCategory;
   access_tier: AccessTier;
   is_published: boolean;
@@ -55,8 +57,10 @@ export function useAudioAdmin() {
 
       const { error } = await supabase.from('audio_tracks').insert({
         title: form.title,
+        subtitle: form.subtitle?.trim() || null,
         slug: generateSlug(form.title),
         description: form.description || null,
+        preface: form.preface?.trim() || null,
         category: form.category,
         cover_image_url: coverUrl,
         audio_path: audioPath,

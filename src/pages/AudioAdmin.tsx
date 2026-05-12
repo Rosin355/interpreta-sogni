@@ -27,7 +27,9 @@ const AudioAdmin = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingTrack, setEditingTrack] = useState<AudioTrack | null>(null);
   const [title, setTitle] = useState('');
+  const [subtitle, setSubtitle] = useState('');
   const [description, setDescription] = useState('');
+  const [preface, setPreface] = useState('');
   const [category, setCategory] = useState<AudioTrackCategory>('Rilassamento profondo');
   const [accessTier, setAccessTier] = useState<AccessTier>('free');
   const [isPublished, setIsPublished] = useState(false);
@@ -57,7 +59,8 @@ const AudioAdmin = () => {
   }
 
   const resetForm = () => {
-    setTitle(''); setDescription(''); setCategory('Rilassamento profondo');
+    setTitle(''); setSubtitle(''); setDescription(''); setPreface('');
+    setCategory('Rilassamento profondo');
     setAccessTier('free'); setIsPublished(false); setIsFeatured(false);
     setSortOrder(0); setAudioFile(null); setCoverFile(null);
     setEditingTrack(null); setShowForm(false);
@@ -66,7 +69,9 @@ const AudioAdmin = () => {
   const handleEdit = (track: AudioTrack) => {
     setEditingTrack(track);
     setTitle(track.title);
+    setSubtitle(track.subtitle || '');
     setDescription(track.description || '');
+    setPreface(track.preface || '');
     setCategory(track.category);
     setAccessTier(track.access_tier);
     setIsPublished(track.is_published);
@@ -78,7 +83,7 @@ const AudioAdmin = () => {
   const handleSubmit = async () => {
     if (!title.trim()) return;
 
-    const formData = { title, description, category, access_tier: accessTier, is_published: isPublished, is_featured: isFeatured, sort_order: sortOrder };
+    const formData = { title, subtitle, description, preface, category, access_tier: accessTier, is_published: isPublished, is_featured: isFeatured, sort_order: sortOrder };
 
     let success: boolean;
     if (editingTrack) {
@@ -137,8 +142,21 @@ const AudioAdmin = () => {
                 <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Meditazione per il sonno..." />
               </div>
               <div>
+                <Label>Sottotitolo</Label>
+                <Input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="Un sottotitolo evocativo (opzionale)" />
+              </div>
+              <div>
                 <Label>Descrizione</Label>
                 <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Una breve descrizione..." />
+              </div>
+              <div>
+                <Label>Prefazione</Label>
+                <Textarea
+                  value={preface}
+                  onChange={(e) => setPreface(e.target.value)}
+                  placeholder="Una piccola prefazione introduttiva al brano (opzionale)"
+                  rows={4}
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
