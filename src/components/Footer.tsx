@@ -7,7 +7,6 @@ const cols = [
       { label: "Il diario", to: "/my-dreams" },
       { label: "Astrologia", to: "/astrology" },
       { label: "Alchimia", to: "/alchemy" },
-      { label: "Percorsi audio", to: "/audio-library" },
     ],
   },
   {

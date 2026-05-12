@@ -84,7 +84,6 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
     { icon: Sparkles, label: "Astrologia", href: "/astrology" },
     { icon: Beaker, label: "Alchimia", href: "/alchemy" },
     { icon: Users, label: "Sogni Condivisi", href: "/shared-with-me" },
-    { icon: Headphones, label: "Percorsi Audio", href: "/audio-library" },
     { icon: Info, label: "Chi Siamo", href: "/about" },
     ...(isSuperAdmin ? [{ icon: Shield, label: "Admin", href: "/admin" }] : []),
   ];
