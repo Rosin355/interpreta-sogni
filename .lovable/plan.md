@@ -1,21 +1,49 @@
-## Piano di correzione
+## Obiettivo
 
-1. **Correggere il parser di `calculate-natal-chart`**
-   - Leggere i pianeti da `chart_data.subject` invece che da `chart_data.planets`.
-   - Estrarre le case da `chart_data.subject.first_house` → `twelfth_house` invece che da `chart_data.houses`.
-   - Estrarre Ascendente e Medio Cielo da `subject.ascendant` e `subject.medium_coeli`.
-   - Mappare gli aspetti usando i campi reali dell’API: `p1_name`, `p2_name`, `aspect`, `orbit`, `aspect_degrees`.
+Sostituire la ruota zodiacale attuale (renderizzata client-side con `@astrodraw/astrochart` su sfondo bianco) con la **chart SVG nativa** generata dall'API Astrologer/Kerykeion in **tema dark**, identica allo screenshot allegato (John Lennon — Dark Theme — Birth Chart): ruota zodiacale + linee di aspetto colorate al centro + colonna dati pianeti/cuspidi a destra + griglia degli aspetti in basso a destra, tutto in un'unica immagine vettoriale.
 
-2. **Rendere il salvataggio più robusto**
-   - Considerare valido il tema solo se contiene almeno i pianeti principali e 12 case.
-   - Salvare anche `houseSystem` dal campo `houses_system_name` quando disponibile.
-   - Evitare fallback silenziosi che generano temi incompleti o pagina vuota.
+## Cosa cambia
 
-3. **Migliorare l’errore mostrato e loggato**
-   - Se RapidAPI risponde ma cambia formato, restituire `UPSTREAM_UNAVAILABLE` con dettagli tecnici utili per admin/log.
-   - Nel frontend, leggere il body dell’errore anche quando Supabase restituisce `FunctionsHttpError`, così non resta solo `INTERNAL_ERROR` generico.
+### 1. Edge function `calculate-natal-chart`
+Aggiungere una **terza chiamata** all'endpoint `POST /api/v5/birth-chart` di Astrologer (oltre a `chart-data` e `context` già usati), con body:
 
-4. **Verifica dopo deploy**
-   - Deploy della Edge Function `calculate-natal-chart`.
-   - Test diretto della funzione con dati equivalenti a quelli nello screenshot: 10/02/1983, 12:15, Roma.
-   - Controllo che il profilo venga aggiornato con pianeti, case e riepilogo non vuoto.
+```
+{
+  subject: { ...stessi dati di nascita, zodiac_type: "Tropic" },
+  theme: "dark",
+  language: "IT",
+  wheel_only: false
+}
+```
+
+La risposta contiene `chart` come stringa SVG completa. Salvarla in `profiles.natal_chart_svg` (nuova colonna `text`).
+
+Comportamento robusto:
+- Se la chiamata SVG fallisce, **non** bloccare il salvataggio: si mantiene il fallback alla ruota client-side esistente.
+- Cache: rigenerare l'SVG solo se i dati di nascita cambiano (stessa logica di cache già presente).
+
+### 2. Database
+Migrazione: aggiungere `natal_chart_svg text` a `profiles`.
+
+### 3. Frontend — pagina Astrology
+- Nuovo componente `NatalChartSVG.tsx` che riceve la stringa SVG e la renderizza con `dangerouslySetInnerHTML` dentro un container responsive (max-width, scroll orizzontale su mobile).
+- In `src/pages/Astrology.tsx`: se `profile.natal_chart_svg` è presente, mostrare `<NatalChartSVG />` al posto di `<AstroChartWheel />`.
+- Poiché l'SVG nativo include già la **griglia degli aspetti** in basso a destra, **rimuovere** anche `<AspectGrid />` dalla pagina quando l'SVG nativo è disponibile (per evitare duplicazione).
+- Mantenere intatti gli altri blocchi (Pilastri Astrologici, Riepilogo Dati di Nascita, descrizioni pianeti/case).
+
+### 4. Pulizia opzionale
+Lasciare `AstroChartWheel.tsx` e `AspectGrid.tsx` in repo come fallback per i profili vecchi che non hanno ancora `natal_chart_svg` (verranno usati finché l'utente non ricalcola il tema).
+
+## Dettagli tecnici
+
+- Endpoint: `https://astrologer.p.rapidapi.com/api/v5/birth-chart` (header `X-RapidAPI-Key`, `X-RapidAPI-Host`).
+- L'SVG ritornato è autocontenuto (font, colori, gradients inline) → nessun CSS aggiuntivo richiesto.
+- `theme: "dark"` produce sfondo blu-notte coerente con il design "Dramatic Mystic" del progetto.
+- `language: "IT"` localizza le label (Sole/Luna/Mercurio…) dove supportato dalla libreria; in caso contrario resta inglese (Sun/Moon).
+- Dimensioni: l'SVG ha `viewBox` proprio; basta `width: 100%; height: auto` nel container.
+
+## Verifica post-deploy
+
+1. Ricalcolare il tema natale per l'utente di test → confermare che `profiles.natal_chart_svg` non è null.
+2. La pagina `/astrology` mostra la chart in stile dark identica alla demo, senza la vecchia ruota bianca né la griglia aspetti separata.
+3. Profili senza `natal_chart_svg` continuano a vedere la versione client-side (nessuna regressione).
