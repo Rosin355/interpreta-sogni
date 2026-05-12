@@ -33,6 +33,7 @@ const cols: { title: string; links: FooterLink[] }[] = [
 ];
 
 const Footer = () => {
+  const [comingSoonOpen, setComingSoonOpen] = useState(false);
   return (
     <footer
       className="relative pt-24 pb-12 border-t border-mystic-violet/15"
