@@ -75,12 +75,22 @@ const Footer = () => {
               <ul className="flex flex-col gap-4">
                 {col.links.map((l) => (
                   <li key={l.label}>
-                    <Link
-                      to={l.to}
-                      className="font-editorial italic text-base text-foreground/65 hover:text-mystic-pink transition-colors"
-                    >
-                      {l.label}
-                    </Link>
+                    {l.comingSoon ? (
+                      <button
+                        type="button"
+                        onClick={() => setComingSoonOpen(true)}
+                        className="font-editorial italic text-base text-foreground/65 hover:text-mystic-pink transition-colors text-left"
+                      >
+                        {l.label} <span className="text-foreground/35">…</span>
+                      </button>
+                    ) : (
+                      <Link
+                        to={l.to!}
+                        className="font-editorial italic text-base text-foreground/65 hover:text-mystic-pink transition-colors"
+                      >
+                        {l.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
