@@ -109,6 +109,7 @@ const Footer = () => {
           </div>
         </div>
       </div>
+      <ComingSoonDialog open={comingSoonOpen} onOpenChange={setComingSoonOpen} />
     </footer>
   );
 };
