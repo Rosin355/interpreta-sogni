@@ -4,8 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AstroChartWheel } from "@/components/AstroChartWheel";
-import { AspectGrid } from "@/components/AspectGrid";
 import { NatalChartSVG } from "@/components/NatalChartSVG";
 import { BirthDataForm } from "@/components/BirthDataForm";
 import { AstrologicalPillars } from "@/components/AstrologicalPillars";
@@ -284,16 +282,24 @@ const Astrology = () => {
             ascendant={natalChartData?.ascendant}
           />
 
-          {/* Chart natale: SVG nativo (tema dark) se disponibile, altrimenti fallback ruota + griglia */}
+          {/* Chart natale: SVG nativo (tema dark) generato dall'API Astrologer */}
           {profile?.natal_chart_svg ? (
             <NatalChartSVG svg={profile.natal_chart_svg} />
           ) : (
-            <>
-              <AstroChartWheel natalChartData={natalChartData} />
-              {natalChartData.aspects && natalChartData.aspects.length > 0 && (
-                <AspectGrid aspects={natalChartData.aspects} />
-              )}
-            </>
+            <Card>
+              <CardHeader>
+                <CardTitle>Grafico del Tema Natale</CardTitle>
+                <CardDescription>
+                  Il grafico visivo del tuo tema natale non è ancora disponibile. Ricalcola il tema natale per generarlo.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={() => setShowEditForm(true)} variant="outline" className="gap-2">
+                  <Edit2 className="h-4 w-4" />
+                  Ricalcola Tema Natale
+                </Button>
+              </CardContent>
+            </Card>
           )}
 
           {/* Detailed Information */}
