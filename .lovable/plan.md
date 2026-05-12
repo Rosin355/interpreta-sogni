@@ -1,22 +1,34 @@
 ## Obiettivo
+Nascondere la voce "Percorsi Audio" dal menu utente (Footer + Dashboard sidebar), mantenendo:
+- la rotta `/i` funzionante (per accesso diretto/QA)
+- la pagina admin `/admin/audio` pienamente operativa
+- aggiungere ai brani i campi **sottotitolo** e **prefazione** caricabili dall'admin
 
-Rimuovere completamente dal codice sia la **Griglia degli Aspetti** sia la **Ruota Zodiacale** (fallback client-side). Resta solo l'SVG nativo dark dell'API Astrologer come visualizzazione grafica del tema natale.
+## Cambiamenti
 
-## Modifiche
+### 1. Nascondere la voce dal menu
+- `src/components/Footer.tsx` — rimuovere l'item `{ label: "Percorsi audio", to: "/i" }`.
+- `src/components/ModernDashboardLayout.tsx` — rimuovere l'item `{ icon: Headphones, label: "Percorsi Audio", href: "/i" }`.
+- La rotta `/i` in `App.tsx` resta attiva (accessibile solo via URL diretto). Nessuna rimozione di file/pagina.
 
-### 1. `src/pages/Astrology.tsx`
-- Rimuovere import `AstroChartWheel` e `AspectGrid`.
-- Sostituire il blocco condizionale (righe 287–297) con il solo render di `<NatalChartSVG svg={profile.natal_chart_svg} />`, mostrato solo se l'SVG esiste. Se manca, mostrare un piccolo messaggio/CTA che invita a (ri)calcolare il tema natale tramite "Modifica Dati".
+### 2. Database — nuovi campi su `audio_tracks`
+Migration:
+- `subtitle text NULL`
+- `preface text NULL` (testo libero, prefazione/intro al brano)
 
-### 2. File eliminati
-- `src/components/AstroChartWheel.tsx`
-- `src/components/AspectGrid.tsx`
+Nessun cambio RLS.
 
-### 3. Dipendenza
-- Rimuovere il pacchetto `@astrodraw/astrochart` da `package.json` (non più usato).
+### 3. Tipi e Admin
+- `src/types/audio-tracks.ts` — aggiungere `subtitle: string | null` e `preface: string | null` a `AudioTrack` e a `TrackFormData`.
+- `src/hooks/useAudioAdmin.ts` — includere `subtitle` e `preface` in `createTrack`/`updateTrack`.
+- `src/pages/AudioAdmin.tsx` — aggiungere due campi nel form:
+  - `Input` per **Sottotitolo** (sotto al Titolo)
+  - `Textarea` per **Prefazione** (sotto alla Descrizione)
+  - Stato `subtitle`/`preface`, reset in `resetForm`, prefill in `handleEdit`.
 
-## Cosa resta invariato
+### 4. Frontend pubblico
+Nessuna modifica visiva alla pagina `/i` in questa iterazione (è oscurata dal menu). I nuovi campi saranno mostrati quando rimetteremo online la sezione.
 
-- Tab "Pianeti / Case / Aspetti" con dati testuali (sotto il grafico) → restano, includono già la lista testuale degli aspetti.
-- `AstrologicalPillars`, `BirthDataSummary`, `BirthDataForm`, edge function `calculate-natal-chart` → invariati.
-- Profili senza `natal_chart_svg`: vedranno il messaggio di ricalcolo (niente più ruota bianca di fallback).
+## Note
+- Nessuna modifica a Storage, edge functions, o componenti `audio/*`.
+- Quando vorrai rimettere online la sezione basterà ripristinare i due item di menu.
