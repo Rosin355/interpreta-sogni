@@ -1,12 +1,17 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import ComingSoonDialog from "./ComingSoonDialog";
 
-const cols = [
+type FooterLink = { label: string; to?: string; comingSoon?: boolean };
+
+const cols: { title: string; links: FooterLink[] }[] = [
   {
     title: "L'opera",
     links: [
       { label: "Il diario", to: "/my-dreams" },
       { label: "Astrologia", to: "/astrology" },
       { label: "Alchimia", to: "/alchemy" },
+      { label: "Percorsi Sonori", comingSoon: true },
     ],
   },
   {
