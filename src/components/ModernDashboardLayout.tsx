@@ -324,6 +324,7 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
           </footer>
         </div>
       </main>
+      <ComingSoonDialog open={comingSoonOpen} onOpenChange={setComingSoonOpen} />
     </div>
   );
 };
