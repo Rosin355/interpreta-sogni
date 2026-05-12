@@ -34,9 +34,36 @@ interface NavItemProps {
   href: string;
   active?: boolean;
   collapsed?: boolean;
+  comingSoon?: boolean;
+  onComingSoonClick?: () => void;
 }
 
-const NavItem = ({ icon: Icon, label, href, active, collapsed }: NavItemProps) => {
+const NavItem = ({ icon: Icon, label, href, active, collapsed, comingSoon, onComingSoonClick }: NavItemProps) => {
+  if (comingSoon) {
+    return (
+      <button
+        type="button"
+        onClick={onComingSoonClick}
+        className={cn(
+          "w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-300 group relative text-left",
+          "text-white/45 hover:text-white/80 hover:bg-white/5"
+        )}
+      >
+        <Icon className="w-5 h-5 shrink-0 group-hover:scale-110 transition-transform" />
+        {!collapsed && (
+          <>
+            <span className="text-sm font-bodoni-heading tracking-wide flex-1">{label}</span>
+            <span
+              className="text-[9px] uppercase tracking-[0.22em]"
+              style={{ color: "hsl(var(--mystic-glow))" }}
+            >
+              Presto
+            </span>
+          </>
+        )}
+      </button>
+    );
+  }
   return (
     <Link
       to={href}
