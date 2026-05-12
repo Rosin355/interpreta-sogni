@@ -27,7 +27,9 @@ const AudioAdmin = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingTrack, setEditingTrack] = useState<AudioTrack | null>(null);
   const [title, setTitle] = useState('');
+  const [subtitle, setSubtitle] = useState('');
   const [description, setDescription] = useState('');
+  const [preface, setPreface] = useState('');
   const [category, setCategory] = useState<AudioTrackCategory>('Rilassamento profondo');
   const [accessTier, setAccessTier] = useState<AccessTier>('free');
   const [isPublished, setIsPublished] = useState(false);
@@ -57,7 +59,8 @@ const AudioAdmin = () => {
   }
 
   const resetForm = () => {
-    setTitle(''); setDescription(''); setCategory('Rilassamento profondo');
+    setTitle(''); setSubtitle(''); setDescription(''); setPreface('');
+    setCategory('Rilassamento profondo');
     setAccessTier('free'); setIsPublished(false); setIsFeatured(false);
     setSortOrder(0); setAudioFile(null); setCoverFile(null);
     setEditingTrack(null); setShowForm(false);
@@ -66,7 +69,9 @@ const AudioAdmin = () => {
   const handleEdit = (track: AudioTrack) => {
     setEditingTrack(track);
     setTitle(track.title);
+    setSubtitle(track.subtitle || '');
     setDescription(track.description || '');
+    setPreface(track.preface || '');
     setCategory(track.category);
     setAccessTier(track.access_tier);
     setIsPublished(track.is_published);
