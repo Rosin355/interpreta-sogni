@@ -94,6 +94,7 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [comingSoonOpen, setComingSoonOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -106,11 +107,12 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
     return () => { cancelled = true; };
   }, []);
 
-  const navItems = [
+  const navItems: Array<{ icon: React.ElementType; label: string; href: string; comingSoon?: boolean }> = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
     { icon: BookOpen, label: "I Miei Sogni", href: "/my-dreams" },
     { icon: Sparkles, label: "Astrologia", href: "/astrology" },
     { icon: Beaker, label: "Alchimia", href: "/alchemy" },
+    { icon: Headphones, label: "Percorsi Sonori", href: "/audio-library", comingSoon: true },
     { icon: Users, label: "Sogni Condivisi", href: "/shared-with-me" },
     { icon: Info, label: "Chi Siamo", href: "/about" },
     ...(isSuperAdmin ? [{ icon: Shield, label: "Admin", href: "/admin" }] : []),
