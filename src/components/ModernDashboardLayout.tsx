@@ -221,9 +221,11 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
               const handleNav = (e: React.MouseEvent | React.PointerEvent) => {
                 e.preventDefault();
                 e.stopPropagation();
-                // Chiudi subito il menu, poi naviga in un microtask con startTransition
-                // così il cambio rotta non viene bloccato da fetch in corso.
                 setIsMobileMenuOpen(false);
+                if (item.comingSoon) {
+                  Promise.resolve().then(() => setComingSoonOpen(true));
+                  return;
+                }
                 if (!isActive) {
                   Promise.resolve().then(() => {
                     startTransition(() => navigate(item.href));
@@ -234,16 +236,24 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
                 <button
                   type="button"
                   key={item.href}
-                  onPointerDown={() => prefetchRoute(item.href)}
-                  onFocus={() => prefetchRoute(item.href)}
+                  onPointerDown={() => { if (!item.comingSoon) prefetchRoute(item.href); }}
+                  onFocus={() => { if (!item.comingSoon) prefetchRoute(item.href); }}
                   onClick={handleNav}
                   className={cn(
                     "relative flex w-full min-h-[64px] items-center gap-4 rounded-xl px-4 py-3 text-2xl font-bodoni-heading tracking-wide text-left active:bg-white/10 transition-colors touch-manipulation",
-                    isActive ? "text-primary bg-white/5" : "text-white/70"
+                    item.comingSoon ? "text-white/45" : isActive ? "text-primary bg-white/5" : "text-white/70"
                   )}
                 >
                   <item.icon className="w-8 h-8 shrink-0" />
                   <span className="flex-1 leading-none">{item.label}</span>
+                  {item.comingSoon && (
+                    <span
+                      className="text-[10px] uppercase tracking-[0.24em]"
+                      style={{ color: "hsl(var(--mystic-glow))" }}
+                    >
+                      Presto
+                    </span>
+                  )}
                 </button>
               );
             })}
