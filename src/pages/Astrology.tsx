@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { AstroChartWheel } from "@/components/AstroChartWheel";
 import { AspectGrid } from "@/components/AspectGrid";
+import { NatalChartSVG } from "@/components/NatalChartSVG";
 import { BirthDataForm } from "@/components/BirthDataForm";
 import { AstrologicalPillars } from "@/components/AstrologicalPillars";
 import { BirthDataSummary } from "@/components/BirthDataSummary";
@@ -283,9 +284,16 @@ const Astrology = () => {
             ascendant={natalChartData?.ascendant}
           />
 
-          {/* Aspect Grid */}
-          {natalChartData.aspects && natalChartData.aspects.length > 0 && (
-            <AspectGrid aspects={natalChartData.aspects} />
+          {/* Chart natale: SVG nativo (tema dark) se disponibile, altrimenti fallback ruota + griglia */}
+          {profile?.natal_chart_svg ? (
+            <NatalChartSVG svg={profile.natal_chart_svg} />
+          ) : (
+            <>
+              <AstroChartWheel natalChartData={natalChartData} />
+              {natalChartData.aspects && natalChartData.aspects.length > 0 && (
+                <AspectGrid aspects={natalChartData.aspects} />
+              )}
+            </>
           )}
 
           {/* Detailed Information */}
