@@ -4,7 +4,9 @@ import type { AudioTrack, AudioTrackCategory, AccessTier } from '@/types/audio-t
 
 interface TrackFormData {
   title: string;
+  subtitle: string;
   description: string;
+  preface: string;
   category: AudioTrackCategory;
   access_tier: AccessTier;
   is_published: boolean;
