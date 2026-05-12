@@ -48,8 +48,10 @@ export type Database = {
           id: string
           is_featured: boolean
           is_published: boolean
+          preface: string | null
           slug: string
           sort_order: number
+          subtitle: string | null
           title: string
           updated_at: string
         }
@@ -65,8 +67,10 @@ export type Database = {
           id?: string
           is_featured?: boolean
           is_published?: boolean
+          preface?: string | null
           slug: string
           sort_order?: number
+          subtitle?: string | null
           title: string
           updated_at?: string
         }
@@ -82,8 +86,10 @@ export type Database = {
           id?: string
           is_featured?: boolean
           is_published?: boolean
+          preface?: string | null
           slug?: string
           sort_order?: number
+          subtitle?: string | null
           title?: string
           updated_at?: string
         }

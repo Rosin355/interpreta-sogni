@@ -1,0 +1,3 @@
+ALTER TABLE public.audio_tracks
+  ADD COLUMN IF NOT EXISTS subtitle TEXT,
+  ADD COLUMN IF NOT EXISTS preface TEXT;
