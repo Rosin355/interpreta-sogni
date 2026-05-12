@@ -12,8 +12,10 @@ export type AccessTier = 'free' | 'subscriber';
 export interface AudioTrack {
   id: string;
   title: string;
+  subtitle: string | null;
   slug: string;
   description: string | null;
+  preface: string | null;
   category: AudioTrackCategory;
   cover_image_url: string | null;
   audio_path: string;
