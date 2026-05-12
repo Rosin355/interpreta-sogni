@@ -391,6 +391,39 @@ serve(async (req) => {
       console.warn('[context] 💥 Network/fetch exception, proceeding without natal_context:', ctxErr);
     }
 
+    // /birth-chart (SVG dark theme — best-effort, non blocca il salvataggio)
+    let natalChartSvg: string | null = null;
+    try {
+      console.log('[birth-chart-svg] → POST /api/v5/birth-chart (theme=dark)');
+      const t0 = Date.now();
+      const svgRes = await fetch(
+        'https://astrologer.p.rapidapi.com/api/v5/birth-chart',
+        {
+          method: 'POST',
+          headers: rapidApiHeaders,
+          body: JSON.stringify({
+            subject: subjectPayload,
+            theme: 'dark',
+            language: 'IT',
+            wheel_only: false,
+          }),
+        }
+      );
+      const elapsed = Date.now() - t0;
+      console.log(`[birth-chart-svg] Response: status=${svgRes.status} in ${elapsed}ms`);
+      if (svgRes.ok) {
+        const svgRaw = await svgRes.json();
+        const svgPayload = svgRaw?.data ?? svgRaw?.chart_data ?? svgRaw;
+        natalChartSvg = svgPayload?.chart || svgRaw?.chart || null;
+        console.log(`[birth-chart-svg] ✅ OK — svg length=${natalChartSvg?.length ?? 0}`);
+      } else {
+        const svgError = await svgRes.text();
+        console.warn(`[birth-chart-svg] ⚠️ FAILED ${svgRes.status} — proceeding without SVG: ${svgError}`);
+      }
+    } catch (svgErr) {
+      console.warn('[birth-chart-svg] 💥 Network/fetch exception, proceeding without SVG:', svgErr);
+    }
+
     // === Astrologer v5: pianeti e case sono dentro chart_data.subject (oggetti per chiave) ===
 
     // Mappa segni 3-letter → nome inglese completo (formato atteso dal resto dell'app)
@@ -546,6 +579,7 @@ serve(async (req) => {
       .from('profiles')
       .update({
         natal_chart_data: natalChartData,
+        natal_chart_svg: natalChartSvg,
         natal_context: natalContext,
         birth_date: birthDate,
         birth_time: birthTime,
