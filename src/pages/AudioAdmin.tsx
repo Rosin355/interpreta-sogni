@@ -142,8 +142,21 @@ const AudioAdmin = () => {
                 <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Meditazione per il sonno..." />
               </div>
               <div>
+                <Label>Sottotitolo</Label>
+                <Input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="Un sottotitolo evocativo (opzionale)" />
+              </div>
+              <div>
                 <Label>Descrizione</Label>
                 <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Una breve descrizione..." />
+              </div>
+              <div>
+                <Label>Prefazione</Label>
+                <Textarea
+                  value={preface}
+                  onChange={(e) => setPreface(e.target.value)}
+                  placeholder="Una piccola prefazione introduttiva al brano (opzionale)"
+                  rows={4}
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
