@@ -579,6 +579,7 @@ serve(async (req) => {
       .from('profiles')
       .update({
         natal_chart_data: natalChartData,
+        natal_chart_svg: natalChartSvg,
         natal_context: natalContext,
         birth_date: birthDate,
         birth_time: birthTime,
