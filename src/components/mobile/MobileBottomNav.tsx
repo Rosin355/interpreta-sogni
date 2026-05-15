@@ -1,6 +1,6 @@
 import { startTransition } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, BookOpen, Sparkles, Beaker, MoreHorizontal, Plus } from "lucide-react";
+import { LayoutDashboard, BookOpen, Sparkles, MoreHorizontal, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { prefetchRoute } from "@/utils/route-prefetch";
 
@@ -14,7 +14,6 @@ const TABS: TabItem[] = [
   { icon: LayoutDashboard, label: "Home", href: "/dashboard" },
   { icon: BookOpen, label: "Sogni", href: "/my-dreams" },
   { icon: Sparkles, label: "Astro", href: "/astrology" },
-  { icon: Beaker, label: "Alchimia", href: "/alchemy" },
 ];
 
 interface MobileBottomNavProps {
