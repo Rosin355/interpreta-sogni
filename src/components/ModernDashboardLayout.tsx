@@ -145,18 +145,23 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
 
       {/* Mobile TopBar */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 px-4 flex items-center justify-between bg-black/60 backdrop-blur-xl border-b border-white/5 z-50">
-        <div className="flex items-center gap-3">
+        <Link to="/dashboard" className="flex items-center gap-3">
           <div className="w-8 h-8 flex items-center justify-center">
             <img src="/dreamalchemist_logo.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
           <span className="font-editorial uppercase tracking-[0.1em] text-sm">DREAM ALCHEMIST</span>
+        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label="Notifiche"
+            className="relative flex min-h-11 min-w-11 items-center justify-center rounded-full text-white/70 hover:text-white active:bg-white/10"
+          >
+            <Bell className="w-5 h-5" />
+            <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_8px_hsl(var(--primary)/0.8)]" />
+          </button>
+          <UserMenu />
         </div>
-        <button 
-          onClick={openMobileMenu}
-          className="-mr-2 flex min-h-12 min-w-12 items-center justify-center rounded-full text-white/70 hover:text-white active:bg-white/10"
-        >
-          {isMobileMenuOpen ? <X /> : <Menu />}
-        </button>
       </div>
 
       {/* Sidebar - Truly Fixed Height and Position */}
