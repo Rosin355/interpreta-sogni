@@ -130,7 +130,6 @@ export const MobileBottomNav = ({ onMoreClick }: MobileBottomNavProps) => {
         </div>
 
         {renderTab(TABS[2])}
-        {renderTab(TABS[3])}
 
         {/* Tab "Altro" */}
         <button
