@@ -121,10 +121,6 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
     navigate("/");
   };
 
-  const openMobileMenu = () => {
-    // Prefetch differito: non saturare il main thread al primo tap del menu
-    setIsMobileMenuOpen((open) => !open);
-  };
 
   return (
     <div className="relative h-screen bg-[#030303] text-white overflow-hidden font-sans flex">
