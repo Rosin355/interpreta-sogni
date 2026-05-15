@@ -1,7 +1,7 @@
 import { startTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Users, Headphones, Info, Shield, LogOut, User as UserIcon, Settings } from "lucide-react";
+import { Users, Headphones, Info, Shield, LogOut, User as UserIcon, Settings, Beaker } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { prefetchRoute } from "@/utils/route-prefetch";
 
