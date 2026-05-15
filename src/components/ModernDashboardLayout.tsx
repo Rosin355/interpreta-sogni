@@ -1,32 +1,29 @@
-import React, { useState, useEffect, startTransition } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Sparkles, 
-  Beaker, 
-  Users, 
-  Headphones, 
-  Info, 
-  Plus, 
-  Search, 
-  Bell, 
-  Menu, 
-  X,
-  Settings,
-  User as UserIcon,
+import { motion } from "framer-motion";
+import {
+  LayoutDashboard,
+  BookOpen,
+  Sparkles,
+  Beaker,
+  Users,
+  Headphones,
+  Info,
+  Plus,
+  Search,
+  Bell,
   LogOut,
-  Shield
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import UserMenu from "./UserMenu";
 import ComingSoonDialog from "./ComingSoonDialog";
+import MobileBottomNav from "./mobile/MobileBottomNav";
+import MobileMoreSheet from "./mobile/MobileMoreSheet";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import dashboardBg from "@/assets/mystic-dashboard-bg.png";
-import { prefetchRoute, startRoutePrefetch } from "@/utils/route-prefetch";
 
 interface NavItemProps {
   icon: React.ElementType;
