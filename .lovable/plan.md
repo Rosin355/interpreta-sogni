@@ -1,38 +1,91 @@
-## Obiettivo
-Ripristinare la voce "Percorsi Sonori" nei menu (Footer + Sidebar Dashboard), ma invece di navigare a `/audio-library`, mostrare un piccolo pannello/dialog di anticipazione nel tono editoriale-mistico del sito.
+# Mobile Navigation: Bottom Tab Bar
 
-## Cambiamenti
+Sostituiamo l'attuale menu hamburger mobile con una **bottom tab bar fissa** in stile native iOS, mantenendo lo stile "Dramatic Mystic" (nero profondo, glow magenta, font editorial). Desktop resta invariato (sidebar attuale).
 
-### 1. Nuovo componente `ComingSoonDialog`
-File: `src/components/ComingSoonDialog.tsx`
-- Wrapper su `Dialog` di shadcn (già presente in `src/components/ui/dialog.tsx`).
-- Props: `open`, `onOpenChange`.
-- Contenuto:
-  - Titolo: **"Percorsi Sonori"** (font editorial, uppercase, tracking ampio)
-  - Asterismo decorativo `※` con linee (stile `ed-asterism` già usato nel Footer)
-  - Testo: *"I Percorsi Sonori stanno prendendo forma nel laboratorio onirico. Arriveranno presto."* (italic, font editorial)
-  - Meta line: `MMXXVI · In cantiere` (stile `ed-meta`)
-  - Bottone secondario "Chiudi"
-- Tema scuro coerente: bordi `mystic-violet/15`, glow leggero magenta.
+## Struttura
 
-### 2. Footer (`src/components/Footer.tsx`)
-- Re-aggiungere nella colonna "Esplora" (o "L'opera") la voce **"Percorsi Sonori"**.
-- Sostituire `<Link to="/audio-library">` con un `<button>` che apre il dialog.
-- Aggiungere stato locale `comingSoonOpen` e renderizzare `<ComingSoonDialog />`.
-- Stesso styling degli altri link (italic, hover mystic-pink) + piccola icona `Sparkles` o ellipsis `…` opzionale per suggerire "in arrivo".
+```text
+┌─────────────────────────────┐
+│  [Logo]    DREAM ALCHEMIST   [🔔][👤] │  ← Top bar slim (invariata, senza hamburger)
+├─────────────────────────────┤
+│                             │
+│      Contenuto pagina       │
+│      (con padding-bottom    │
+│       per non finire        │
+│       sotto la tab bar)     │
+│                             │
+├─────────────────────────────┤
+│  🏠     📖    ➕    ✨    ⚗️    ⋯  │  ← Bottom tab bar
+│ Home  Sogni  NEW  Astro Alch Altro │
+└─────────────────────────────┘
+        ▲          ▲
+   4 tab + FAB centrale rialzato + tab "Altro"
+```
 
-### 3. Sidebar Dashboard (`src/components/ModernDashboardLayout.tsx`)
-- Re-aggiungere voce **"Percorsi Sonori"** (`icon: Headphones`) nell'array `navItems`.
-- Estendere `NavItem` o gestire un caso speciale: se `item.href === "__coming_soon__"` (sentinella) o se item ha flag `comingSoon`, renderizzare `<button>` invece di `<Link>` che apre il dialog.
-- Aggiungere stato `comingSoonOpen` nel layout.
-- Stesso trattamento per la versione mobile menu (button → apre dialog, non naviga).
-- Mostrare un piccolo badge testuale "Presto" accanto alla label (uppercase, tracking, colore `mystic-glow`).
+### Tab visibili (5 + FAB)
+1. **Dashboard** — `LayoutDashboard` → `/dashboard`
+2. **Sogni** — `BookOpen` → `/my-dreams`
+3. **➕ Nuovo Sogno** (FAB centrale rialzato, glow magenta) → `/dreams/new`
+4. **Astrologia** — `Sparkles` → `/astrology`
+5. **Alchimia** — `Beaker` → `/alchemy`
+6. **Altro** — `MoreHorizontal` → apre uno **Sheet** (drawer dal basso) con:
+   - Sogni Condivisi (`/shared-with-me`)
+   - Percorsi Sonori (coming soon → riusa `ComingSoonDialog`)
+   - Chi Siamo (`/about`)
+   - Admin (solo se `isSuperAdmin`)
+   - Esci (logout)
 
-### 4. Rotta e admin
-- Lasciare attiva la rotta `/audio-library` in `App.tsx` (accesso diretto/QA).
-- Lasciare invariata la pagina admin `/admin/audio` (con i nuovi campi subtitle/preface già implementati).
+### Top bar mobile (invariata nella sostanza)
+- Stessa altezza (h-16), logo + brand a sinistra
+- A destra: campanella notifiche + `UserMenu` (avatar) — **rimuoviamo l'icona hamburger**
 
-## Note
-- Nessuna modifica a database, edge functions, hooks audio.
-- Quando si vorrà rendere live la sezione, basterà rimuovere il dialog e ripristinare la navigazione normale a `/audio-library`.
-- Tono di voce coerente con la memoria "Editorial Mystic Design Language" e "Standard Homepage".
+## Comportamento & UX
+
+- **Tab attiva**: icona piena + label visibile + glow sottile magenta sotto + indicatore pill superiore (motion `layoutId` come la sidebar desktop)
+- **Tab inattiva**: icona outline + label dimmed (`text-white/55`)
+- **FAB centrale**: cerchio 56px rialzato (-translate-y-4), gradient magenta→viola, shadow glow, sempre `+` bianco. Tap → `/dreams/new`
+- **Safe area iOS**: `pb-[env(safe-area-inset-bottom)]` sulla tab bar per non finire sotto la home indicator
+- **Hide-on-scroll** (opzionale, raccomandato): la bar si nasconde scrollando in giù e riappare scrollando in su, per dare più spazio in lettura
+- **Sheet "Altro"**: usa `Sheet` di shadcn dal basso, sfondo `bg-black/90 backdrop-blur-xl`, voci con stesso stile della sidebar desktop
+- **Prefetch**: stesso pattern attuale (`prefetchRoute` su `onPointerDown`)
+- **Coming Soon**: tap su "Percorsi Sonori" nello sheet → chiude sheet + apre `ComingSoonDialog`
+
+## Stile (Dramatic Mystic)
+
+- Bar: `fixed bottom-0`, `bg-black/80 backdrop-blur-2xl`, `border-t border-white/10`
+- Glow superiore sottile: gradient magenta orizzontale al 5% opacità
+- Label: `font-bodoni-heading text-[10px] uppercase tracking-[0.18em]`
+- Active color: `hsl(var(--mystic-glow))` con drop-shadow
+- FAB: `bg-gradient-to-br from-primary to-purple-600`, `shadow-[0_8px_24px_-4px_hsl(var(--primary)/0.6)]`, ring `border border-white/20`
+
+## Accessibilità & responsive
+
+- `aria-label` su ogni tab, `aria-current="page"` per quella attiva
+- Min touch target 48×48px (FAB 56px)
+- Visibile solo `< lg` (`lg:hidden`); desktop continua con la sidebar esistente
+- Reduced-motion: niente animazione `layoutId`, solo color transition
+
+## Dettagli tecnici
+
+**Nuovi file**
+- `src/components/mobile/MobileBottomNav.tsx` — la tab bar (4 tab + FAB + "Altro")
+- `src/components/mobile/MobileMoreSheet.tsx` — sheet con voci secondarie + logout
+
+**File modificati**
+- `src/components/ModernDashboardLayout.tsx`:
+  - Rimuovere il blocco "Mobile Menu Overlay" (full-screen hamburger menu)
+  - Rimuovere il bottone hamburger dalla TopBar mobile, sostituirlo con `UserMenu` + bell
+  - Aggiungere `<MobileBottomNav />` fuori da `<main>` (fixed)
+  - Aggiungere `pb-24` (o equivalente) al container scrollabile mobile per non coprire contenuto
+  - Mantenere `ComingSoonDialog` esistente (controllato dallo stato condiviso o sollevato)
+
+**Stato**
+- `comingSoonOpen` resta in `ModernDashboardLayout` e viene passato giù come prop/callback
+- `MobileMoreSheet` riceve `onComingSoon` e `onLogout`
+
+**Nessuna modifica a**: routing, business logic, sidebar desktop, top header desktop, navbar pubblica (`MiniNavbar`).
+
+## Out of scope
+- Native gesture (swipe tra tab)
+- Badge numerici (notifiche non lette) — facile da aggiungere in futuro
+- Animazioni complesse Lottie sulle icone
