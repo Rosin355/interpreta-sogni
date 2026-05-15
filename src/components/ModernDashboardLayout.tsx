@@ -1,32 +1,29 @@
-import React, { useState, useEffect, startTransition } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Sparkles, 
-  Beaker, 
-  Users, 
-  Headphones, 
-  Info, 
-  Plus, 
-  Search, 
-  Bell, 
-  Menu, 
-  X,
-  Settings,
-  User as UserIcon,
+import { motion } from "framer-motion";
+import {
+  LayoutDashboard,
+  BookOpen,
+  Sparkles,
+  Beaker,
+  Users,
+  Headphones,
+  Info,
+  Plus,
+  Search,
+  Bell,
   LogOut,
-  Shield
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import UserMenu from "./UserMenu";
 import ComingSoonDialog from "./ComingSoonDialog";
+import MobileBottomNav from "./mobile/MobileBottomNav";
+import MobileMoreSheet from "./mobile/MobileMoreSheet";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import dashboardBg from "@/assets/mystic-dashboard-bg.png";
-import { prefetchRoute, startRoutePrefetch } from "@/utils/route-prefetch";
 
 interface NavItemProps {
   icon: React.ElementType;
@@ -92,9 +89,9 @@ const NavItem = ({ icon: Icon, label, href, active, collapsed, comingSoon, onCom
 export const ModernDashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
+  const [moreSheetOpen, setMoreSheetOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -124,10 +121,6 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
     navigate("/");
   };
 
-  const openMobileMenu = () => {
-    // Prefetch differito: non saturare il main thread al primo tap del menu
-    setIsMobileMenuOpen((open) => !open);
-  };
 
   return (
     <div className="relative h-screen bg-[#030303] text-white overflow-hidden font-sans flex">
@@ -148,18 +141,23 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
 
       {/* Mobile TopBar */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 px-4 flex items-center justify-between bg-black/60 backdrop-blur-xl border-b border-white/5 z-50">
-        <div className="flex items-center gap-3">
+        <Link to="/dashboard" className="flex items-center gap-3">
           <div className="w-8 h-8 flex items-center justify-center">
             <img src="/dreamalchemist_logo.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
           <span className="font-editorial uppercase tracking-[0.1em] text-sm">DREAM ALCHEMIST</span>
+        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label="Notifiche"
+            className="relative flex min-h-11 min-w-11 items-center justify-center rounded-full text-white/70 hover:text-white active:bg-white/10"
+          >
+            <Bell className="w-5 h-5" />
+            <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_8px_hsl(var(--primary)/0.8)]" />
+          </button>
+          <UserMenu />
         </div>
-        <button 
-          onClick={openMobileMenu}
-          className="-mr-2 flex min-h-12 min-w-12 items-center justify-center rounded-full text-white/70 hover:text-white active:bg-white/10"
-        >
-          {isMobileMenuOpen ? <X /> : <Menu />}
-        </button>
       </div>
 
       {/* Sidebar - Truly Fixed Height and Position */}
@@ -209,73 +207,15 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
         </div>
       </aside>
 
-      {/* Mobile Menu Overlay - no AnimatePresence to avoid exit animation race */}
-      {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-[70] bg-black/90 backdrop-blur-2xl lg:hidden flex flex-col p-4 pt-24"
-          style={{ animation: "menuFadeIn 140ms ease-out both" }}
-        >
-          <nav className="flex-1 space-y-2">
-            {navItems.map((item) => {
-              const isActive = location.pathname === item.href;
-              const handleNav = (e: React.MouseEvent | React.PointerEvent) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setIsMobileMenuOpen(false);
-                if (item.comingSoon) {
-                  Promise.resolve().then(() => setComingSoonOpen(true));
-                  return;
-                }
-                if (!isActive) {
-                  Promise.resolve().then(() => {
-                    startTransition(() => navigate(item.href));
-                  });
-                }
-              };
-              return (
-                <button
-                  type="button"
-                  key={item.href}
-                  onPointerDown={() => { if (!item.comingSoon) prefetchRoute(item.href); }}
-                  onFocus={() => { if (!item.comingSoon) prefetchRoute(item.href); }}
-                  onClick={handleNav}
-                  className={cn(
-                    "relative flex w-full min-h-[64px] items-center gap-4 rounded-xl px-4 py-3 text-2xl font-bodoni-heading tracking-wide text-left active:bg-white/10 transition-colors touch-manipulation",
-                    item.comingSoon ? "text-white/45" : isActive ? "text-primary bg-white/5" : "text-white/70"
-                  )}
-                >
-                  <item.icon className="w-8 h-8 shrink-0" />
-                  <span className="flex-1 leading-none">{item.label}</span>
-                  {item.comingSoon && (
-                    <span
-                      className="text-[10px] uppercase tracking-[0.24em]"
-                      style={{ color: "hsl(var(--mystic-glow))" }}
-                    >
-                      Presto
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-          <Button
-            type="button"
-            onPointerDown={() => prefetchRoute("/dreams/new")}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setIsMobileMenuOpen(false);
-              Promise.resolve().then(() => {
-                startTransition(() => navigate("/dreams/new"));
-              });
-            }}
-            className="w-full bg-primary text-white py-6 text-xl rounded-2xl mt-8 touch-manipulation"
-          >
-            Nuovo Sogno
-          </Button>
-          <style>{`@keyframes menuFadeIn { from { opacity: 0 } to { opacity: 1 } }`}</style>
-        </div>
-      )}
+      {/* Mobile Bottom Tab Bar */}
+      <MobileBottomNav onMoreClick={() => setMoreSheetOpen(true)} />
+      <MobileMoreSheet
+        open={moreSheetOpen}
+        onOpenChange={setMoreSheetOpen}
+        isSuperAdmin={isSuperAdmin}
+        onComingSoon={() => setComingSoonOpen(true)}
+        onLogout={handleLogout}
+      />
 
       {/* Main Content Area - Fixed Height with Internal Scroll */}
       <main className={cn(
@@ -304,7 +244,7 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
         </header>
 
         {/* Scrollable Content Wrapper */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-8 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
