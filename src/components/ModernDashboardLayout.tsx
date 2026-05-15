@@ -89,9 +89,9 @@ const NavItem = ({ icon: Icon, label, href, active, collapsed, comingSoon, onCom
 export const ModernDashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
+  const [moreSheetOpen, setMoreSheetOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
