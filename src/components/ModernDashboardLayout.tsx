@@ -244,7 +244,7 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
         </header>
 
         {/* Scrollable Content Wrapper */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-8 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
