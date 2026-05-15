@@ -32,6 +32,7 @@ export const MobileMoreSheet = ({
   const navigate = useNavigate();
 
   const items: MoreItem[] = [
+    { icon: Beaker, label: "Alchimia", href: "/alchemy" },
     { icon: Users, label: "Sogni Condivisi", href: "/shared-with-me" },
     { icon: Headphones, label: "Percorsi Sonori", comingSoon: true },
     { icon: UserIcon, label: "Profilo", href: "/profile" },
