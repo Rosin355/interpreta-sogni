@@ -38,11 +38,3 @@ verify_jwt = false
 
 [functions.verify-reset-token]
 verify_jwt = false
-
-[functions.get-user-entitlements]
-verify_jwt = true
-
-# RevenueCat webhook is called by RC servers (no user JWT).
-# Authenticated via HMAC-SHA256 signature + feature flag gate.
-[functions.revenuecat-webhook]
-verify_jwt = false
