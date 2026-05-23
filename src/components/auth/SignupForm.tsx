@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import PasswordInput from "@/components/auth/PasswordInput";
 import { isPasswordValid } from "@/components/auth/PasswordRequirements";
+import SignupSuccessPanel from "@/components/auth/SignupSuccessPanel";
 
 type SignupFormState = {
   email: string;
@@ -20,6 +21,9 @@ type SignupFormProps = {
   setShowSignupPassword: (value: boolean) => void;
   showSignupConfirmPassword: boolean;
   setShowSignupConfirmPassword: (value: boolean) => void;
+  signupSuccess?: boolean;
+  onGoToLogin?: () => void;
+  onResendConfirmation?: () => void;
 };
 
 const SignupForm = ({
@@ -31,7 +35,20 @@ const SignupForm = ({
   setShowSignupPassword,
   showSignupConfirmPassword,
   setShowSignupConfirmPassword,
+  signupSuccess,
+  onGoToLogin,
+  onResendConfirmation,
 }: SignupFormProps) => {
+  if (signupSuccess && onGoToLogin && onResendConfirmation) {
+    return (
+      <SignupSuccessPanel
+        email={signupForm.email}
+        onGoToLogin={onGoToLogin}
+        onResend={onResendConfirmation}
+      />
+    );
+  }
+
   return (
     <form onSubmit={handleSignup} className="space-y-4">
       <div className="space-y-2">
