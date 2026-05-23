@@ -620,3 +620,10 @@ All colors MUST be HSL.
     background-position: 0% -1000%;
   }
 }
+
+/* Mobile horizontal-overflow guard */
+html, body, #root {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
