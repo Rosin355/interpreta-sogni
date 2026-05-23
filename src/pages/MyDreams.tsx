@@ -83,9 +83,9 @@ const MyDreams = () => {
 
   return (
     <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold text-white mb-2">I Miei Sogni</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-4xl font-bold text-white mb-2 break-words">I Miei Sogni</h1>
             <p className="text-white/60 flex items-center gap-2 text-sm">
               <span>{totalCount} {totalCount === 1 ? "sogno registrato" : "sogni registrati"}</span>
               {isDreamsRefreshing && (
@@ -93,7 +93,7 @@ const MyDreams = () => {
               )}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -120,7 +120,7 @@ const MyDreams = () => {
 
         {/* Barra di ricerca e filtri */}
         <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1 group">
+          <div className="relative flex-1 group min-w-0">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/40 group-focus-within:text-primary transition-colors" />
             <Input
               type="text"
@@ -130,10 +130,10 @@ const MyDreams = () => {
               className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus-visible:ring-primary/50"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-white/40" />
+          <div className="flex flex-wrap items-center gap-2">
+            <Filter className="h-4 w-4 text-white/40 shrink-0" />
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-[200px] bg-white/5 border-white/10 text-white">
+              <SelectTrigger className="flex-1 min-w-[140px] sm:flex-none sm:w-[200px] bg-white/5 border-white/10 text-white">
                 <SelectValue placeholder="Tutte le categorie" />
               </SelectTrigger>
               <SelectContent className="bg-black/90 border-white/10 text-white backdrop-blur-xl">
@@ -152,7 +152,7 @@ const MyDreams = () => {
               </SelectContent>
             </Select>
             <Select value={selectedPhase} onValueChange={setSelectedPhase}>
-              <SelectTrigger className="w-[180px] bg-white/5 border-white/10 text-white">
+              <SelectTrigger className="flex-1 min-w-[130px] sm:flex-none sm:w-[180px] bg-white/5 border-white/10 text-white">
                 <SelectValue placeholder="Tutte le fasi" />
               </SelectTrigger>
               <SelectContent className="bg-black/90 border-white/10 text-white backdrop-blur-xl">

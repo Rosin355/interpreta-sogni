@@ -313,29 +313,27 @@ const NewDream = () => {
   };
 
   return (
-    <>
-      <Navigation />
-      <div className="min-h-screen bg-gradient-to-br from-background via-dream-space to-background pb-12" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
-        <div className="container mx-auto px-6 max-w-3xl">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/dashboard")}
-            className="mb-6 gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Torna alla Dashboard
-          </Button>
+    <div className="pb-12">
+      <div className="container mx-auto px-4 sm:px-6 max-w-3xl">
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/dashboard")}
+          className="mb-6 gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Torna alla Dashboard
+        </Button>
 
           <Card>
             <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-2xl">Nuovo Sogno</CardTitle>
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                <div className="min-w-0">
+                  <CardTitle className="text-2xl break-words">Nuovo Sogno</CardTitle>
                   <CardDescription>
                     Registra il tuo sogno e salvalo nel tuo diario personale
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
                   {isSaving ? (
                     <>
                       <Cloud className="h-4 w-4 animate-pulse" />
@@ -642,7 +640,6 @@ const NewDream = () => {
           </Card>
         </div>
       </div>
-    </>
   );
 };
 
