@@ -627,3 +627,19 @@ html, body, #root {
   overflow-x: hidden;
 }
 
+/* Safe wrapping for long transcribed/dream text */
+.safe-wrap {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Prose / markdown wrapping inside dream interpretations */
+.prose p,
+.prose li,
+.prose h1,
+.prose h2,
+.prose h3 {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
