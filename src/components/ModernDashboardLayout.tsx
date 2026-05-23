@@ -123,7 +123,7 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
 
 
   return (
-    <div className="relative h-screen bg-[#030303] text-white overflow-hidden font-sans flex">
+    <div className="relative h-[100dvh] min-h-[100dvh] bg-[#030303] text-white overflow-hidden font-sans flex max-w-[100vw]">
       {/* Background Image Layer (Fixed to Viewport) */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <img 
@@ -140,7 +140,11 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
       <div className="fixed bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-500/10 blur-[100px] rounded-full pointer-events-none z-0" />
 
       {/* Mobile TopBar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 px-4 flex items-center justify-between bg-black/60 backdrop-blur-xl border-b border-white/5 z-50">
+      <div
+        className="lg:hidden fixed top-0 left-0 right-0 px-4 flex items-center justify-between bg-black/60 backdrop-blur-xl border-b border-white/5 z-50"
+        style={{ paddingTop: "env(safe-area-inset-top)", height: "calc(4rem + env(safe-area-inset-top))" }}
+      >
+
         <Link to="/dashboard" className="flex items-center gap-3">
           <div className="w-8 h-8 flex items-center justify-center">
             <img src="/dreamalchemist_logo.png" alt="Logo" className="w-full h-full object-contain" />
@@ -218,10 +222,14 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
       />
 
       {/* Main Content Area - Fixed Height with Internal Scroll */}
-      <main className={cn(
-        "relative z-10 h-full flex-1 flex flex-col overflow-hidden",
-        "pt-16 lg:pt-0"
-      )}>
+      <main
+        className={cn(
+          "relative z-10 h-full flex-1 flex flex-col overflow-hidden min-w-0",
+          "lg:pt-0"
+        )}
+        style={{ paddingTop: "calc(4rem + env(safe-area-inset-top))" }}
+      >
+
         {/* Top Header */}
         <header className="h-20 px-8 hidden lg:flex items-center justify-between bg-black/20 backdrop-blur-md border-b border-white/5 shrink-0">
           <div className="flex items-center bg-white/5 border border-white/10 rounded-2xl px-4 py-2 w-96 group focus-within:border-primary/50 transition-all">
@@ -244,7 +252,7 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
         </header>
 
         {/* Scrollable Content Wrapper */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-8 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-8">
+        <div className="flex-1 overflow-x-hidden overflow-y-auto custom-scrollbar px-4 py-4 lg:p-8 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-8 min-w-0">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
