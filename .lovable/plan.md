@@ -1,81 +1,58 @@
-# Piano: Mobile UX + Resend Conferma Email
+# QA Pass Finale — Risultati
 
-Lavoro diviso in 3 blocchi indipendenti, tutti additivi. Nessuna modifica a RLS, schema DB, Edge Functions, flusso OTP password reset, o identità visiva.
+## 1. Build & TypeScript
+Eseguito `tsc --noEmit`: **PASS** (0 errori).
+Nessun errore di import, prop o tipo nei file toccati di recente (`Auth.tsx`, `ResendConfirmationForm`, `SignupSuccessPanel`, `SignupForm`, `ProfessionalSignupForm`, `LoginForm`, `ModernDashboardLayout`, `MobileBottomNav`).
 
-## PARTE 1 — Audit & fix mobile
+## 2. Auth flow — verifica statica
+| Caso | Stato |
+|---|---|
+| Login standard (`signInWithPassword`) | PASS |
+| Signup standard (`signUp` + `emailRedirectTo=/auth?confirmed=1`) | PASS |
+| Signup professionista (insert in `professional_profiles` con `status: pending`) | PASS — invariato |
+| Password reset OTP (`usePasswordReset`) | PASS — non toccato |
+| `/auth?mode=resend-confirmation` apre `ResendConfirmationForm` | PASS |
+| Link "Non hai ricevuto la conferma? Reinvia email" in `LoginForm` → `openResendMode` | PASS |
+| Login fallisce con `email not confirmed` → prefill `pendingEmail` + apre resend | PASS |
+| `?confirmed=1` mostra toast e ripulisce il param via `setSearchParams(replace:true)` | PASS — no redirect loop |
 
-**File toccati (solo CSS/layout):**
+## 3. Redirect URLs Supabase
+Verificato: tutti i 3 `emailRedirectTo` usano `import.meta.env.VITE_SITE_URL || window.location.origin`.
+- `src/pages/Auth.tsx:155` (signup)
+- `src/pages/Auth.tsx:202` (professional signup → `/professional-verification`)
+- `src/components/auth/ResendConfirmationForm.tsx:43`
 
-- `src/components/ModernDashboardLayout.tsx`
-  - `h-screen` → `min-h-[100dvh] h-[100dvh]` con fallback.
-  - Top bar mobile: aggiungere `pt-[env(safe-area-inset-top)]` e altezza dinamica.
-  - Scrollable wrapper: `p-8` → `px-4 py-4 lg:p-8`, mantenendo `pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-8`.
-  - Main `pt-16` → `pt-[calc(4rem+env(safe-area-inset-top))] lg:pt-0`.
+Nessun localhost hardcoded. Compatibile con `https://dreamalchemist.app` impostando `VITE_SITE_URL` in produzione.
 
-- `src/components/mobile/MobileBottomNav.tsx`
-  - Verificare safe-area inset bottom già presente; altrimenti aggiungere.
+## 4. Mobile regression
+- `ModernDashboardLayout`: `h-[100dvh]` + `max-w-[100vw]`, top bar e bottom nav rispettano `env(safe-area-inset-*)`, main ha `pt-[calc(4rem+env(safe-area-inset-top))]` e `pb-[calc(6rem+env(safe-area-inset-bottom))]` → contenuto mai nascosto.
+- `MobileBottomNav`: 4 slot simmetrici + FAB centrale, `z-[60]`, safe-area inferiore.
+- `index.css`: `overflow-x-hidden` su `html, body, #root` previene scroll orizzontale.
+- `Auth.tsx`: card `w-full max-w-md`, padding `px-4 py-6 sm:p-4`, tab "Pro" su mobile, `min-h-[100dvh]` → tastiera mobile non rompe layout.
 
-- `src/index.css`
-  - Aggiungere utility `.no-x-overflow { overflow-x: hidden; }` su `html, body, #root` e `max-width: 100vw`.
+**Fix necessario:** header `Dashboard.tsx` (riga 131) usa `flex items-center justify-between` con `h1 text-4xl` + due bottoni: a 320px il titolo può comprimere i bottoni. Aggiungere `flex-wrap gap-4` e ridurre titolo su mobile (`text-2xl sm:text-4xl`).
 
-- `src/pages/Dashboard.tsx` (audit mirato)
-  - Header actions: `flex-wrap gap-2` su mobile.
-  - Chart cards: `h-[220px] sm:h-[300px]`, `ResponsiveContainer` con `minWidth=0`.
-  - Titoli lunghi: `truncate` / `break-words`.
-  - Griglie: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`.
+## 5. UX polish
+- Tutti i messaggi nuovi sono in italiano (verificato in `ResendConfirmationForm`, `SignupSuccessPanel`, toast in `Auth.tsx`).
+- Identità visiva mistica preservata: `bg-primary/5`, `border-primary/30`, icone `MailCheck`, niente colori custom hardcoded.
+- Tono calmo/non marketing: "Se l'email è registrata e non ancora confermata, riceverai a breve un nuovo link" (anti-enumeration).
 
-- `src/pages/MyDreams.tsx`, `NewDream.tsx`, `DreamDetail.tsx`, `Profile.tsx`, `Settings.tsx`, `Astrology.tsx`, `Alchemy.tsx`
-  - Solo pass mirato: rimuovere width fissi, aggiungere `min-w-0`, `flex-wrap`, padding mobile responsive. Nessuna ristrutturazione.
+---
 
-- `src/pages/Auth.tsx`
-  - Card `max-w-md` → ok; aggiungere `mx-4` e `p-4 sm:p-6`.
-  - `TabsList grid-cols-3`: ridurre font + `text-xs sm:text-sm`, label "Pro" su mobile per la terza tab.
-  - `paddingTop` valore corrente sostituito con classe responsive.
+## Unico fix da applicare
 
-**Verifica:** `npm run build` + check visuale a 320/360/390/414/430px.
+**File:** `src/pages/Dashboard.tsx` (righe 131–155)
 
-## PARTE 2 — Resend conferma email
+Cambiare l'header per evitare overflow a 320px:
+- Wrapper: `flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4`
+- Titolo: `text-2xl sm:text-4xl`
+- Bottoni: aggiungere `flex-wrap` al container
 
-### Nuovo componente
-`src/components/auth/ResendConfirmationForm.tsx`
-- Input email + zod validation.
-- `supabase.auth.resend({ type: "signup", email, options: { emailRedirectTo: `${base}/auth?confirmed=1` } })`
-- Messaggio generico anti-enumeration.
-- Cooldown 60s (state + setInterval).
-- Stile coerente con LoginForm.
-- Nota anti-spam ("Controlla Spam/Promozioni...").
+## File toccati in questa pass
+- `src/pages/Dashboard.tsx` (solo classi header, nessun cambio logico)
 
-### `src/pages/Auth.tsx`
-- Nuovo mode `resend-confirmation` via query param.
-- Link sotto "Password dimenticata?" nel LoginForm: "Non hai ricevuto la conferma? Reinvia email".
-- Render condizionale: se `mode === 'resend-confirmation'` mostra `ResendConfirmationForm` con bottone back.
-- Se `searchParams.get('confirmed') === '1'`: toast "Email confermata! Ora puoi accedere."
-- Stato condiviso `pendingEmail` per prefill resend dopo signup.
-
-### `src/components/auth/LoginForm.tsx`
-- Aggiungere link "Reinvia email di conferma" (props `onResendConfirmation`).
-
-### `src/components/auth/SignupForm.tsx`
-- Aggiungere pannello inline success (props `signupSuccess`, `onGoToLogin`, `onResend`).
-- Titolo "Controlla la tua email" + testo + 2 azioni + nota scadenza link.
-- Auth.tsx: dopo signup OK → `setSignupSuccess(true)`, preservare email, clear solo password.
-
-### `src/components/auth/ProfessionalSignupForm.tsx`
-- Stesso pannello success con testo: "Conferma la tua email, poi il profilo professionale resterà in attesa di approvazione."
-- L'insert in `professional_profiles` resta invariato.
-
-## PARTE 3 — Documentazione
-
-Nuovo file `docs/email-deliverability-checklist.md` con la checklist SMTP/SPF/DKIM/DMARC/Resend come da specifica.
-
-## Note tecniche
-
-- Nessun secret nel frontend.
-- Nessuna modifica a Edge Functions o tabelle.
-- `emailRedirectTo` usa `import.meta.env.VITE_SITE_URL || window.location.origin` (stesso pattern del signup esistente).
-- i18n: tutte le stringhe in italiano (memory rule).
-- Build finale `npm run build` per validare TS.
-
-## Out of scope
-
-- Push notifications, PWA, ridisegni, nuove rotte protette, modifiche schema.
+## Fuori scope
+- Nessuna modifica a DB schema, RLS, Edge Functions, password reset OTP.
+- Nessuna feature nuova.
+- Nessuna riscrittura di pagine.
+- Identità visiva e routing invariati.
