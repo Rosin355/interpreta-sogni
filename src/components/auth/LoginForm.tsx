@@ -15,7 +15,9 @@ type LoginFormProps = {
   passwordResetProps: UsePasswordResetReturn;
   showLoginPassword: boolean;
   setShowLoginPassword: (value: boolean) => void;
+  onResendConfirmation?: () => void;
 };
+
 
 const LoginForm = ({
   loading,
@@ -25,7 +27,9 @@ const LoginForm = ({
   passwordResetProps,
   showLoginPassword,
   setShowLoginPassword,
+  onResendConfirmation,
 }: LoginFormProps) => {
+
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [showResetConfirmPassword, setShowResetConfirmPassword] = useState(false);
 
@@ -67,16 +71,28 @@ const LoginForm = ({
           disabled={loading}
         />
       </div>
-      <button
-        type="button"
-        onClick={() => passwordResetProps.setShowForgotPassword(true)}
-        className="text-sm text-primary hover:underline"
-      >
-        Password dimenticata?
-      </button>
+      <div className="flex flex-col items-start gap-2">
+        <button
+          type="button"
+          onClick={() => passwordResetProps.setShowForgotPassword(true)}
+          className="text-sm text-primary hover:underline"
+        >
+          Password dimenticata?
+        </button>
+        {onResendConfirmation && (
+          <button
+            type="button"
+            onClick={onResendConfirmation}
+            className="text-sm text-muted-foreground hover:text-primary hover:underline"
+          >
+            Non hai ricevuto la conferma? Reinvia email
+          </button>
+        )}
+      </div>
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "Accesso in corso..." : "Accedi"}
       </Button>
+
     </form>
   );
 };
