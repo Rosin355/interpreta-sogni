@@ -225,10 +225,10 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
       <main
         className={cn(
           "relative z-10 h-full flex-1 flex flex-col overflow-hidden min-w-0",
-          "lg:pt-0"
+          "pt-[calc(4rem+env(safe-area-inset-top))] lg:pt-0"
         )}
-        style={{ paddingTop: "calc(4rem + env(safe-area-inset-top))" }}
       >
+
 
         {/* Top Header */}
         <header className="h-20 px-8 hidden lg:flex items-center justify-between bg-black/20 backdrop-blur-md border-b border-white/5 shrink-0">
