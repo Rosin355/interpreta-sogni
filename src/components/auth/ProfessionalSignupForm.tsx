@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import PasswordInput from "@/components/auth/PasswordInput";
 import { isPasswordValid } from "@/components/auth/PasswordRequirements";
+import SignupSuccessPanel from "@/components/auth/SignupSuccessPanel";
 
 type ProfessionalFormState = {
   email: string;
@@ -25,6 +26,9 @@ type ProfessionalSignupFormProps = {
   setShowProfessionalPassword: (value: boolean) => void;
   showProfessionalConfirmPassword: boolean;
   setShowProfessionalConfirmPassword: (value: boolean) => void;
+  signupSuccess?: boolean;
+  onGoToLogin?: () => void;
+  onResendConfirmation?: () => void;
 };
 
 const ProfessionalSignupForm = ({
@@ -36,7 +40,22 @@ const ProfessionalSignupForm = ({
   setShowProfessionalPassword,
   showProfessionalConfirmPassword,
   setShowProfessionalConfirmPassword,
+  signupSuccess,
+  onGoToLogin,
+  onResendConfirmation,
 }: ProfessionalSignupFormProps) => {
+  if (signupSuccess && onGoToLogin && onResendConfirmation) {
+    return (
+      <SignupSuccessPanel
+        email={professionalForm.email}
+        title="Controlla la tua email"
+        description="Conferma la tua email per attivare l'account. Il profilo professionale resterà in attesa di approvazione da parte del team."
+        onGoToLogin={onGoToLogin}
+        onResend={onResendConfirmation}
+      />
+    );
+  }
+
   return (
     <form onSubmit={handleProfessionalSignup} className="space-y-4">
       <div className="space-y-2">
