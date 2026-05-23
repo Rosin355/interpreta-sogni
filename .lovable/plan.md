@@ -1,58 +1,67 @@
-# QA Pass Finale — Risultati
+# Piano QA Visivo Finale
 
-## 1. Build & TypeScript
-Eseguito `tsc --noEmit`: **PASS** (0 errori).
-Nessun errore di import, prop o tipo nei file toccati di recente (`Auth.tsx`, `ResendConfirmationForm`, `SignupSuccessPanel`, `SignupForm`, `ProfessionalSignupForm`, `LoginForm`, `ModernDashboardLayout`, `MobileBottomNav`).
+Solo modifiche presentazionali (className, wrapper, spaziature). Nessuna modifica a logica, Auth, Supabase, RLS, Edge Functions, routing o data fetching.
 
-## 2. Auth flow — verifica statica
-| Caso | Stato |
-|---|---|
-| Login standard (`signInWithPassword`) | PASS |
-| Signup standard (`signUp` + `emailRedirectTo=/auth?confirmed=1`) | PASS |
-| Signup professionista (insert in `professional_profiles` con `status: pending`) | PASS — invariato |
-| Password reset OTP (`usePasswordReset`) | PASS — non toccato |
-| `/auth?mode=resend-confirmation` apre `ResendConfirmationForm` | PASS |
-| Link "Non hai ricevuto la conferma? Reinvia email" in `LoginForm` → `openResendMode` | PASS |
-| Login fallisce con `email not confirmed` → prefill `pendingEmail` + apre resend | PASS |
-| `?confirmed=1` mostra toast e ripulisce il param via `setSearchParams(replace:true)` | PASS — no redirect loop |
+## Issue trovate
 
-## 3. Redirect URLs Supabase
-Verificato: tutti i 3 `emailRedirectTo` usano `import.meta.env.VITE_SITE_URL || window.location.origin`.
-- `src/pages/Auth.tsx:155` (signup)
-- `src/pages/Auth.tsx:202` (professional signup → `/professional-verification`)
-- `src/components/auth/ResendConfirmationForm.tsx:43`
+### 1. MyDreams — header e filtri non responsive (320px)
+File: `src/pages/MyDreams.tsx`
+- Riga 86: `flex items-center justify-between` con titolo `text-4xl` + due bottoni → overflow orizzontale a 320px.
+- Righe 122–165: barra filtri con due `Select` a larghezza fissa (`w-[200px]`, `w-[180px]`) affiancati al campo cerca → overflow su mobile.
 
-Nessun localhost hardcoded. Compatibile con `https://dreamalchemist.app` impostando `VITE_SITE_URL` in produzione.
+Fix:
+- Header → `flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4`, titolo `text-2xl sm:text-4xl`, container bottoni `flex flex-wrap`.
+- Riga filtri → su mobile i due `Select` diventano `flex-1` su una riga con `flex-wrap`, larghezza fissa solo da `sm:` in su.
 
-## 4. Mobile regression
-- `ModernDashboardLayout`: `h-[100dvh]` + `max-w-[100vw]`, top bar e bottom nav rispettano `env(safe-area-inset-*)`, main ha `pt-[calc(4rem+env(safe-area-inset-top))]` e `pb-[calc(6rem+env(safe-area-inset-bottom))]` → contenuto mai nascosto.
-- `MobileBottomNav`: 4 slot simmetrici + FAB centrale, `z-[60]`, safe-area inferiore.
-- `index.css`: `overflow-x-hidden` su `html, body, #root` previene scroll orizzontale.
-- `Auth.tsx`: card `w-full max-w-md`, padding `px-4 py-6 sm:p-4`, tab "Pro" su mobile, `min-h-[100dvh]` → tastiera mobile non rompe layout.
+### 2. NewDream — doppia top-bar mobile
+File: `src/pages/NewDream.tsx`
+- La pagina è renderizzata dentro `ModernDashboardLayout` (che ha già top-bar mobile + sidebar desktop) ma include anche `<Navigation />` + un proprio `min-h-screen` con `paddingTop: 'calc(7rem + safe-area)'`. Risultato: doppia barra in alto su mobile e padding eccessivo.
 
-**Fix necessario:** header `Dashboard.tsx` (riga 131) usa `flex items-center justify-between` con `h1 text-4xl` + due bottoni: a 320px il titolo può comprimere i bottoni. Aggiungere `flex-wrap gap-4` e ridurre titolo su mobile (`text-2xl sm:text-4xl`).
+Fix visivi:
+- Rimuovere `<Navigation />` dalla pagina (componente puramente presentazionale).
+- Sostituire `min-h-screen bg-gradient...` con un semplice wrapper (`<div className="pb-12">`) e contenitore `container mx-auto px-4 sm:px-6 max-w-3xl`.
+- Rimuovere `paddingTop` inline ridondante (la layout già gestisce safe-area).
+- Header della Card: il blocco "Nuovo Sogno" + indicatore salvataggio → `flex-col sm:flex-row sm:items-start sm:justify-between gap-2`.
 
-## 5. UX polish
-- Tutti i messaggi nuovi sono in italiano (verificato in `ResendConfirmationForm`, `SignupSuccessPanel`, toast in `Auth.tsx`).
-- Identità visiva mistica preservata: `bg-primary/5`, `border-primary/30`, icone `MailCheck`, niente colori custom hardcoded.
-- Tono calmo/non marketing: "Se l'email è registrata e non ancora confermata, riceverai a breve un nuovo link" (anti-enumeration).
+### 3. Profile — doppia top-bar mobile
+File: `src/pages/Profile.tsx`
+- Stesso problema di NewDream: include `<Navigation />` + `min-h-screen bg-background` + padding-top calcolato.
 
----
+Fix:
+- Rimuovere `<Navigation />`.
+- Sostituire `min-h-screen bg-background` con wrapper neutro.
+- Rimuovere `paddingTop` inline.
+- Le card interne (`grid sm:grid-cols-2`) sono già responsive, ok.
 
-## Unico fix da applicare
+### 4. Settings — doppia top-bar mobile
+File: `src/pages/Settings.tsx`
+- Stesso problema di Profile.
 
-**File:** `src/pages/Dashboard.tsx` (righe 131–155)
+Fix: stessi tre interventi.
 
-Cambiare l'header per evitare overflow a 320px:
-- Wrapper: `flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4`
-- Titolo: `text-2xl sm:text-4xl`
-- Bottoni: aggiungere `flex-wrap` al container
+### 5. DreamDetail — già hardenato nel turno precedente
+Verifica visiva: `px-4 sm:px-6`, `flex-col sm:flex-row` su header narrazione/visione, `flex-wrap` su bottoni, `min-w-0`/`break-words`. Nessuna ulteriore modifica prevista salvo che la verifica build/preview riveli problemi.
 
-## File toccati in questa pass
-- `src/pages/Dashboard.tsx` (solo classi header, nessun cambio logico)
+### 6. Dashboard
+Già sistemato nei turni precedenti (header `flex-col sm:flex-row`, titolo responsive, bottoni `flex-wrap`). Verificare solo che la modifica a MyDreams non rompa nulla.
 
-## Fuori scope
-- Nessuna modifica a DB schema, RLS, Edge Functions, password reset OTP.
-- Nessuna feature nuova.
-- Nessuna riscrittura di pagine.
-- Identità visiva e routing invariati.
+### 7. Mobile bottom nav spacing
+`MobileBottomNav` usa già `env(safe-area-inset-bottom)`. `ModernDashboardLayout` aggiunge `pb-[calc(6rem+env(safe-area-inset-bottom))]` al contenuto. Ok.
+
+## File da modificare
+
+1. `src/pages/MyDreams.tsx` — header + filtri responsive
+2. `src/pages/NewDream.tsx` — rimozione doppia nav + header Card responsive
+3. `src/pages/Profile.tsx` — rimozione doppia nav
+4. `src/pages/Settings.tsx` — rimozione doppia nav
+
+Nessun file di logica, hook, edge function, route o schema viene toccato.
+
+## Verifica finale
+- `npm run build`
+- Output atteso: 0 errori TypeScript/build.
+
+## Output finale al termine
+- Elenco file modificati
+- Issue risolte (bullet list)
+- Risultato build
