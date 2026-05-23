@@ -23,7 +23,6 @@ import MobileMoreSheet from "./mobile/MobileMoreSheet";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import dashboardBg from "@/assets/mystic-dashboard-bg.png";
 
 interface NavItemProps {
   icon: React.ElementType;
@@ -123,21 +122,12 @@ export const ModernDashboardLayout = ({ children }: { children: React.ReactNode 
 
 
   return (
-    <div className="relative h-[100dvh] min-h-[100dvh] bg-[#030303] text-white overflow-hidden font-sans flex max-w-[100vw]">
-      {/* Background Image Layer (Fixed to Viewport) */}
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <img 
-          src={dashboardBg} 
-          alt="Dashboard Background" 
-          className="w-full h-full object-cover opacity-40 scale-105 blur-[2px]"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#030303]/80 via-transparent to-[#030303]" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#030303] via-transparent to-transparent" />
+    <div className="relative h-[100dvh] min-h-[100dvh] bg-[#07060d] text-white overflow-hidden font-sans flex max-w-[100vw]">
+      {/* Clean premium dark surface - subtle radial accents only */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_hsl(var(--mystic-violet)/0.10)_0%,_transparent_55%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_hsl(var(--mystic-magenta)/0.08)_0%,_transparent_50%)]" />
       </div>
-
-      {/* Decorative Glows */}
-      <div className="fixed top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/10 blur-[120px] rounded-full pointer-events-none z-0" />
-      <div className="fixed bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-500/10 blur-[100px] rounded-full pointer-events-none z-0" />
 
       {/* Mobile TopBar */}
       <div

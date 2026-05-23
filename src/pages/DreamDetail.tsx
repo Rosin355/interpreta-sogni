@@ -544,7 +544,7 @@ const DreamDetail = () => {
     <>
       <Navigation />
       <div className="min-h-screen bg-gradient-to-br from-background via-dream-space to-background pb-12" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
-        <div className="container mx-auto px-6 max-w-4xl">
+        <div className="container mx-auto px-4 sm:px-6 max-w-4xl">
           <Button
             variant="ghost"
             onClick={() => navigate("/my-dreams")}
@@ -557,12 +557,12 @@ const DreamDetail = () => {
           <Card className="mb-6 overflow-hidden border-border/80 bg-[linear-gradient(135deg,hsl(var(--card))_0%,hsl(var(--dream-space)/0.55)_100%)]">
             <CardHeader className="space-y-6">
               <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                <div className="flex-1 space-y-4">
+                <div className="flex-1 min-w-0 space-y-4">
                   <div className="space-y-2">
                     <p className="text-xs uppercase tracking-[0.32em] text-muted-foreground">
                       Diario onirico
                     </p>
-                    <CardTitle className="text-3xl sm:text-4xl">{dream.title}</CardTitle>
+                    <CardTitle className="text-2xl sm:text-3xl lg:text-4xl break-words">{dream.title}</CardTitle>
                     <p className="text-sm uppercase tracking-[0.24em] text-muted-foreground">
                       {format(new Date(dream.dream_date), "d MMMM yyyy", { locale: it })}
                     </p>
@@ -583,7 +583,7 @@ const DreamDetail = () => {
                   </div>
                 </div>
 
-                <div className="flex gap-2 self-start">
+                <div className="flex flex-wrap gap-2 self-start">
                   {isUserOwner && (
                     <>
                       <TooltipProvider>
@@ -637,14 +637,14 @@ const DreamDetail = () => {
             <CardContent className="space-y-6">
               {dream.image_url ? (
                 <section className="space-y-4 border-t border-border/60 pt-6">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
                       <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">
                         Visione generata
                       </p>
                       <h3 className="text-lg font-semibold">Immagine del sogno</h3>
                     </div>
-                    <Badge variant="outline" className="capitalize border-border bg-card/70 text-foreground">
+                    <Badge variant="outline" className="self-start capitalize border-border bg-card/70 text-foreground">
                       {dream.image_style || 'auto'}
                     </Badge>
                   </div>
@@ -742,17 +742,19 @@ const DreamDetail = () => {
               )}
 
               <section className="grid gap-6 border-t border-border/60 pt-6 md:grid-cols-[minmax(0,1.2fr)_minmax(220px,0.8fr)]">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
+                <div className="space-y-3 min-w-0">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
                       <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">
                         Narrazione
                       </p>
                       <h3 className="text-lg font-semibold">Descrizione</h3>
                     </div>
-                    <TTSButton text={dream.content} label="Ascolta descrizione" />
+                    <div className="w-full sm:w-auto sm:shrink-0">
+                      <TTSButton text={dream.content} label="Ascolta descrizione" />
+                    </div>
                   </div>
-                  <p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{dream.content}</p>
+                  <p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground safe-wrap">{dream.content}</p>
                 </div>
 
                 <div className="space-y-5 rounded-lg border border-border/70 bg-background/20 p-5">

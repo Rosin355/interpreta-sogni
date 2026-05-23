@@ -163,7 +163,7 @@ export const TTSButton = ({
           size="sm"
           onClick={handleSpeak}
           disabled={isGenerating}
-          className="whitespace-nowrap"
+          className="max-w-full whitespace-normal text-left h-auto py-2 leading-tight"
         >
           {isGenerating ? (
             <>
