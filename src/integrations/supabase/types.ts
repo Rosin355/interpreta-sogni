@@ -811,6 +811,33 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_ledger: {
+        Row: {
+          feature: string
+          id: string
+          metadata: Json
+          recorded_at: string
+          rolled_back: boolean
+          user_id: string
+        }
+        Insert: {
+          feature: string
+          id?: string
+          metadata?: Json
+          recorded_at?: string
+          rolled_back?: boolean
+          user_id: string
+        }
+        Update: {
+          feature?: string
+          id?: string
+          metadata?: Json
+          recorded_at?: string
+          rolled_back?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
