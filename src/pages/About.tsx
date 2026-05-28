@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { buildWhatsAppUrl } from "@/config/publicConfig";
+import { supabase } from "@/integrations/supabase/client";
 
 const contactFormSchema = z.object({
   name: z.string().trim().min(1, { message: "Il nome è obbligatorio" }).max(100, { message: "Il nome deve essere massimo 100 caratteri" }),
@@ -48,16 +48,24 @@ const About = () => {
   const onSubmit = async (values: ContactFormValues) => {
     setIsSubmitting(true);
     try {
-      // Encode values for WhatsApp
-      const message = `*Nuovo messaggio da Dream Alchemist*%0A%0A*Nome:* ${encodeURIComponent(values.name)}%0A*Email:* ${encodeURIComponent(values.email)}%0A*Oggetto:* ${encodeURIComponent(values.subject)}%0A%0A*Messaggio:*%0A${encodeURIComponent(values.message)}`;
-      
-      // Open WhatsApp with pre-filled message (replace with Jessica's number)
-      window.open(buildWhatsAppUrl(message), '_blank');
-      
-      toast.success("Messaggio preparato! Verrai reindirizzato a WhatsApp.");
+      const { data, error } = await supabase.functions.invoke("send-contact-email", {
+        body: values,
+      });
+
+      if (error) {
+        const details = await (error as any)?.context?.json?.().catch(() => null);
+        const msg = details?.error || error.message || "Errore durante l'invio del messaggio.";
+        throw new Error(msg);
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || "Errore durante l'invio del messaggio.");
+      }
+
+      toast.success("Messaggio inviato! Ti risponderemo al più presto.");
       form.reset();
-    } catch (error) {
-      toast.error("Si è verificato un errore. Riprova più tardi.");
+    } catch (error: any) {
+      toast.error(error?.message || "Si è verificato un errore. Riprova più tardi.");
     } finally {
       setIsSubmitting(false);
     }
