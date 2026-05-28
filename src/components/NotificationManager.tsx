@@ -300,19 +300,6 @@ const NotificationManager = () => {
           </Alert>
         )}
         
-        {isIOS && permission !== "granted" && !isNative && (
-          <Alert>
-            <Smartphone className="h-4 w-4" />
-            <AlertDescription>
-              <strong>Utente iOS/Safari:</strong>
-              <ol className="mt-2 ml-4 list-decimal text-sm space-y-1">
-                <li>Aggiungi Dream Catcher alla schermata Home</li>
-                <li>Apri l'app dalla schermata Home</li>
-                <li>Abilita le notifiche quando richiesto</li>
-              </ol>
-            </AlertDescription>
-          </Alert>
-        )}
 
         {permission === "denied" && !isNative && (
           <Alert variant="destructive">
