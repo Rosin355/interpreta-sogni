@@ -1,67 +1,36 @@
-# Piano QA Visivo Finale
+## Obiettivo
+Il form di contatto in `/about` deve inviare i messaggi via Resend a **info@dreamalchemist.app**, invece di aprire WhatsApp.
 
-Solo modifiche presentazionali (className, wrapper, spaziature). Nessuna modifica a logica, Auth, Supabase, RLS, Edge Functions, routing o data fetching.
+## Cosa cambia per chi compila il form
+- Compila Nome, Email, Oggetto, Messaggio → preme "Invia".
+- Il messaggio arriva direttamente a `info@dreamalchemist.app`.
+- Rispondendo da quella casella, la risposta va all'email dell'utente (impostata come `Reply-To`).
+- L'utente vede un messaggio di conferma in italiano; nessun reindirizzamento a WhatsApp.
 
-## Issue trovate
+## Implementazione tecnica
 
-### 1. MyDreams — header e filtri non responsive (320px)
-File: `src/pages/MyDreams.tsx`
-- Riga 86: `flex items-center justify-between` con titolo `text-4xl` + due bottoni → overflow orizzontale a 320px.
-- Righe 122–165: barra filtri con due `Select` a larghezza fissa (`w-[200px]`, `w-[180px]`) affiancati al campo cerca → overflow su mobile.
+1. **Nuova Edge Function `send-contact-email`** (pubblica, `verify_jwt = false`)
+   - Mittente: `Interpreta i tuoi Sogni <noreply@dreamalchemist.app>` (già verificato su Resend)
+   - Destinatario fisso: `info@dreamalchemist.app`
+   - `Reply-To`: email inserita dall'utente nel form
+   - Oggetto email: `[Contatto] <oggetto utente>`
+   - Validazione server-side: nome (1–100), email valida, oggetto (1–200), messaggio (10–2000); risposta 400 con errori in italiano se non valido
+   - Escape HTML su tutti i campi (anti-injection)
+   - Template HTML coerente con lo stile dark/oro già usato in `send-email-notification`
+   - CORS aperto, gestione errori con log e codici di stato corretti (400/500/502)
+   - Usa il secret `RESEND_API_KEY` già presente
 
-Fix:
-- Header → `flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4`, titolo `text-2xl sm:text-4xl`, container bottoni `flex flex-wrap`.
-- Riga filtri → su mobile i due `Select` diventano `flex-1` su una riga con `flex-wrap`, larghezza fissa solo da `sm:` in su.
+2. **`supabase/config.toml`**: aggiungi blocco `[functions.send-contact-email]` con `verify_jwt = false`.
 
-### 2. NewDream — doppia top-bar mobile
-File: `src/pages/NewDream.tsx`
-- La pagina è renderizzata dentro `ModernDashboardLayout` (che ha già top-bar mobile + sidebar desktop) ma include anche `<Navigation />` + un proprio `min-h-screen` con `paddingTop: 'calc(7rem + safe-area)'`. Risultato: doppia barra in alto su mobile e padding eccessivo.
+3. **`src/pages/About.tsx`**:
+   - Rimuovi import e uso di `buildWhatsAppUrl`.
+   - In `onSubmit` chiama `supabase.functions.invoke("send-contact-email", { body: values })`.
+   - Toast successo: "Messaggio inviato! Ti risponderemo al più presto."
+   - Toast errore: messaggio dell'API o fallback generico in italiano.
+   - Reset del form solo in caso di successo.
 
-Fix visivi:
-- Rimuovere `<Navigation />` dalla pagina (componente puramente presentazionale).
-- Sostituire `min-h-screen bg-gradient...` con un semplice wrapper (`<div className="pb-12">`) e contenitore `container mx-auto px-4 sm:px-6 max-w-3xl`.
-- Rimuovere `paddingTop` inline ridondante (la layout già gestisce safe-area).
-- Header della Card: il blocco "Nuovo Sogno" + indicatore salvataggio → `flex-col sm:flex-row sm:items-start sm:justify-between gap-2`.
+4. **Nessuna modifica** a DB, RLS, altri Edge Function, auth o routing.
 
-### 3. Profile — doppia top-bar mobile
-File: `src/pages/Profile.tsx`
-- Stesso problema di NewDream: include `<Navigation />` + `min-h-screen bg-background` + padding-top calcolato.
-
-Fix:
-- Rimuovere `<Navigation />`.
-- Sostituire `min-h-screen bg-background` con wrapper neutro.
-- Rimuovere `paddingTop` inline.
-- Le card interne (`grid sm:grid-cols-2`) sono già responsive, ok.
-
-### 4. Settings — doppia top-bar mobile
-File: `src/pages/Settings.tsx`
-- Stesso problema di Profile.
-
-Fix: stessi tre interventi.
-
-### 5. DreamDetail — già hardenato nel turno precedente
-Verifica visiva: `px-4 sm:px-6`, `flex-col sm:flex-row` su header narrazione/visione, `flex-wrap` su bottoni, `min-w-0`/`break-words`. Nessuna ulteriore modifica prevista salvo che la verifica build/preview riveli problemi.
-
-### 6. Dashboard
-Già sistemato nei turni precedenti (header `flex-col sm:flex-row`, titolo responsive, bottoni `flex-wrap`). Verificare solo che la modifica a MyDreams non rompa nulla.
-
-### 7. Mobile bottom nav spacing
-`MobileBottomNav` usa già `env(safe-area-inset-bottom)`. `ModernDashboardLayout` aggiunge `pb-[calc(6rem+env(safe-area-inset-bottom))]` al contenuto. Ok.
-
-## File da modificare
-
-1. `src/pages/MyDreams.tsx` — header + filtri responsive
-2. `src/pages/NewDream.tsx` — rimozione doppia nav + header Card responsive
-3. `src/pages/Profile.tsx` — rimozione doppia nav
-4. `src/pages/Settings.tsx` — rimozione doppia nav
-
-Nessun file di logica, hook, edge function, route o schema viene toccato.
-
-## Verifica finale
-- `npm run build`
-- Output atteso: 0 errori TypeScript/build.
-
-## Output finale al termine
-- Elenco file modificati
-- Issue risolte (bullet list)
-- Risultato build
+## Note
+- Nessuna protezione anti-spam dedicata (rate-limit / captcha) — coerente con la scelta architetturale di non usare Upstash/Redis. Se in futuro arrivassero abusi, valuteremo un captcha lato client.
+- La configurazione DNS di Resend per `dreamalchemist.app` è già attiva (usata da `send-email-notification`), quindi nessuna azione DNS richiesta.
