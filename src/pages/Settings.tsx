@@ -165,11 +165,6 @@ export default function Settings() {
             </CardHeader>
             <CardContent className="space-y-6">
               <NotificationManager />
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground">
-                  Le notifiche web restano disponibili solo nel browser; la configurazione PWA è stata rimossa.
-                </p>
-              </div>
             </CardContent>
           </Card>
 
