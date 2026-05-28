@@ -12,7 +12,7 @@ interface TabItem {
 
 const TABS: TabItem[] = [
   { icon: LayoutDashboard, label: "Home", href: "/dashboard" },
-  { icon: BookOpen, label: "Sogni", href: "/my-dreams" },
+  { icon: BookOpen, label: "Diario", href: "/my-dreams" },
   { icon: Sparkles, label: "Astro", href: "/astrology" },
 ];
 
