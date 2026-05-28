@@ -6,7 +6,7 @@
 All colors MUST be HSL.
 */
 
-/* PWA Safe Area Support for iPhone Notch */
+/* Safe Area Support for iPhone Notch */
 :root {
   --safe-area-inset-top: env(safe-area-inset-top);
   --safe-area-inset-bottom: env(safe-area-inset-bottom);
