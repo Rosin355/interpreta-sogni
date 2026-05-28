@@ -350,8 +350,11 @@ export type Database = {
       }
       dreams: {
         Row: {
+          ai_reflection_questions: Json
+          ai_symbols: Json
           alchemical_phase: string | null
           auto_style: boolean | null
+          client_local_id: string | null
           content: string
           created_at: string | null
           dream_date: string
@@ -371,8 +374,11 @@ export type Database = {
           visibility: string | null
         }
         Insert: {
+          ai_reflection_questions?: Json
+          ai_symbols?: Json
           alchemical_phase?: string | null
           auto_style?: boolean | null
+          client_local_id?: string | null
           content: string
           created_at?: string | null
           dream_date: string
@@ -392,8 +398,11 @@ export type Database = {
           visibility?: string | null
         }
         Update: {
+          ai_reflection_questions?: Json
+          ai_symbols?: Json
           alchemical_phase?: string | null
           auto_style?: boolean | null
+          client_local_id?: string | null
           content?: string
           created_at?: string | null
           dream_date?: string
@@ -700,6 +709,48 @@ export type Database = {
           natal_context?: string | null
           updated_at?: string | null
           username?: string | null
+        }
+        Relationships: []
+      }
+      push_device_tokens: {
+        Row: {
+          app_version: string | null
+          build_number: string | null
+          bundle_id: string
+          created_at: string
+          device_token: string
+          environment: string
+          id: string
+          is_enabled: boolean
+          last_seen_at: string
+          platform: string
+          updated_at: string
+        }
+        Insert: {
+          app_version?: string | null
+          build_number?: string | null
+          bundle_id: string
+          created_at?: string
+          device_token: string
+          environment: string
+          id?: string
+          is_enabled?: boolean
+          last_seen_at?: string
+          platform?: string
+          updated_at?: string
+        }
+        Update: {
+          app_version?: string | null
+          build_number?: string | null
+          bundle_id?: string
+          created_at?: string
+          device_token?: string
+          environment?: string
+          id?: string
+          is_enabled?: boolean
+          last_seen_at?: string
+          platform?: string
+          updated_at?: string
         }
         Relationships: []
       }

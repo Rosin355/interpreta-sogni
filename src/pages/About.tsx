@@ -113,10 +113,8 @@ const About = () => {
                 Chi Siamo
               </h1>
               <p className="text-muted-foreground">
-                Dream Alchemist è nato dalla visione di Jessica Marin, Tarologa Esoterista Professionista 
-                con oltre 15 anni di esperienza nelle arti divinatorie. Questo strumento innovativo unisce 
-                la sua profonda conoscenza esoterica con la tecnologia moderna per offrire interpretazioni 
-                personalizzate dei sogni che guidano verso l'auto-conoscenza e la crescita spirituale.
+                Dream Alchemist è nato dalla visione di Jessica Marin, Insegnante di Tarocchi Esoterici ed Evolutivi, Yoga, Tecniche della Meditazione e Consulente per Letture Private.
+                Con oltre 11 anni di esperienza in campo esoterico, da 4 anni insegnante dell'Arte Divinatoria per mezzo dei Tarocchi e dell'Interpretazione Simbolica, Jessica è l'ideatrice e la curatrice della prima App sull'interpretazione dei Sogni che unisce la Tradizione Esoterica con la tecnologia moderna per trasformare in pratica quotidiana gli insegnamenti alchemici, magici, simbolici e astrologici e guidare con metodo iniziatico chi, attraverso la costanza e la tenacia, si addentrerà nelle profondità della stessa -e di se stesso-.
               </p>
             </div>
 
@@ -126,7 +124,7 @@ const About = () => {
               <div className="md:flex-1">
                 <img
                   src={jessicaImage}
-                  alt="Jessica Marin - Tarologa Esoterista Professionista"
+                  alt="Jessica Marin - Insegnante di Tarocchi Esoterici ed Evolutivi, Yoga, Tecniche della Meditazione e Consulente per Letture Private"
                   className="rounded-xl object-cover w-full h-[300px] sm:h-[360px] md:h-full"
                 />
               </div>
@@ -171,11 +169,9 @@ const About = () => {
                       <BookOpen className="h-6 w-6 text-primary" />
                       <h3 className="text-xl font-bold">Jessica Marin</h3>
                     </div>
-                    <p className="text-primary font-semibold mb-3">Tarologa Esoterista Professionista</p>
+                    <p className="text-primary font-semibold mb-3">Insegnante di Tarocchi Esoterici ed Evolutivi, Yoga, Tecniche della Meditazione e Consulente per Letture Private.</p>
                     <p className="text-sm text-muted-foreground">
-                      Con oltre 15 anni di esperienza nel campo delle arti divinatorie e dell'interpretazione 
-                      simbolica, Jessica unisce la tradizione esoterica con la tecnologia moderna per rendere 
-                      accessibili a tutti gli strumenti di auto-conoscenza.
+                      Con oltre 11 anni di esperienza in campo esoterico, da 4 anni insegnante dell'Arte Divinatoria per mezzo dei Tarocchi e dell'Interpretazione Simbolica, Jessica è l'ideatrice e la curatrice della prima App sull'interpretazione dei Sogni che unisce la Tradizione Esoterica con la tecnologia moderna per trasformare in pratica quotidiana gli insegnamenti alchemici, magici, simbolici e astrologici e guidare con metodo iniziatico chi, attraverso la costanza e la tenacia, si addentrerà nelle profondità della stessa -e di se stesso-.
                     </p>
                   </div>
                 </motion.div>
