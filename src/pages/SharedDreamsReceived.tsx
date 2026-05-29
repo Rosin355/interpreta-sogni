@@ -263,7 +263,7 @@ export default function SharedDreamsReceived() {
                         {share.status === "accepted" && (
                           <Button
                             size="sm"
-                            onClick={() => navigate(`/dream/${share.dream_id}`)}
+                            onClick={() => navigate(`/dreams/${share.dream_id}`)}
                             className="w-full"
                           >
                             <Eye className="mr-2 h-4 w-4" />
