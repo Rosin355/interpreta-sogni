@@ -272,7 +272,7 @@ export default function SharedDreams() {
                       {share.status === "declined" && (
                         <Button
                           variant="ghost"
-                          onClick={() => navigate(`/dream/${share.dream_id}`)}
+                          onClick={() => navigate(`/dreams/${share.dream_id}`)}
                         >
                           <Eye className="mr-2 h-4 w-4" />
                           Visualizza
