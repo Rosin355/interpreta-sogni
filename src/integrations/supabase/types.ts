@@ -14,6 +14,140 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_knowledge_chunks: {
+        Row: {
+          chunk_index: number
+          content: string
+          created_at: string
+          embedding: string | null
+          id: string
+          metadata: Json
+          source_id: string
+          token_count: number | null
+        }
+        Insert: {
+          chunk_index: number
+          content: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json
+          source_id: string
+          token_count?: number | null
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json
+          source_id?: string
+          token_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_knowledge_chunks_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "ai_knowledge_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_knowledge_retrieval_logs: {
+        Row: {
+          created_at: string
+          feature: string
+          id: string
+          metadata: Json
+          query: string | null
+          selected_chunk_ids: string[]
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          feature: string
+          id?: string
+          metadata?: Json
+          query?: string | null
+          selected_chunk_ids?: string[]
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          feature?: string
+          id?: string
+          metadata?: Json
+          query?: string | null
+          selected_chunk_ids?: string[]
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      ai_knowledge_sources: {
+        Row: {
+          archived_at: string | null
+          author: string | null
+          created_at: string
+          created_by: string | null
+          domain: string
+          error_message: string | null
+          id: string
+          language: string
+          metadata: Json
+          origin: string | null
+          processed_at: string | null
+          raw_text: string | null
+          source_type: string
+          status: string
+          storage_path: string | null
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          author?: string | null
+          created_at?: string
+          created_by?: string | null
+          domain: string
+          error_message?: string | null
+          id?: string
+          language?: string
+          metadata?: Json
+          origin?: string | null
+          processed_at?: string | null
+          raw_text?: string | null
+          source_type?: string
+          status?: string
+          storage_path?: string | null
+          tags?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          author?: string | null
+          created_at?: string
+          created_by?: string | null
+          domain?: string
+          error_message?: string | null
+          id?: string
+          language?: string
+          metadata?: Json
+          origin?: string | null
+          processed_at?: string | null
+          raw_text?: string | null
+          source_type?: string
+          status?: string
+          storage_path?: string | null
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           key: string
@@ -357,6 +491,7 @@ export type Database = {
           client_local_id: string | null
           content: string
           created_at: string | null
+          deleted_at: string | null
           dream_date: string
           id: string
           image_style: string | null
@@ -381,6 +516,7 @@ export type Database = {
           client_local_id?: string | null
           content: string
           created_at?: string | null
+          deleted_at?: string | null
           dream_date: string
           id?: string
           image_style?: string | null
@@ -405,6 +541,7 @@ export type Database = {
           client_local_id?: string | null
           content?: string
           created_at?: string | null
+          deleted_at?: string | null
           dream_date?: string
           id?: string
           image_style?: string | null
