@@ -130,7 +130,7 @@ const SharedDreamPublicFull = () => {
             style={{ color: "hsl(var(--mystic-glow))" }}
           >
             <span>✦</span>
-            <span>Visione Condivisa</span>
+            <span>Community</span>
             <span>✦</span>
           </div>
 
