@@ -45,7 +45,7 @@ const ResearchSection = () => {
       <div className="container mx-auto px-6 lg:px-10 relative z-10 max-w-6xl">
         {/* Header centrale */}
         <motion.div
-          className="mb-24"
+          className="text-center mb-24"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
@@ -56,8 +56,8 @@ const ResearchSection = () => {
             <span className="ed-dot" />
             <span>La grande opera</span>
           </div>
-          <h2 className="ed-h1 mt-7 max-w-[18ch] text-foreground text-center mx-0">
-            Le tre fasi <em>Alchemiche principali.</em>
+          <h2 className="ed-h1 mt-7 mx-auto max-w-[18ch] text-foreground">
+            Le tre fasi <em>del fuoco interiore.</em>
           </h2>
           <p className="ed-lead mt-8 mx-auto max-w-[52ch]">
             Una sequenza antica, percorsa al ritmo del tuo sognare.
