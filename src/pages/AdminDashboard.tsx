@@ -13,6 +13,7 @@ import AdminProfessionalApprovals from "@/components/admin/AdminProfessionalAppr
 import AdminErrorsList from "@/components/admin/AdminErrorsList";
 import AdminLaunchEmailsList from "@/components/admin/AdminLaunchEmailsList";
 import { AdminLaunchToggle } from "@/components/admin/AdminLaunchToggle";
+import AdminAttributionStats from "@/components/admin/AdminAttributionStats";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
