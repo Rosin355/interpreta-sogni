@@ -105,7 +105,7 @@ export default function Explore() {
       <main className="container mx-auto px-4 py-8" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
         <div className="max-w-6xl mx-auto space-y-6">
           <div>
-            <h1 className="text-4xl font-bold mb-2">Visioni Condivise</h1>
+            <h1 className="text-4xl font-bold mb-2">Community</h1>
             <p className="text-muted-foreground">
               Sogni resi pubblici dalla comunità dei sognatori — leggi, ispirati, immergiti nei simboli degli altri.
             </p>

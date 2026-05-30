@@ -74,7 +74,7 @@ export function MiniNavbar() {
   }, [isOpen]);
 
   const navLinksData = [
-    { label: 'Visioni Condivise', href: '/explore' },
+    { label: 'Community', href: '/explore' },
     { label: 'Chi Siamo', href: '/about' },
   ];
 

@@ -15,7 +15,7 @@ const cols: { title: string; links: FooterLink[] }[] = [
     ],
   },
   {
-    title: "Visioni Condivise",
+    title: "Community",
     links: [
       { label: "I sogni della comunità", to: "/explore" },
       { label: "Sogni condivisi con te", to: "/shared-with-me" },

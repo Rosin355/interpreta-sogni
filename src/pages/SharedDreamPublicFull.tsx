@@ -97,7 +97,7 @@ const SharedDreamPublicFull = () => {
                 Questo sogno non è più pubblico o è stato rimosso.
               </p>
               <Button asChild variant="outline">
-                <Link to="/explore">Torna alle Visioni Condivise</Link>
+                <Link to="/explore">Torna alla Community</Link>
               </Button>
             </CardContent>
           </Card>
@@ -130,7 +130,7 @@ const SharedDreamPublicFull = () => {
             style={{ color: "hsl(var(--mystic-glow))" }}
           >
             <span>✦</span>
-            <span>Visione Condivisa</span>
+            <span>Community</span>
             <span>✦</span>
           </div>
 

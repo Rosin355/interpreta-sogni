@@ -18,7 +18,7 @@ interface TopDream {
 }
 
 const SOURCE_LABELS: Record<string, string> = {
-  visione: "Visione Condivisa",
+  visione: "Community",
   direct: "Diretto",
   share_email: "Email Condivisa",
   share_link: "Link Condiviso",
@@ -140,7 +140,7 @@ const AdminAttributionStats = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription className="uppercase tracking-[0.2em] text-[10px]">
-              Da Visioni Condivise
+              Da Community
             </CardDescription>
             <CardTitle className="text-3xl">{visioneLast30}</CardTitle>
           </CardHeader>
