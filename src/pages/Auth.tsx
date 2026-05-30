@@ -42,14 +42,65 @@ const Auth = () => {
     bio: "",
   });
 
+  // Salva attribuzione (from/dream) in localStorage non appena la pagina si apre con questi params,
+  // così sopravvive al redirect di conferma email.
+  useEffect(() => {
+    const from = searchParams.get("from");
+    const dream = searchParams.get("dream");
+    if (from) {
+      try {
+        localStorage.setItem(
+          "pending_attribution",
+          JSON.stringify({
+            source: from,
+            dream_id: dream || null,
+            referrer: document.referrer || null,
+            saved_at: Date.now(),
+          })
+        );
+      } catch {
+        // ignora errori storage (modalità privata ecc.)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Inserisce l'attribuzione al primo SIGNED_IN dopo registrazione/conferma.
+  // UNIQUE(user_id) garantisce idempotenza: i login successivi falliscono silenziosamente.
+  const tryRecordAttribution = async (userId: string) => {
+    try {
+      const raw = localStorage.getItem("pending_attribution");
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      await supabase.from("signup_attributions").insert({
+        user_id: userId,
+        source: parsed.source || "direct",
+        dream_id: parsed.dream_id || null,
+        referrer: parsed.referrer || null,
+      });
+      localStorage.removeItem("pending_attribution");
+    } catch (err) {
+      // best-effort: non bloccare mai il login
+      console.warn("[attribution] skip", err);
+    }
+  };
+
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) navigate("/dashboard");
+      if (session) {
+        await tryRecordAttribution(session.user.id);
+        navigate("/dashboard");
+      }
     };
     checkSession();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) navigate("/dashboard");
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
+        if (event === "SIGNED_IN") {
+          await tryRecordAttribution(session.user.id);
+        }
+        navigate("/dashboard");
+      }
     });
     return () => subscription.unsubscribe();
   }, [navigate]);
