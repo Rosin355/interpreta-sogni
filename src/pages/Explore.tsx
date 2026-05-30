@@ -105,9 +105,9 @@ export default function Explore() {
       <main className="container mx-auto px-4 py-8" style={{ paddingTop: 'calc(7rem + var(--safe-area-inset-top, 0px))' }}>
         <div className="max-w-6xl mx-auto space-y-6">
           <div>
-            <h1 className="text-4xl font-bold mb-2">Esplora</h1>
+            <h1 className="text-4xl font-bold mb-2">Visioni Condivise</h1>
             <p className="text-muted-foreground">
-              Scopri sogni e collezioni condivise dalla community
+              Sogni resi pubblici dalla comunità dei sognatori — leggi, ispirati, immergiti nei simboli degli altri.
             </p>
           </div>
 
@@ -148,7 +148,7 @@ export default function Explore() {
                     <Card
                       key={dream.id}
                       className="hover:shadow-lg transition-shadow cursor-pointer overflow-hidden"
-                      onClick={() => navigate(`/dreams/${dream.id}`)}
+                      onClick={() => navigate(`/visione/${dream.id}`)}
                     >
                       {dream.image_url && (
                         <div className="aspect-video w-full overflow-hidden">

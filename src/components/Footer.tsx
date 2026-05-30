@@ -15,10 +15,10 @@ const cols: { title: string; links: FooterLink[] }[] = [
     ],
   },
   {
-    title: "Esplora",
+    title: "Visioni Condivise",
     links: [
       { label: "I sogni della comunità", to: "/explore" },
-      { label: "Sogni condivisi", to: "/shared-with-me" },
+      { label: "Sogni condivisi con te", to: "/shared-with-me" },
       { label: "Chi siamo", to: "/about" },
     ],
   },
