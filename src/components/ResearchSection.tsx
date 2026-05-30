@@ -56,8 +56,8 @@ const ResearchSection = () => {
             <span className="ed-dot" />
             <span>La grande opera</span>
           </div>
-          <h2 className="ed-h1 mt-7 mx-auto max-w-[18ch] text-foreground">
-            Le tre fasi <em>del fuoco interiore.</em>
+          <h2 className="ed-h1 mt-7 max-w-[18ch] text-foreground mx-[42px]">
+            Le tre fasi <em>Alchemiche principali.</em>
           </h2>
           <p className="ed-lead mt-8 mx-auto max-w-[52ch]">
             Una sequenza antica, percorsa al ritmo del tuo sognare.
