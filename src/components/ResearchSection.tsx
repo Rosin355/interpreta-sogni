@@ -57,7 +57,7 @@ const ResearchSection = () => {
             <span>La grande opera</span>
           </div>
           <h2 className="ed-h1 mt-7 mx-auto max-w-[18ch] text-foreground">
-            Le quattro fasi <em>del fuoco interiore.</em>
+            Le tre fasi <em>del fuoco interiore.</em>
           </h2>
           <p className="ed-lead mt-8 mx-auto max-w-[52ch]">
             Una sequenza antica, percorsa al ritmo del tuo sognare.
@@ -74,7 +74,7 @@ const ResearchSection = () => {
             }}
           />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-16 lg:gap-0 relative">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-16 lg:gap-0 relative">
             {phases.map((p, i) => (
               <motion.div
                 key={p.key}

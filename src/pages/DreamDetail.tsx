@@ -837,7 +837,7 @@ const DreamDetail = () => {
                       toast({
                         title: "Visibilità aggiornata",
                         description: value === "public" 
-                          ? "Il tuo sogno è ora pubblico e visibile nella pagina Esplora" 
+                          ? "Il tuo sogno è ora pubblico e visibile nella pagina Visioni Condivise" 
                           : "Il tuo sogno è ora privato",
                       });
                     }
@@ -853,7 +853,7 @@ const DreamDetail = () => {
                 </Select>
                 <p className="text-xs text-muted-foreground">
                   {dream.visibility === "public"
-                    ? "Questo sogno è visibile a tutti gli utenti nella pagina Esplora"
+                    ? "Questo sogno è visibile a tutti gli utenti nella pagina Visioni Condivise"
                     : "Solo tu puoi vedere questo sogno"}
                 </p>
               </section>
