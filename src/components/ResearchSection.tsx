@@ -18,17 +18,9 @@ const phases = [
       "radial-gradient(circle at 30% 30%, hsl(245 80% 78%) 0%, hsl(245 40% 45%) 100%)",
   },
   {
-    key: "citrinitas",
-    latin: "Citrinitas",
-    roman: "III · L'illuminazione",
-    desc: "È la luce che torna senza abbagliare. Il senso inizia a orientarsi, le immagini si collegano, e ciò che era sparso comincia a trovare direzione.",
-    gradient:
-      "radial-gradient(circle at 30% 30%, hsl(45 90% 70%) 0%, hsl(280 50% 40%) 100%)",
-  },
-  {
     key: "rubedo",
     latin: "Rubedo",
-    roman: "IV · L'integrazione",
+    roman: "III · L'integrazione",
     desc: "La trasformazione prende corpo. Quello che hai visto, sentito e compreso smette di restare solo simbolo, e diventa presenza viva dentro di te.",
     gradient:
       "radial-gradient(circle at 30% 30%, hsl(330 80% 65%) 0%, hsl(280 70% 30%) 100%)",
