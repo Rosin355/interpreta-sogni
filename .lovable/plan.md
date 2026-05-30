@@ -69,7 +69,7 @@ Nessun tracking esterno, nessuna PII oltre a quella già in `auth.users`.
 ### 2c. Admin dashboard (componente nuovo)
 
 `src/components/admin/AdminAttributionStats.tsx` integrato in `AdminDashboard.tsx`:
-- Card "Iscrizioni da Visioni Condivise" (ultimi 30gg) con conteggio + delta vs periodo precedente
+- Card "Iscrizioni da Community" (ultimi 30gg) con conteggio + delta vs periodo precedente
 - Top 5 "Sogni magnetici" (sogni con più signup attribuiti): titolo + n. conversioni + link a `/visione/:id`
 - Distribuzione per `source` (pie/bar semplice in HTML, no Recharts)
 
