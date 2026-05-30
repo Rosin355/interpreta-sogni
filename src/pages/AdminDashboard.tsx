@@ -13,6 +13,7 @@ import AdminProfessionalApprovals from "@/components/admin/AdminProfessionalAppr
 import AdminErrorsList from "@/components/admin/AdminErrorsList";
 import AdminLaunchEmailsList from "@/components/admin/AdminLaunchEmailsList";
 import { AdminLaunchToggle } from "@/components/admin/AdminLaunchToggle";
+import AdminAttributionStats from "@/components/admin/AdminAttributionStats";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -79,6 +80,7 @@ const AdminDashboard = () => {
             <TabsList className="mb-6">
               <TabsTrigger value="professionals">Professionisti</TabsTrigger>
               <TabsTrigger value="users">Utenti</TabsTrigger>
+              <TabsTrigger value="attribution">Conversioni</TabsTrigger>
               <TabsTrigger value="errors">Errori</TabsTrigger>
               {isSuperAdmin && <TabsTrigger value="launch">Pre-Lancio</TabsTrigger>}
             </TabsList>
@@ -89,6 +91,10 @@ const AdminDashboard = () => {
 
             <TabsContent value="users">
               <AdminUsersList />
+            </TabsContent>
+
+            <TabsContent value="attribution">
+              <AdminAttributionStats />
             </TabsContent>
 
             <TabsContent value="errors">

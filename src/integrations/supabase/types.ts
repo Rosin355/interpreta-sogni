@@ -918,6 +918,33 @@ export type Database = {
         }
         Relationships: []
       }
+      signup_attributions: {
+        Row: {
+          created_at: string
+          dream_id: string | null
+          id: string
+          referrer: string | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dream_id?: string | null
+          id?: string
+          referrer?: string | null
+          source?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dream_id?: string | null
+          id?: string
+          referrer?: string | null
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       streaks: {
         Row: {
           created_at: string | null
