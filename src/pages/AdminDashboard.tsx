@@ -80,6 +80,7 @@ const AdminDashboard = () => {
             <TabsList className="mb-6">
               <TabsTrigger value="professionals">Professionisti</TabsTrigger>
               <TabsTrigger value="users">Utenti</TabsTrigger>
+              <TabsTrigger value="attribution">Conversioni</TabsTrigger>
               <TabsTrigger value="errors">Errori</TabsTrigger>
               {isSuperAdmin && <TabsTrigger value="launch">Pre-Lancio</TabsTrigger>}
             </TabsList>
@@ -90,6 +91,10 @@ const AdminDashboard = () => {
 
             <TabsContent value="users">
               <AdminUsersList />
+            </TabsContent>
+
+            <TabsContent value="attribution">
+              <AdminAttributionStats />
             </TabsContent>
 
             <TabsContent value="errors">
