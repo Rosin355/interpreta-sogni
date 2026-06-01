@@ -42,3 +42,6 @@ verify_jwt = false
 [functions.send-contact-email]
 verify_jwt = false
 
+[functions.ingest-knowledge-source]
+verify_jwt = false
+
