@@ -103,6 +103,7 @@ const AppRouter = () => {
               <Route path="/visione/:id" element={<SharedDreamPublicFull />} />
               <Route path="/audio-library" element={<AudioLibrary />} />
               <Route path="/admin/audio" element={<AudioAdmin />} />
+              <Route path="/admin/knowledge-base" element={<AdminKnowledgeBase />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </RouteFadeTransition>
