@@ -40,6 +40,7 @@ const SharedDreamPublic = lazy(() => import("./pages/SharedDreamPublic"));
 const SharedDreamPublicFull = lazy(() => import("./pages/SharedDreamPublicFull"));
 const AudioLibrary = lazy(() => import("./pages/AudioLibrary"));
 const AudioAdmin = lazy(() => import("./pages/AudioAdmin"));
+const AdminKnowledgeBase = lazy(() => import("./pages/AdminKnowledgeBase"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Mystic loading fallback component
