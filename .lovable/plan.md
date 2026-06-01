@@ -1,99 +1,51 @@
-## Obiettivo
+## Admin UI: Knowledge Base AI
 
-Creare la prima Edge Function di scrittura per la Knowledge Base (`ingest-knowledge-source`) che permette agli admin autenticati di inserire (e opzionalmente aggiornare) sorgenti di testo manuale in `public.ai_knowledge_sources`. Nessuna chiamata AI, nessun chunk, nessun embedding in questa fase.
+Aggiungere una pagina admin per gestire `ai_knowledge_sources` tramite la Edge Function `ingest-knowledge-source` esistente. Nessuna chiamata AI, nessun chunking, nessun embedding.
 
-## Strategia di autorizzazione admin
+### File da creare
 
-Il progetto ha già un pattern consolidato (usato in `approve-professional`):
+1. **`src/pages/AdminKnowledgeBase.tsx`** — pagina protetta con guard admin (stesso pattern di `AdminDashboard.tsx`: `supabase.auth.getUser()` + `supabase.rpc('is_admin', { _user_id })`, redirect a `/auth` o `/` con toast). Include `<Navigation />`, header "Knowledge Base AI", bottone "Nuova fonte" che apre il dialog, e la lista.
 
-1. `authClient.auth.getUser()` per validare il JWT
-2. RPC `is_admin(_user_id)` (oppure `is_super_admin`) per il controllo di ruolo via `user_roles`
+2. **`src/components/admin/KnowledgeSourcesList.tsx`** — tabella shadcn con colonne: title, domain, source_type, status (badge colorato), language, tags (chips), updated_at. Filtri sopra la tabella: select `domain`, select `status`, select `language`, input search per title (filtro client-side su query già caricata, limit 200). Empty state: "Nessuna fonte nella Knowledge Base. Inizia aggiungendo un testo di riferimento." Query: `supabase.from('ai_knowledge_sources').select('*').order('updated_at', { ascending: false })`. RLS attuale permette SELECT solo su `status = 'active'` — annotare TODO per aggiungere policy admin SELECT su tutti gli status (vedi sezione "Limitazione nota" sotto).
 
-Riuso lo stesso pattern. **NON** serve introdurre `KB_ADMIN_USER_IDS`: l'helper esiste già ed è sicuro. Lo menziono nei docs solo come fallback non implementato.
+3. **`src/components/admin/KnowledgeSourceForm.tsx`** — form dentro `<Dialog>` con react-hook-form + zod, campi: title (min 3), domain (Select con i 10 valori), source_type (Select: manual_text/note/markdown/txt), status (Select: draft/active, default draft), language (Input default "it"), author (Input opzionale), origin (Input opzionale), tags (Input comma-separated → array normalizzato), raw_text (Textarea min 100 char, contatore). 
 
-Risposte:
-- Admin auth → `supabase.rpc('is_admin', { _user_id: user.id })`
-- Service role usata solo lato server per scrivere bypassando RLS (le tabelle KB non hanno policy di write).
+   Helper copy sopra raw_text: *"Inserisci qui testi di riferimento alchemici, astrologici o simbolici che potranno guidare le future interpretazioni AI."*
 
-## File da creare
+   Privacy warning (Alert variant destructive/warning): *"La Knowledge Base contiene solo materiale curatoriale. Non inserire sogni privati degli utenti."*
 
-### 1. `supabase/functions/ingest-knowledge-source/index.ts`
+   Submit: `supabase.functions.invoke('ingest-knowledge-source', { body: payload })`. Success → toast "Fonte salvata nella Knowledge Base", chiude dialog, callback per refetch lista. Error → toast "Non siamo riusciti a salvare la fonte. Verifica i permessi admin e riprova." Nessun insert diretto client-side.
 
-Struttura:
-- CORS + OPTIONS handler (riuso `corsHeaders` da `_shared/error-response.ts`)
-- Parse + validazione body con Zod inline:
-  - `title` string min 3 max 200
-  - `domain` enum: `dreams | alchemy | astrology | symbols | mythology | psychology | rituals | voice_scripts | community_guidelines | app_content`
-  - `source_type` enum `manual_text | note | markdown | txt`, default `manual_text`
-  - `language` string default `it`
-  - `author` string nullable
-  - `origin` string nullable
-  - `tags` array string, normalizzati (trim + lowercase, dedup)
-  - `raw_text` min 100 max 200_000
-  - `status` `draft | active`, default `draft`
-  - `source_id` opzionale (modalità update)
-- Auth:
-  - Estrai Authorization header → `createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { headers: { Authorization } } })`
-  - `authClient.auth.getUser()` → 401 se mancante
-  - `authClient.rpc('is_admin', { _user_id: user.id })` → 403 se false
-- DB write con client service role:
-  - Insert (no `source_id`) con `created_by = user.id`, `metadata: { ingest_method: 'manual_text', version: 1 }`
-  - Update (con `source_id`): verifica row exists e `created_by = user.id` OR admin; aggiorna campi editabili; se `raw_text` cambiato → set `processed_at = null` e `status = 'draft'` (forza riprocessamento futuro)
-- Logging sicuro:
-  - `[ingest-knowledge-source] started userIdPrefix=<first8>`
-  - `[ingest-knowledge-source] created sourceIdPrefix=<first8> domain=... status=...`
-  - Mai loggare `raw_text`, JWT, secret
-- Errori → `errorResponse(code, message)` da `_shared/error-response.ts`
-- Response success:
-  ```json
-  { "source_id": "...", "status": "draft|active", "message": "Knowledge source created|updated" }
-  ```
+4. **`docs/admin-knowledge-base-v1.md`** — documenta: route `/admin/knowledge-base`, flusso create via Edge Function, no embeddings/chunks/AI calls ancora, le fonti `active` saranno processate in fase futura, divieto di copiare sogni privati nella KB.
 
-### 2. `supabase/config.toml` (edit)
+### File da modificare
 
-Aggiungere:
-```
-[functions.ingest-knowledge-source]
-verify_jwt = false
-```
-(verifica in-code come da memoria `Edge Gateway Bypass`)
+5. **`src/App.tsx`** — aggiungere `<Route path="/admin/knowledge-base" element={<AdminKnowledgeBase />} />` (lazy import coerente con altre route admin).
 
-### 3. `docs/admin-knowledge-ingest-v1.md` (nuovo)
+6. **`src/pages/AdminDashboard.tsx`** — aggiungere bottone "Knowledge Base AI" accanto a "Gestione Audio" nell'header, che naviga a `/admin/knowledge-base`.
 
-Contenuti:
-- Scopo della funzione
-- Endpoint + request/response schema
-- Autorizzazione: JWT + `is_admin` RPC
-- Note `KB_ADMIN_USER_IDS`: non implementato, fallback futuro
-- Limiti: niente embeddings, niente chunk, nessuna chiamata AI in questa fase
-- **Warning di sicurezza**: i sogni privati degli utenti NON vanno mai incollati nella KB
-- Prossimo step: `process-knowledge-source` (chunking + embeddings)
+### Limitazione nota (Task 5)
 
-### 4. `docs/ai-knowledge-base-strategy-v1.md` (edit, se esiste; altrimenti TODO no-op)
+RLS attuale su `ai_knowledge_sources`:
+- SELECT: solo `status = 'active'` per authenticated
+- INSERT/UPDATE/DELETE: bloccati per client
 
-Aggiungere sezione Fase 3 con path della nuova edge function e stato.
+Conseguenze per questo pass:
+- La lista mostrerà solo fonti `active`. Le `draft` create via Edge Function non saranno visibili agli admin dalla UI finché non viene aggiunta una policy SELECT admin.
+- Edit / archive / activate dal client non sono possibili senza nuove policy.
 
-## Cosa NON viene fatto
+Opzioni (da decidere prima dell'implementazione):
+- **A (consigliata, minimale):** aggiungere migration con policy SELECT admin su `ai_knowledge_sources` per vedere tutti gli status. Niente UPDATE client (resta TODO documentato).
+- **B:** lasciare tutto via Edge Function. La lista resterebbe limitata a `active` — UX poco utile per draft.
+- **C:** rimandare ogni cambio RLS, accettare la limitazione.
+
+Il piano assume **opzione A** (una sola policy SELECT admin, nessun privilegio di scrittura aggiunto al client).
+
+### Out of scope (intenzionale)
 
 - Nessuna chiamata a OpenAI / Anthropic / Lovable AI / ElevenLabs
-- Nessun chunking o embedding
-- Nessuna modifica iOS / RevenueCat
-- Nessuna esposizione del service role al client
-- Nessuna policy RLS aggiunta su `ai_knowledge_sources` (continua write solo da edge)
-- Nessun deploy automatico
-
-## Comandi finali (manuali, da eseguire dall'utente se vuole)
-
-```
-npx supabase functions deploy ingest-knowledge-source
-```
-
-Nessun secret nuovo richiesto.
-
-## Conferme finali nel report dopo build
-
-- File aggiunti / modificati
-- Strategia admin = RPC `is_admin` (riuso pattern esistente)
-- `KB_ADMIN_USER_IDS` non richiesto
-- Funzione non deployata automaticamente
-- Nessuna chiamata AI eseguita
+- Nessun chunking, nessun embedding, nessuna retrieval
+- Nessuna modifica a iOS / Capacitor
+- Nessuna scrittura client diretta su `ai_knowledge_sources`
+- Service role key resta solo nella Edge Function
+- Nessuna delete permanente
