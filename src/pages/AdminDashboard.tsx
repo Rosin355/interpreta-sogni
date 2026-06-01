@@ -65,9 +65,14 @@ const AdminDashboard = () => {
               <h1 className="text-3xl font-bold mb-2">Dashboard Amministratore</h1>
               <p className="text-muted-foreground">Panoramica e gestione della piattaforma</p>
             </div>
-            <Button variant="outline" onClick={() => navigate('/admin/audio')} className="gap-2 shrink-0">
-              <Music className="h-4 w-4" /> Gestione Audio
-            </Button>
+            <div className="flex gap-2 shrink-0">
+              <Button variant="outline" onClick={() => navigate('/admin/knowledge-base')} className="gap-2">
+                <BookOpen className="h-4 w-4" /> Knowledge Base AI
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/admin/audio')} className="gap-2">
+                <Music className="h-4 w-4" /> Gestione Audio
+              </Button>
+            </div>
           </div>
 
           {/* Stats overview */}
