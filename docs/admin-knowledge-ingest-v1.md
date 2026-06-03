@@ -31,15 +31,22 @@ Content-Type: application/json
   "source_id": "uuid",        // opzionale → modalità update
   "title": "string",          // min 3
   "domain": "dreams | alchemy | astrology | symbols | mythology | psychology | rituals | voice_scripts | community_guidelines | app_content",
-  "source_type": "manual_text | note | markdown | txt", // default manual_text
+  "source_type": "manual_text | note | markdown | txt | pdf", // default manual_text
   "language": "it",           // default it
   "author": "string | null",
   "origin": "string | null",
   "tags": ["string"],         // normalizzati trim + lowercase + dedup
-  "raw_text": "string",       // min 100, max 200000
-  "status": "draft | active"  // default draft
+  "raw_text": "string",       // richiesto per fonti testuali (min 100, max 200000); null/omesso per pdf
+  "storage_path": "string",   // richiesto per source_type='pdf'; ignorato altrimenti
+  "status": "draft | active"  // default draft (forzato a draft per pdf)
 }
 ```
+
+### Validazione cross-field
+
+- `source_type='pdf'` → `storage_path` obbligatorio, `raw_text` ignorato (salvato come NULL).
+- altri `source_type` → `raw_text` obbligatorio (regole esistenti), `storage_path` ignorato.
+
 
 ## Response
 
