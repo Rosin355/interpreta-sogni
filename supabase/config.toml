@@ -45,3 +45,8 @@ verify_jwt = false
 [functions.ingest-knowledge-source]
 verify_jwt = false
 
+[functions.process-knowledge-source]
+verify_jwt = false
+
+
+
