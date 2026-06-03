@@ -95,6 +95,35 @@ Helper deterministico in-file:
 
 Stima token: `Math.ceil(length / 4)`.
 
+## Pipeline per `source_type='pdf'` (TODO)
+
+Quando la sorgente è un PDF (`raw_text` NULL, `storage_path` valorizzato):
+
+1. portare `status = 'processing'`.
+2. scaricare il file dal bucket privato `knowledge-sources` lato server
+   (service role, mai client-side).
+3. estrarre testo (PDF parser deterministico, no AI).
+4. clean: rimozione headers/footers ripetuti, normalizzazione whitespace.
+5. chunking deterministico (stesso helper della via `manual_text`).
+6. insert in `ai_knowledge_chunks` con `embedding = NULL`.
+7. `embed-knowledge-source` (futuro) genera embedding e porta `status = 'active'`.
+8. in caso di errore: `status = 'failed'`, `error_message` con causa breve.
+
+### Rischio timeout / documenti molto grandi
+
+Gli Edge Functions hanno limiti di tempo e memoria. PDF molto grandi
+(centinaia di pagine, decine di MB di testo) potrebbero:
+
+- superare il timeout di una singola invocazione,
+- generare un numero di chunk troppo elevato per un singolo insert,
+- causare picchi di costo embeddings.
+
+Mitigazioni future:
+- elaborazione a batch (es. 50 chunk per chiamata, paginazione tramite
+  `chunk_offset`).
+- coda / background job (pg_cron + tabella `kb_processing_jobs`).
+- pre-validazione delle dimensioni in fase di upload nell'admin UI.
+
 ## Policy embedding
 
 Per questa pass: **NESSUN embedding**.

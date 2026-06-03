@@ -27,9 +27,33 @@ Solo SELECT lato client, su contenuti attivi.
 
 Edge function: `supabase/functions/ingest-knowledge-source/index.ts`
 - Auth: JWT + `is_admin` RPC (fallback env `KB_ADMIN_USER_IDS`)
-- Insert / update di sorgenti manuali
+- Insert / update di sorgenti (manuali e PDF metadata-only)
 - Nessun AI call, nessun embedding, nessun chunk
 - Vedi `docs/admin-knowledge-ingest-v1.md`
+
+## Large Document / PDF Ingestion
+
+Due percorsi di ingest coesistono nella KB:
+
+| Path | `source_type` | `raw_text` | `storage_path` |
+|------|---------------|-----------|----------------|
+| Testo manuale | `manual_text` / `note` / `markdown` / `txt` | richiesto (100–200k char) | null |
+| File upload | `pdf` | null | richiesto |
+
+Flow PDF:
+1. Admin carica il file nel bucket privato Supabase Storage `knowledge-sources`
+   (vedi `docs/supabase-knowledge-storage-migration.sql`).
+2. Admin chiama `ingest-knowledge-source` con `source_type='pdf'` e
+   `storage_path`. La riga viene creata con `raw_text = NULL`,
+   `status = 'draft'`.
+3. Più avanti `process-knowledge-source` scarica il file lato server,
+   estrae testo, fa cleanup + chunking, ed eventualmente genera embedding.
+
+Ciclo di vita PDF: `draft` → `processing` → `active` / `failed`.
+
+**Regola**: i PDF grandi NON vanno incollati nel form manuale. Il limite
+del form è 200k caratteri ed è pensato per note curate brevi.
+
 
 ## Fase 4 — Processing (TODO)
 

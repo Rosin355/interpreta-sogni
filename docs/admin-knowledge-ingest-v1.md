@@ -31,15 +31,22 @@ Content-Type: application/json
   "source_id": "uuid",        // opzionale → modalità update
   "title": "string",          // min 3
   "domain": "dreams | alchemy | astrology | symbols | mythology | psychology | rituals | voice_scripts | community_guidelines | app_content",
-  "source_type": "manual_text | note | markdown | txt", // default manual_text
+  "source_type": "manual_text | note | markdown | txt | pdf", // default manual_text
   "language": "it",           // default it
   "author": "string | null",
   "origin": "string | null",
   "tags": ["string"],         // normalizzati trim + lowercase + dedup
-  "raw_text": "string",       // min 100, max 200000
-  "status": "draft | active"  // default draft
+  "raw_text": "string",       // richiesto per fonti testuali (min 100, max 200000); null/omesso per pdf
+  "storage_path": "string",   // richiesto per source_type='pdf'; ignorato altrimenti
+  "status": "draft | active"  // default draft (forzato a draft per pdf)
 }
 ```
+
+### Validazione cross-field
+
+- `source_type='pdf'` → `storage_path` obbligatorio, `raw_text` ignorato (salvato come NULL).
+- altri `source_type` → `raw_text` obbligatorio (regole esistenti), `storage_path` ignorato.
+
 
 ## Response
 
@@ -177,6 +184,30 @@ curl -X POST "https://<PROJECT_REF>.supabase.co/functions/v1/ingest-knowledge-so
     "raw_text": "La Nigredo rappresenta la fase oscura dell'opera alchemica, il momento in cui la materia e la coscienza attraversano dissoluzione, ombra, confusione e perdita di forma. Nel linguaggio simbolico dei sogni può apparire come notte, fango, stanze chiuse, acque torbide o figure inquietanti. Non indica una condanna, ma l'inizio di una trasformazione profonda."
   }'
 ```
+
+### Step 2b — Curl example per PDF (metadata only)
+
+Pre-requisito: il file PDF è stato caricato nel bucket privato
+`knowledge-sources` (vedi `docs/supabase-knowledge-storage-migration.sql`).
+La funzione NON estrae testo dal PDF: salva solo metadata + `storage_path`.
+
+```bash
+curl -X POST "https://<PROJECT_REF>.supabase.co/functions/v1/ingest-knowledge-source" \
+  -H "Authorization: Bearer <USER_JWT>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Jung — Psicologia e Alchimia (estratto)",
+    "domain": "alchemy",
+    "source_type": "pdf",
+    "language": "it",
+    "tags": ["jung", "alchimia"],
+    "storage_path": "alchemy/jung-psicologia-alchimia.pdf"
+  }'
+```
+
+Risposta attesa: `status='draft'`, `raw_text` resta NULL.
+Il chunking + estrazione testo avverrà più avanti in
+`process-knowledge-source`.
 
 ### Step 3 — Expected response
 

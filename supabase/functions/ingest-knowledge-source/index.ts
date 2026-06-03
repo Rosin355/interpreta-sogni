@@ -21,20 +21,41 @@ const ALLOWED_DOMAINS = [
   "app_content",
 ] as const;
 
-const BodySchema = z.object({
-  source_id: z.string().uuid().optional(),
-  title: z.string().trim().min(3).max(200),
-  domain: z.enum(ALLOWED_DOMAINS),
-  source_type: z
-    .enum(["manual_text", "note", "markdown", "txt"])
-    .default("manual_text"),
-  language: z.string().trim().min(2).max(8).default("it"),
-  author: z.string().trim().max(200).nullable().optional(),
-  origin: z.string().trim().max(500).nullable().optional(),
-  tags: z.array(z.string()).max(50).default([]),
-  raw_text: z.string().min(100).max(200_000),
-  status: z.enum(["draft", "active"]).default("draft"),
-});
+const BodySchema = z
+  .object({
+    source_id: z.string().uuid().optional(),
+    title: z.string().trim().min(3).max(200),
+    domain: z.enum(ALLOWED_DOMAINS),
+    source_type: z
+      .enum(["manual_text", "note", "markdown", "txt", "pdf"])
+      .default("manual_text"),
+    language: z.string().trim().min(2).max(8).default("it"),
+    author: z.string().trim().max(200).nullable().optional(),
+    origin: z.string().trim().max(500).nullable().optional(),
+    tags: z.array(z.string()).max(50).default([]),
+    raw_text: z.string().min(100).max(200_000).optional(),
+    storage_path: z.string().trim().min(1).max(500).optional(),
+    status: z.enum(["draft", "active"]).default("draft"),
+  })
+  .superRefine((val, ctx) => {
+    if (val.source_type === "pdf") {
+      if (!val.storage_path) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["storage_path"],
+          message: "storage_path richiesto per source_type='pdf'",
+        });
+      }
+    } else {
+      if (!val.raw_text || val.raw_text.length < 100) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["raw_text"],
+          message: "raw_text richiesto (min 100 char) per fonti testuali",
+        });
+      }
+    }
+  });
 
 const normalizeTags = (tags: string[]): string[] => {
   const set = new Set<string>();
@@ -130,11 +151,14 @@ serve(async (req) => {
     const body = parsed.data;
     const tags = normalizeTags(body.tags);
 
+    const isPdf = body.source_type === "pdf";
+    const ingestMethod = isPdf ? "pdf_upload" : "manual_text";
+
     // UPDATE mode
     if (body.source_id) {
       const { data: existing, error: fetchErr } = await admin
         .from("ai_knowledge_sources")
-        .select("id, created_by, raw_text")
+        .select("id, created_by, raw_text, storage_path, source_type")
         .eq("id", body.source_id)
         .maybeSingle();
 
@@ -146,8 +170,10 @@ serve(async (req) => {
         return json({ error: "Sorgente non trovata" }, 404);
       }
 
-      // Any admin can update; creator can also update their own
-      const rawTextChanged = existing.raw_text !== body.raw_text;
+      const rawTextChanged = !isPdf && existing.raw_text !== body.raw_text;
+      const storagePathChanged =
+        isPdf && existing.storage_path !== (body.storage_path ?? null);
+      const contentChanged = rawTextChanged || storagePathChanged;
 
       const update: Record<string, unknown> = {
         title: body.title,
@@ -157,11 +183,12 @@ serve(async (req) => {
         author: body.author ?? null,
         origin: body.origin ?? null,
         tags,
-        raw_text: body.raw_text,
-        status: rawTextChanged ? "draft" : body.status,
+        raw_text: isPdf ? null : body.raw_text,
+        storage_path: isPdf ? body.storage_path ?? null : null,
+        status: contentChanged || isPdf ? "draft" : body.status,
         updated_at: new Date().toISOString(),
       };
-      if (rawTextChanged) {
+      if (contentChanged) {
         update.processed_at = null;
         // TODO: when chunk pipeline lands, delete existing chunks for this source_id
       }
@@ -177,7 +204,7 @@ serve(async (req) => {
       }
 
       console.log(
-        `[ingest-knowledge-source] updated sourceIdPrefix=${prefix(body.source_id)} domain=${body.domain} status=${update.status}`,
+        `[ingest-knowledge-source] updated sourceIdPrefix=${prefix(body.source_id)} domain=${body.domain} type=${body.source_type} status=${update.status}`,
       );
 
       return json({
@@ -198,10 +225,11 @@ serve(async (req) => {
         author: body.author ?? null,
         origin: body.origin ?? null,
         tags,
-        raw_text: body.raw_text,
-        status: body.status,
+        raw_text: isPdf ? null : body.raw_text,
+        storage_path: isPdf ? body.storage_path ?? null : null,
+        status: isPdf ? "draft" : body.status,
         created_by: user.id,
-        metadata: { ingest_method: "manual_text", version: 1 },
+        metadata: { ingest_method: ingestMethod, version: 1 },
       })
       .select("id, status")
       .single();
@@ -212,7 +240,7 @@ serve(async (req) => {
     }
 
     console.log(
-      `[ingest-knowledge-source] created sourceIdPrefix=${prefix(inserted.id)} domain=${body.domain} status=${inserted.status}`,
+      `[ingest-knowledge-source] created sourceIdPrefix=${prefix(inserted.id)} domain=${body.domain} type=${body.source_type} status=${inserted.status}`,
     );
 
     return json({

@@ -29,8 +29,8 @@
 - `transcribe-audio`
 - `speech-to-text-elevenlabs`
 - `text-to-speech-elevenlabs`
-- `ingest-knowledge-source`
-- `process-knowledge-source` (chunking only, embedding=null, source stays `draft`)
+- `ingest-knowledge-source` (manual text **and** `source_type='pdf'` + `storage_path` metadata; no PDF parsing here)
+- `process-knowledge-source` (chunking only, embedding=null, source stays `draft`; PDF branch planned)
 - `approve-professional`
 - `send-email-notification` / `send-contact-email` / `send-dream-diary`
 - `send-push-notifications`
