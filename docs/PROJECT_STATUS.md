@@ -41,7 +41,8 @@ interpretations and the subscription/entitlement layer.
 
 - Knowledge Base / RAG foundation
 - Admin ingestion and end-to-end manual testing
-- Later: `process-knowledge-source` → chunking → embeddings → `search-knowledge` → retrieval wired into `interpret-dream` and `chat-with-alchemist`
+- PDF / large-document ingest path scaffolding (Storage bucket + `source_type='pdf'` su `ingest-knowledge-source`)
+- Later: `process-knowledge-source` PDF branch → chunking → embeddings → `search-knowledge` → retrieval wired into `interpret-dream` and `chat-with-alchemist`
 
 ## Golden Rules
 
