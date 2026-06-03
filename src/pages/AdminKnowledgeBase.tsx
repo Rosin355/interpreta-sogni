@@ -6,8 +6,10 @@ import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import KnowledgeSourcesList from "@/components/admin/KnowledgeSourcesList";
 import KnowledgeSourceForm from "@/components/admin/KnowledgeSourceForm";
+import KnowledgePdfUploadForm from "@/components/admin/KnowledgePdfUploadForm";
 
 const AdminKnowledgeBase = () => {
   const navigate = useNavigate();
@@ -96,7 +98,24 @@ const AdminKnowledgeBase = () => {
               <DialogHeader>
                 <DialogTitle>Nuova fonte Knowledge Base</DialogTitle>
               </DialogHeader>
-              <KnowledgeSourceForm onCreated={handleCreated} onCancel={() => setDialogOpen(false)} />
+              <Tabs defaultValue="text" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="text">Testo manuale</TabsTrigger>
+                  <TabsTrigger value="pdf">Documento PDF</TabsTrigger>
+                </TabsList>
+                <TabsContent value="text" className="mt-4">
+                  <KnowledgeSourceForm
+                    onCreated={handleCreated}
+                    onCancel={() => setDialogOpen(false)}
+                  />
+                </TabsContent>
+                <TabsContent value="pdf" className="mt-4">
+                  <KnowledgePdfUploadForm
+                    onCreated={handleCreated}
+                    onCancel={() => setDialogOpen(false)}
+                  />
+                </TabsContent>
+              </Tabs>
             </DialogContent>
           </Dialog>
         </div>
