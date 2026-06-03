@@ -41,3 +41,8 @@ Accessibile dal pulsante "Knowledge Base AI" nella Dashboard Amministratore.
 > La Knowledge Base contiene **solo** materiale curatoriale (testi pubblici, riferimenti
 > alchemici/astrologici/simbolici, contenuti app). Non deve mai contenere sogni privati
 > degli utenti né dati personali identificabili.
+
+
+---
+
+_See also: [PROJECT_STATUS](./PROJECT_STATUS.md) · [WEB_TASKS](./WEB_TASKS.md) · [AI_BACKEND_STATUS](./AI_BACKEND_STATUS.md)_
