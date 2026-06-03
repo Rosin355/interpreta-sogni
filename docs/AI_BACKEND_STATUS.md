@@ -30,6 +30,7 @@
 - `speech-to-text-elevenlabs`
 - `text-to-speech-elevenlabs`
 - `ingest-knowledge-source`
+- `process-knowledge-source` (chunking only, embedding=null, source stays `draft`)
 - `approve-professional`
 - `send-email-notification` / `send-contact-email` / `send-dream-diary`
 - `send-push-notifications`
@@ -37,7 +38,7 @@
 
 **Planned**:
 
-- `process-knowledge-source` (chunking + embedding job)
+- `embed-knowledge-source` (OpenAI `text-embedding-3-small`, promotes source to `active`)
 - `search-knowledge` (pgvector similarity)
 - `astrology-insight` (KB-grounded astrology readings)
 - `get-user-entitlements` (RevenueCat-backed)
