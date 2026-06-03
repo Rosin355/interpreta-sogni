@@ -21,20 +21,41 @@ const ALLOWED_DOMAINS = [
   "app_content",
 ] as const;
 
-const BodySchema = z.object({
-  source_id: z.string().uuid().optional(),
-  title: z.string().trim().min(3).max(200),
-  domain: z.enum(ALLOWED_DOMAINS),
-  source_type: z
-    .enum(["manual_text", "note", "markdown", "txt"])
-    .default("manual_text"),
-  language: z.string().trim().min(2).max(8).default("it"),
-  author: z.string().trim().max(200).nullable().optional(),
-  origin: z.string().trim().max(500).nullable().optional(),
-  tags: z.array(z.string()).max(50).default([]),
-  raw_text: z.string().min(100).max(200_000),
-  status: z.enum(["draft", "active"]).default("draft"),
-});
+const BodySchema = z
+  .object({
+    source_id: z.string().uuid().optional(),
+    title: z.string().trim().min(3).max(200),
+    domain: z.enum(ALLOWED_DOMAINS),
+    source_type: z
+      .enum(["manual_text", "note", "markdown", "txt", "pdf"])
+      .default("manual_text"),
+    language: z.string().trim().min(2).max(8).default("it"),
+    author: z.string().trim().max(200).nullable().optional(),
+    origin: z.string().trim().max(500).nullable().optional(),
+    tags: z.array(z.string()).max(50).default([]),
+    raw_text: z.string().min(100).max(200_000).optional(),
+    storage_path: z.string().trim().min(1).max(500).optional(),
+    status: z.enum(["draft", "active"]).default("draft"),
+  })
+  .superRefine((val, ctx) => {
+    if (val.source_type === "pdf") {
+      if (!val.storage_path) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["storage_path"],
+          message: "storage_path richiesto per source_type='pdf'",
+        });
+      }
+    } else {
+      if (!val.raw_text || val.raw_text.length < 100) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["raw_text"],
+          message: "raw_text richiesto (min 100 char) per fonti testuali",
+        });
+      }
+    }
+  });
 
 const normalizeTags = (tags: string[]): string[] => {
   const set = new Set<string>();
