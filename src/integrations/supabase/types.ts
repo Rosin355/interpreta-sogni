@@ -862,6 +862,7 @@ export type Database = {
           last_seen_at: string
           platform: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           app_version?: string | null
@@ -875,6 +876,7 @@ export type Database = {
           last_seen_at?: string
           platform?: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           app_version?: string | null
@@ -888,6 +890,7 @@ export type Database = {
           last_seen_at?: string
           platform?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
