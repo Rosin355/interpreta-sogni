@@ -185,6 +185,30 @@ curl -X POST "https://<PROJECT_REF>.supabase.co/functions/v1/ingest-knowledge-so
   }'
 ```
 
+### Step 2b — Curl example per PDF (metadata only)
+
+Pre-requisito: il file PDF è stato caricato nel bucket privato
+`knowledge-sources` (vedi `docs/supabase-knowledge-storage-migration.sql`).
+La funzione NON estrae testo dal PDF: salva solo metadata + `storage_path`.
+
+```bash
+curl -X POST "https://<PROJECT_REF>.supabase.co/functions/v1/ingest-knowledge-source" \
+  -H "Authorization: Bearer <USER_JWT>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Jung — Psicologia e Alchimia (estratto)",
+    "domain": "alchemy",
+    "source_type": "pdf",
+    "language": "it",
+    "tags": ["jung", "alchimia"],
+    "storage_path": "alchemy/jung-psicologia-alchimia.pdf"
+  }'
+```
+
+Risposta attesa: `status='draft'`, `raw_text` resta NULL.
+Il chunking + estrazione testo avverrà più avanti in
+`process-knowledge-source`.
+
 ### Step 3 — Expected response
 
 ```json
