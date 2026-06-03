@@ -1,23 +1,45 @@
-// Process Knowledge Source — v1 (no embeddings yet, conservative)
+// Process Knowledge Source — v2 (PDF text extraction + chunking, still no embeddings)
 //
-// Loads an ai_knowledge_sources row, splits raw_text into chunks, and in
-// `process` mode inserts them into ai_knowledge_chunks with embedding=null.
-// Source status is left as 'draft' (NOT 'active') so chunks are NOT exposed
-// via the authenticated_read_active_chunks RLS policy until a future pass
-// generates embeddings and explicitly activates the source.
+// Loads an ai_knowledge_sources row and produces deterministic text chunks:
+//   * Text sources (manual_text / note / markdown / txt) use raw_text (unchanged).
+//   * PDF sources (source_type='pdf' + storage_path) are downloaded from the
+//     private `knowledge-sources` Storage bucket (service role, server-side only)
+//     and their text layer is extracted with unpdf (a serverless PDF.js build).
+//     This is text extraction only — NO OCR. Scanned / image-only PDFs that have
+//     no extractable text layer fail with error code `pdf_text_extraction_failed`.
 //
-// This function does NOT call OpenAI / Anthropic / Lovable / ElevenLabs.
-// Embeddings will be added in a follow-up function.
+// In `process` mode chunks are inserted into ai_knowledge_chunks with
+// embedding=null. The source stays 'draft' (NOT 'active') so chunks are NOT
+// exposed via the authenticated_read_active_chunks RLS policy until a future
+// pass (embed-knowledge-source) generates embeddings and activates the source.
+//
+// This function does NOT call OpenAI / Anthropic / Lovable / ElevenLabs and
+// does NOT generate embeddings.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+// PDF text extraction. unpdf bundles a serverless build of Mozilla PDF.js with
+// the worker inlined and Promise.withResolvers / FinalizationRegistry / DOMMatrix
+// polyfills self-guarded inside the bundle, so no manual polyfill and no
+// definePDFJSModule() call is needed on Deno. Pin the EXACT version — never
+// @latest — to keep local-serve and deploy byte-identical.
+import { extractText, getDocumentProxy } from "https://esm.sh/unpdf@1.6.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
+
+// Fixed private bucket for KB documents (see supabase-knowledge-storage-migration.sql).
+const KB_BUCKET = "knowledge-sources";
+// Source types that chunk raw_text directly (no Storage download).
+const TEXT_SOURCE_TYPES = new Set(["manual_text", "note", "markdown", "txt"]);
+// Size / length guardrails (synchronous processing). Larger documents must be
+// offloaded to a future batch/worker pass — see docs/admin-knowledge-process-v1.md.
+const MAX_PDF_BYTES = 20 * 1024 * 1024; // 20 MB hard cap, well under the isolate limit
+const MAX_EXTRACTED_CHARS = 500_000; // cap on extracted text fed to the chunker
 
 const BodySchema = z.object({
   source_id: z.string().uuid(),
@@ -36,6 +58,18 @@ const json = (body: unknown, status = 200) =>
   });
 
 const prefix = (id: string) => id.slice(0, 8);
+
+/**
+ * Stable error carrying a safe machine code + HTTP status. The `code` is what
+ * gets persisted to ai_knowledge_sources.error_message on failure and returned
+ * to the client as `error_code`. It must never contain document content.
+ */
+class KbError extends Error {
+  constructor(public readonly code: string, public readonly httpStatus: number) {
+    super(code);
+    this.name = "KbError";
+  }
+}
 
 /**
  * Deterministic text chunker.
@@ -110,6 +144,96 @@ function chunkText(
 
 const estimateTokens = (s: string) => Math.ceil(s.length / 4);
 
+/**
+ * Normalize a stored storage_path to an object path inside KB_BUCKET.
+ * Canonical form is the object path WITHOUT the bucket prefix
+ * (e.g. "alchemy/nigredo.pdf"). A leading "knowledge-sources/" prefix is
+ * tolerated and stripped so both conventions work.
+ */
+function normalizeStoragePath(raw: string): string {
+  let p = raw.trim().replace(/^\/+/, "");
+  if (p.startsWith(KB_BUCKET + "/")) p = p.slice(KB_BUCKET.length + 1);
+  return p;
+}
+
+/** Extract the text layer from PDF bytes. NO OCR. Throws KbError on failure. */
+async function extractPdfText(bytes: Uint8Array): Promise<string> {
+  try {
+    // unpdf's serverless PDF.js build auto-initializes; pass a Uint8Array.
+    const pdf = await getDocumentProxy(bytes);
+    const { text } = await extractText(pdf, { mergePages: true });
+    return (text ?? "").trim();
+  } catch (e) {
+    // PDF.js throws on corrupt / encrypted / non-PDF input. The message is a
+    // library error, never document content, but keep it short anyway.
+    console.error(
+      `[process-knowledge-source] pdf parse error: ${
+        String((e as Error)?.message ?? e).slice(0, 120)
+      }`,
+    );
+    throw new KbError("pdf_text_extraction_failed", 422);
+  }
+}
+
+/**
+ * Download a PDF from the private bucket and return its extracted text.
+ * Applies size + extracted-length guardrails. Throws KbError with a safe code.
+ */
+async function loadPdfSourceText(
+  // deno-lint-ignore no-explicit-any
+  admin: any,
+  sourceId: string,
+  storagePath: string | null | undefined,
+): Promise<string> {
+  if (!storagePath || !storagePath.trim()) {
+    throw new KbError("pdf_missing_storage_path", 400);
+  }
+  const objectPath = normalizeStoragePath(storagePath);
+  if (!objectPath) throw new KbError("pdf_missing_storage_path", 400);
+
+  // Service role bypasses Storage RLS — server-side only, never client-side.
+  const { data, error } = await admin.storage.from(KB_BUCKET).download(objectPath);
+  if (error || !data) {
+    console.error(
+      `[process-knowledge-source] pdf download error sourceIdPrefix=${prefix(sourceId)}`,
+    );
+    throw new KbError("pdf_download_failed", 502);
+  }
+
+  const buf = await data.arrayBuffer();
+  const byteLength = buf.byteLength;
+  if (byteLength === 0) throw new KbError("pdf_download_failed", 502);
+  if (byteLength > MAX_PDF_BYTES) throw new KbError("document_too_large", 413);
+  console.log(
+    `[process-knowledge-source] pdf downloaded sourceIdPrefix=${prefix(sourceId)} bytes=${byteLength}`,
+  );
+
+  const text = await extractPdfText(new Uint8Array(buf));
+  if (text.length === 0) throw new KbError("pdf_text_extraction_failed", 422);
+  if (text.length > MAX_EXTRACTED_CHARS) throw new KbError("document_too_large", 413);
+  console.log(
+    `[process-knowledge-source] pdf extracted sourceIdPrefix=${prefix(sourceId)} textLength=${text.length}`,
+  );
+  return text;
+}
+
+/**
+ * Resolve the text to chunk for a source row. Text types return raw_text
+ * (already validated by the caller); PDFs are downloaded + extracted.
+ */
+async function resolveSourceText(
+  // deno-lint-ignore no-explicit-any
+  admin: any,
+  // deno-lint-ignore no-explicit-any
+  source: any,
+  sourceType: string,
+): Promise<string> {
+  if (sourceType === "pdf") {
+    return await loadPdfSourceText(admin, source.id, source.storage_path);
+  }
+  return source.raw_text as string;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -153,36 +277,63 @@ serve(async (req) => {
       `[process-knowledge-source] started userIdPrefix=${prefix(user.id)} sourceIdPrefix=${prefix(source_id)} mode=${mode}`,
     );
 
-    // Load source
+    // Load source (now also source_type + storage_path for the PDF branch)
     const { data: source, error: srcErr } = await admin
       .from("ai_knowledge_sources")
-      .select("id, raw_text, status, archived_at")
+      .select("id, raw_text, status, archived_at, source_type, storage_path")
       .eq("id", source_id)
       .maybeSingle();
 
     if (srcErr) {
-      console.error("[process-knowledge-source] fetch error", srcErr);
+      // Log only a safe descriptor (PostgREST code), never the full error object.
+      console.error(
+        `[process-knowledge-source] fetch error sourceIdPrefix=${prefix(source_id)} code=${srcErr.code ?? "unknown"}`,
+      );
       return json({ error: "Errore lettura sorgente" }, 500);
     }
     if (!source) return json({ error: "Sorgente non trovata" }, 404);
     if (source.archived_at) return json({ error: "Sorgente archiviata" }, 409);
-    if (!source.raw_text || source.raw_text.length < 100) {
+
+    // Treat a null/legacy source_type as manual_text (backward compatible).
+    const sourceType = (source.source_type ?? "manual_text") as string;
+    const isPdf = sourceType === "pdf";
+    const isTextType = TEXT_SOURCE_TYPES.has(sourceType);
+    if (!isPdf && !isTextType) {
+      return json(
+        { error: "Tipo sorgente non supportato", error_code: "unsupported_source_type" },
+        400,
+      );
+    }
+    // Preserve existing text-source validation exactly.
+    if (isTextType && (!source.raw_text || source.raw_text.length < 100)) {
       return json({ error: "raw_text mancante o troppo corto (min 100)" }, 400);
     }
 
-    // Chunk
-    const chunks = chunkText(source.raw_text, chunk_size, chunk_overlap);
-    const tokenEstimates = chunks.map(estimateTokens);
-    const totalTokens = tokenEstimates.reduce((a, b) => a + b, 0);
-
-    // DRY RUN
+    // DRY RUN — resolve text (downloads/extracts PDF if safe), chunk, report.
+    // No DB writes, no source status change.
     if (mode === "dry_run") {
+      let text: string;
+      try {
+        text = await resolveSourceText(admin, source, sourceType);
+      } catch (e) {
+        if (e instanceof KbError) {
+          return json({ error: "Errore PDF", error_code: e.code }, e.httpStatus);
+        }
+        throw e;
+      }
+
+      const chunks = chunkText(text, chunk_size, chunk_overlap);
+      const tokenEstimates = chunks.map(estimateTokens);
+      const totalTokens = tokenEstimates.reduce((a, b) => a + b, 0);
+
       console.log(
         `[process-knowledge-source] dry_run chunkCount=${chunks.length}`,
       );
       return json({
         source_id,
         mode,
+        source_type: sourceType,
+        extracted_text_length: text.length,
         chunk_count: chunks.length,
         estimated_token_count: totalTokens,
         chunk_size,
@@ -198,13 +349,19 @@ serve(async (req) => {
     }
 
     // PROCESS MODE — insert chunks with embedding=null, keep source as draft.
-    // Mark processing
+    // Mark processing first (Task 6 sequence).
     await admin
       .from("ai_knowledge_sources")
       .update({ status: "processing", error_message: null })
       .eq("id", source_id);
 
     try {
+      // Resolve text (may download/extract a PDF and throw a KbError).
+      const text = await resolveSourceText(admin, source, sourceType);
+      const chunks = chunkText(text, chunk_size, chunk_overlap);
+      const tokenEstimates = chunks.map(estimateTokens);
+      const totalTokens = tokenEstimates.reduce((a, b) => a + b, 0);
+
       // Wipe existing chunks for idempotent reprocessing
       const { error: delErr } = await admin
         .from("ai_knowledge_chunks")
@@ -228,11 +385,13 @@ serve(async (req) => {
       }
 
       // Stay in 'draft' — embeddings missing means retrieval shouldn't pick it up.
+      // PDF: processed_at stays NULL (chunked-only, not fully processed yet).
+      // Text: preserve existing behavior (processed_at = now()).
       await admin
         .from("ai_knowledge_sources")
         .update({
           status: "draft",
-          processed_at: new Date().toISOString(),
+          processed_at: isPdf ? null : new Date().toISOString(),
           error_message: null,
         })
         .eq("id", source_id);
@@ -244,6 +403,8 @@ serve(async (req) => {
       return json({
         source_id,
         mode,
+        source_type: sourceType,
+        extracted_text_length: text.length,
         chunk_count: chunks.length,
         estimated_token_count: totalTokens,
         source_status: "draft",
@@ -252,21 +413,24 @@ serve(async (req) => {
           "Chunks created without embeddings. Run a future embedding pass to activate the source.",
       });
     } catch (e) {
-      const reason = (e as Error)?.message ?? "unknown";
+      // Map KbError to its safe code; everything else is a generic failure.
+      const code = e instanceof KbError ? e.code : "processing_failed";
+      const status = e instanceof KbError ? e.httpStatus : 500;
       await admin
         .from("ai_knowledge_sources")
-        .update({
-          status: "failed",
-          error_message: "processing_failed",
-        })
+        .update({ status: "failed", error_message: code })
         .eq("id", source_id);
       console.error(
-        `[process-knowledge-source] failed sourceIdPrefix=${prefix(source_id)} reason=${reason.slice(0, 120)}`,
+        `[process-knowledge-source] failed sourceIdPrefix=${prefix(source_id)} code=${code}`,
       );
-      return json({ error: "Errore processing", source_status: "failed" }, 500);
+      return json({ error: "Errore processing", error_code: code, source_status: "failed" }, status);
     }
   } catch (e) {
-    console.error("[process-knowledge-source] unhandled", e);
+    // Truncated message only (consistent with the rest of the file) — never the
+    // full error object / stack.
+    console.error(
+      `[process-knowledge-source] unhandled: ${String((e as Error)?.message ?? e).slice(0, 120)}`,
+    );
     return json({ error: "Errore interno" }, 500);
   }
 });

@@ -42,24 +42,29 @@ Tab dedicato nel dialog "Nuova fonte" — componente `KnowledgePdfUploadForm`:
 - in caso di errore Edge Function, il file appena caricato viene rimosso
   (`storage.remove`) per evitare orfani.
 - stato pulsante: `Caricamento… → Registrazione… → Carica PDF`.
-- la sorgente viene creata in `status='draft'`; l'estrazione testo e la
-  promozione ad `active` saranno gestite da `process-knowledge-source`
-  (branch PDF non ancora implementato).
+- la sorgente viene creata in `status='draft'`. L'estrazione testo + chunking è
+  ora gestita da `process-knowledge-source` (branch PDF implementato: download
+  da Storage + `unpdf`, **no OCR**, max 20 MB — vedi
+  [`admin-knowledge-process-v1.md`](./admin-knowledge-process-v1.md)). Gli
+  embedding e la promozione ad `active` restano per `embed-knowledge-source`.
 
 Limiti noti:
 
 - nessuna barra di progresso reale (Supabase JS v2 non emette `onUploadProgress`).
 - nessun preview del PDF caricato.
-- nessuna CTA "Processa documento" finché `process-knowledge-source` non
-  supporta il branch PDF.
+- nessuna CTA "Processa documento" in UI: `process-knowledge-source` va per ora
+  invocata manualmente (curl) — vedi `admin-knowledge-process-v1.md`.
+- solo PDF con text layer: gli scansionati / solo-immagine danno
+  `pdf_text_extraction_failed`.
 
 Nota: i sogni privati degli utenti NON vanno caricati in questo bucket.
 
 ## Prossimi step previsti
 
-1. Edge Function `process-knowledge-source` per chunking + embedding delle fonti `active`.
-2. Edge Function `retrieve-knowledge` per fornire contesto curato ai prompt AI.
-3. UI admin per archive / activate / edit (via nuova Edge Function).
+1. `embed-knowledge-source`: embedding dei chunk (`embedding IS NULL`) +
+   promozione della sorgente ad `active`.
+2. `search-knowledge`: similarità pgvector per fornire contesto curato ai prompt.
+3. UI admin: CTA "Processa documento" + archive / activate / edit (via Edge Function).
 
 ## Regola di sicurezza
 

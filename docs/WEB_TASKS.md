@@ -6,8 +6,9 @@
 
 Admin console operational (`/admin`, `/admin/knowledge-base`, audio admin,
 errors, attribution, professional approvals). KB ingestion path is in
-place from UI → Edge Function → DB. Chunking / embeddings / retrieval
-are still to be built.
+place from UI → Edge Function → DB. Chunking is built for both text and
+**PDF** sources (`process-knowledge-source`, no embeddings yet). Embeddings /
+retrieval are still to be built.
 
 ## Completed
 
@@ -26,8 +27,9 @@ are still to be built.
 - [ ] Run / confirm KB migration in Supabase (verify the 3 tables + RLS)
 - [ ] Deploy `ingest-knowledge-source` if not already deployed
   - `npx supabase functions deploy ingest-knowledge-source`
-- [ ] Deploy `process-knowledge-source` (chunking only, no embeddings yet)
+- [ ] Deploy `process-knowledge-source` (text + PDF chunking, no embeddings yet)
   - `npx supabase functions deploy process-knowledge-source`
+  - prima deploy: verifica che `unpdf@1.6.2` si risolva nel runtime edge
 - [ ] Run the manual end-to-end test from `admin-knowledge-ingest-v1.md`
 - [ ] Run dry_run + process tests from `admin-knowledge-process-v1.md`
 - [ ] Confirm minimal admin KB UI loads at `/admin/knowledge-base` for an admin user
@@ -39,7 +41,8 @@ are still to be built.
   - [x] Bucket privato Storage `knowledge-sources` creato (migration)
   - [x] Policy RLS admin-only su `storage.objects` (read/insert/update/delete)
   - [x] Admin UI: form upload PDF (`KnowledgePdfUploadForm`) con tab nel dialog "Nuova fonte"
-  - [ ] `process-knowledge-source`: branch download da Storage + estrazione testo PDF
+  - [x] `process-knowledge-source`: branch download da Storage + estrazione testo
+        PDF (`unpdf`, no OCR, max 20 MB, dry_run + process) — embedding esclusi
 
 ## Later TODOs
 

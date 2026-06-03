@@ -1,6 +1,6 @@
 # DreamAlchemist — Project Status
 
-> **Last Updated:** 2026-06-03 (PDF upload UI + bucket)
+> **Last Updated:** 2026-06-03 (PDF text extraction + chunking in process-knowledge-source)
 > Update this file after every significant implementation pass.
 
 ## Current Milestone
@@ -38,12 +38,13 @@ interpretations and the subscription/entitlement layer.
 - [x] Minimal admin Knowledge Base UI (list + create form) at `/admin/knowledge-base`
 - [x] Bucket Storage privato `knowledge-sources` + policy RLS admin-only
 - [x] Admin PDF upload UI (`KnowledgePdfUploadForm`, registra source come `pdf` draft)
+- [x] `process-knowledge-source`: chunking testo **e PDF** (download Storage + `unpdf`, no OCR, ≤20MB), chunk con `embedding=NULL`, sorgente resta `draft`
 
 ## Active Workstream
 
 - Knowledge Base / RAG foundation
-- Admin ingestion e end-to-end manual testing
-- Prossimo: `process-knowledge-source` branch PDF → download da Storage → estrazione testo → chunking → embeddings → `search-knowledge` → retrieval wired into `interpret-dream` e `chat-with-alchemist`
+- Admin ingestion e end-to-end manual testing (incl. PDF: dry_run + process)
+- Prossimo: `embed-knowledge-source` (embedding dei chunk + promozione `active`) → `search-knowledge` (pgvector) → retrieval wired into `interpret-dream` e `chat-with-alchemist`
 
 ## Golden Rules
 

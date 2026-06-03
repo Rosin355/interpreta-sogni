@@ -4,9 +4,19 @@ Edge Function: `process-knowledge-source`
 
 ## Scopo
 
-Carica una riga di `public.ai_knowledge_sources`, ne splitta il `raw_text`
-in chunk deterministici e — in modalità `process` — li inserisce in
-`public.ai_knowledge_chunks` con `embedding = NULL`.
+Carica una riga di `public.ai_knowledge_sources`, ricava il testo da
+processare e — in modalità `process` — lo splitta in chunk deterministici e
+li inserisce in `public.ai_knowledge_chunks` con `embedding = NULL`.
+
+Il testo proviene da due vie a seconda di `source_type`:
+
+- **testo** (`manual_text` / `note` / `markdown` / `txt`): usa `raw_text`
+  (comportamento invariato; un `source_type` NULL è trattato come `manual_text`).
+- **pdf** (`source_type='pdf'` + `storage_path`): scarica il file dal bucket
+  privato `knowledge-sources` (service role, solo lato server) ed estrae il
+  **text layer** con `unpdf` (build serverless di Mozilla PDF.js). Solo
+  estrazione testo: **niente OCR**. PDF scansionati / solo-immagine senza testo
+  estraibile falliscono con codice `pdf_text_extraction_failed`.
 
 **Questa funzione NON fa**:
 - nessuna chiamata a OpenAI / Anthropic / Lovable / ElevenLabs
@@ -43,6 +53,8 @@ Content-Type: application/json
 {
   "source_id": "...",
   "mode": "dry_run",
+  "source_type": "pdf",
+  "extracted_text_length": 48230,
   "chunk_count": 12,
   "estimated_token_count": 3600,
   "chunk_size": 1200,
@@ -54,7 +66,11 @@ Content-Type: application/json
 }
 ```
 
-Dry run NON scrive nulla nel DB.
+Dry run NON scrive nulla nel DB e NON cambia lo `status` della sorgente.
+Per un PDF il dry run scarica ed estrae comunque il testo (se entro i limiti)
+per poter calcolare i chunk; `extracted_text_length` è la lunghezza del testo
+estratto. I `chunks_preview` espongono solo `length` / `token_estimate`, mai il
+contenuto.
 
 ## Process response (no-embedding mode)
 
@@ -62,6 +78,8 @@ Dry run NON scrive nulla nel DB.
 {
   "source_id": "...",
   "mode": "process",
+  "source_type": "pdf",
+  "extracted_text_length": 48230,
   "chunk_count": 12,
   "estimated_token_count": 3600,
   "source_status": "draft",
@@ -70,11 +88,17 @@ Dry run NON scrive nulla nel DB.
 ```
 
 In modalità `process`:
-1. `status` portato a `processing`.
-2. Tutti i chunk esistenti per `source_id` vengono cancellati (idempotenza).
-3. I nuovi chunk vengono inseriti con `embedding = NULL`.
-4. `status` riportato a `draft`, `processed_at = now()`.
-5. In caso di errore: `status = 'failed'`, `error_message = 'processing_failed'`.
+1. `status` portato a `processing`, `error_message` azzerato.
+2. Si ricava il testo (per i PDF: download da Storage + estrazione).
+3. Tutti i chunk esistenti per `source_id` vengono cancellati (idempotenza).
+4. I nuovi chunk vengono inseriti con `embedding = NULL`.
+5. `status` riportato a `draft`, `error_message = NULL`.
+   - testo: `processed_at = now()` (invariato).
+   - **pdf**: `processed_at = NULL` (chunk fatti ma non ancora "processato"
+     fino agli embedding).
+6. In caso di errore: `status = 'failed'`, `error_message` = codice sicuro
+   (`pdf_download_failed` · `pdf_text_extraction_failed` · `document_too_large`
+   · `processing_failed`).
 
 ## Auth / admin
 
@@ -95,19 +119,51 @@ Helper deterministico in-file:
 
 Stima token: `Math.ceil(length / 4)`.
 
-## Pipeline per `source_type='pdf'` (TODO)
+## Pipeline per `source_type='pdf'` (implementata)
 
 Quando la sorgente è un PDF (`raw_text` NULL, `storage_path` valorizzato):
 
-1. portare `status = 'processing'`.
-2. scaricare il file dal bucket privato `knowledge-sources` lato server
-   (service role, mai client-side).
-3. estrarre testo (PDF parser deterministico, no AI).
-4. clean: rimozione headers/footers ripetuti, normalizzazione whitespace.
-5. chunking deterministico (stesso helper della via `manual_text`).
-6. insert in `ai_knowledge_chunks` con `embedding = NULL`.
-7. `embed-knowledge-source` (futuro) genera embedding e porta `status = 'active'`.
-8. in caso di errore: `status = 'failed'`, `error_message` con causa breve.
+1. `status = 'processing'` (solo in `process`).
+2. download del file dal bucket privato `knowledge-sources` lato server
+   (`admin.storage.from('knowledge-sources').download(objectPath)`, service
+   role, mai client-side, nessun signed URL).
+3. estrazione del **text layer** con `unpdf` (`getDocumentProxy` +
+   `extractText({ mergePages: true })`), build serverless di PDF.js. **No OCR.**
+4. chunking deterministico (stesso helper `chunkText` della via testuale).
+5. insert in `ai_knowledge_chunks` con `embedding = NULL`.
+6. `embed-knowledge-source` (futuro) genera embedding e porta `status = 'active'`.
+
+### Libreria di estrazione
+
+- `import { extractText, getDocumentProxy } from "https://esm.sh/unpdf@1.6.2";`
+- versione **pinnata** (mai `@latest`) per allineare `supabase functions serve`
+  e deploy.
+- `unpdf` include i polyfill (`Promise.withResolvers`, `FinalizationRegistry`,
+  `DOMMatrix`) nel bundle: nessun polyfill manuale, nessuna chiamata
+  `definePDFJSModule()` necessaria su Deno.
+- niente `@napi-rs/canvas` (serve solo per il rendering immagine, non per il
+  testo) e niente `pdfjs-dist` grezzo (richiede un worker separato + DOM).
+
+### Convenzione `storage_path` e bucket
+
+- **bucket fisso**: `knowledge-sources` (privato).
+- **`storage_path`** = path dell'oggetto **dentro** il bucket, es.
+  `alchemy/nigredo.pdf` (è ciò che salva l'upload UI:
+  `<domain>/<timestamp>-<slug-title>.pdf`).
+- un eventuale prefisso `knowledge-sources/` iniziale viene tollerato e
+  rimosso, quindi sono accettati sia `alchemy/x.pdf` sia
+  `knowledge-sources/alchemy/x.pdf`.
+
+### Guardrail dimensioni / timeout
+
+- **max file PDF**: 20 MB (`MAX_PDF_BYTES`); oltre → `document_too_large` (413).
+- **max testo estratto**: 500 000 caratteri (`MAX_EXTRACTED_CHARS`); oltre →
+  `document_too_large`.
+- empty / whitespace-only dopo l'estrazione → `pdf_text_extraction_failed`
+  (PDF scansionato / solo-immagine: niente OCR in questa pass).
+- download fallito / file vuoto → `pdf_download_failed` (502).
+- `try/catch` attorno a estrazione: input corrotti / cifrati → codice sicuro,
+  l'isolate non crasha.
 
 ### Rischio timeout / documenti molto grandi
 
@@ -140,12 +196,18 @@ Una funzione futura (`embed-knowledge-source`) dovrà:
 3. fare update batch dei chunk.
 4. promuovere la sorgente a `active`.
 
-## Privacy
+## Privacy & log
 
 - I sogni privati degli utenti NON devono mai finire nella KB.
 - La service role key resta solo lato Edge Function.
-- Log consentiti: prefissi di id + counter. Mai loggati `raw_text`, contenuto
-  dei chunk, JWT, secrets, embedding.
+- **Log consentiti** (solo prefissi id + contatori numerici):
+  - `started userIdPrefix=… sourceIdPrefix=… mode=…`
+  - `pdf downloaded sourceIdPrefix=… bytes=…`
+  - `pdf extracted sourceIdPrefix=… textLength=…`
+  - `dry_run chunkCount=…`
+  - `processed sourceIdPrefix=… chunkCount=…`
+- **Mai loggati**: testo del PDF, contenuto dei chunk, `raw_text`, JWT, service
+  role key, signed URL di Storage, secrets, embedding.
 
 ## Deploy
 
@@ -182,6 +244,11 @@ curl -X POST "https://<PROJECT_REF>.supabase.co/functions/v1/process-knowledge-s
   -d '{ "source_id": "<UUID>", "mode": "process", "chunk_size": 1200, "chunk_overlap": 150 }'
 ```
 
+Per un PDF il body è identico (stesso `source_id`): il `source_type='pdf'` e lo
+`storage_path` sono già sulla riga `ai_knowledge_sources`. Prerequisito: il file
+deve esistere nel bucket `knowledge-sources` al path indicato. Un PDF scansionato
+(solo immagini) restituisce `pdf_text_extraction_failed`.
+
 Verifica:
 
 ```sql
@@ -198,14 +265,19 @@ where id = '<UUID>';
 
 ## Troubleshooting
 
-| Codice | Causa | Azione |
-|--------|-------|--------|
-| 401 | JWT mancante/invalido | Rigenerare sessione |
-| 403 | Non admin | Assegnare ruolo o `KB_ADMIN_USER_IDS` |
-| 400 | Body invalido / overlap >= size / raw_text corto | Controllare `details` |
-| 404 | source_id inesistente | Verificare UUID |
-| 409 | Sorgente archiviata | Reattivare o usare altra fonte |
-| 500 | Errore DB durante insert/delete chunk | Edge logs; sorgente marcata `failed` |
+| HTTP | `error_code` | Causa | Azione |
+|------|--------------|-------|--------|
+| 401 | — | JWT mancante/invalido | Rigenerare sessione |
+| 403 | — | Non admin | Assegnare ruolo o `KB_ADMIN_USER_IDS` |
+| 400 | — | Body invalido / overlap >= size / raw_text corto | Controllare `details` |
+| 400 | `unsupported_source_type` | `source_type` non gestito | Usare un tipo valido |
+| 400 | `pdf_missing_storage_path` | PDF senza `storage_path` | Reingestire con `storage_path` |
+| 404 | — | source_id inesistente | Verificare UUID |
+| 409 | — | Sorgente archiviata | Reattivare o usare altra fonte |
+| 413 | `document_too_large` | PDF > 20 MB o testo > 500k char | Splittare il documento |
+| 422 | `pdf_text_extraction_failed` | PDF scansionato / no text layer / corrotto | Caricare un PDF testuale (no OCR) |
+| 502 | `pdf_download_failed` | Download da Storage fallito | Verificare `storage_path` / bucket |
+| 500 | `processing_failed` | Errore DB durante insert/delete chunk | Edge logs; sorgente marcata `failed` |
 
 ## Prossimo step
 
