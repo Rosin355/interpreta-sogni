@@ -30,6 +30,24 @@ Accessibile dal pulsante "Knowledge Base AI" nella Dashboard Amministratore.
 - **Nessuna modifica iOS / Capacitor.**
 - Service role key resta esclusivamente nell'Edge Function.
 
+## Pianificato — Upload PDF / documenti grandi
+
+Form aggiuntivo (non ancora implementato):
+
+- input file (drag & drop) limitato a PDF (e in futuro markdown/txt).
+- metadati: title, domain, language, tags, author, origin.
+- barra di progresso upload.
+- upload diretto al bucket privato Supabase Storage `knowledge-sources`
+  (vedi `docs/supabase-knowledge-storage-migration.sql`).
+- al termine dell'upload, chiamata a `ingest-knowledge-source` con
+  `source_type='pdf'` e `storage_path` (raw_text resta null).
+- badge di stato della sorgente (`draft` / `processing` / `active` / `failed`).
+- CTA "Processa documento" → invoca `process-knowledge-source` (placeholder
+  finché la pipeline di estrazione testo non è pronta).
+- "Preview testo estratto" futuro, dopo il processing.
+
+Nota: i sogni privati degli utenti NON vanno caricati in questo bucket.
+
 ## Prossimi step previsti
 
 1. Edge Function `process-knowledge-source` per chunking + embedding delle fonti `active`.
