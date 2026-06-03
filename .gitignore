@@ -32,3 +32,6 @@ dist-ssr
 bun.lock
 bun.lockb
 node_modules_old*/
+
+# Claude Code local config
+.claude/
