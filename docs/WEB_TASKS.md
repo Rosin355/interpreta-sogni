@@ -26,20 +26,22 @@ are still to be built.
 - [ ] Run / confirm KB migration in Supabase (verify the 3 tables + RLS)
 - [ ] Deploy `ingest-knowledge-source` if not already deployed
   - `npx supabase functions deploy ingest-knowledge-source`
+- [ ] Deploy `process-knowledge-source` (chunking only, no embeddings yet)
+  - `npx supabase functions deploy process-knowledge-source`
 - [ ] Run the manual end-to-end test from `admin-knowledge-ingest-v1.md`
+- [ ] Run dry_run + process tests from `admin-knowledge-process-v1.md`
 - [ ] Confirm minimal admin KB UI loads at `/admin/knowledge-base` for an admin user
-- [ ] Prepare scaffolding for `process-knowledge-source` (chunking + embedding job)
 
 ## Later TODOs
 
 - [ ] PDF / Markdown / TXT upload (Supabase Storage + `storage_path` on `ai_knowledge_sources`)
-- [ ] Chunking pipeline (`process-knowledge-source`)
-- [ ] Embeddings generation (OpenAI `text-embedding-3-small`)
+- [ ] `embed-knowledge-source` Edge Function (OpenAI `text-embedding-3-small`, promotes source to `active`)
 - [ ] `search-knowledge` Edge Function (pgvector similarity)
 - [ ] Wire retrieval into `interpret-dream`
 - [ ] Wire retrieval into `chat-with-alchemist`
 - [ ] `astrology-insight` Edge Function with KB-grounded context
 - [ ] Community moderation tools (report queue, soft-hide)
+
 
 ## Files / Areas to Inspect
 
