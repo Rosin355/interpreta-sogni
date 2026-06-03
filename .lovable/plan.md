@@ -1,112 +1,72 @@
 ## Goal
 
-Add a planned "PDF / large document" ingestion path to the Knowledge Base, alongside the existing manual-text path. This pass is **docs + minimal backend scaffolding** — no PDF parsing, no embeddings, no UI work, no automatic deploy.
+Abilitare l'upload PDF nella Knowledge Base admin: bucket Storage privato + policy RLS + UI admin per caricare PDF e creare la riga `ai_knowledge_sources` con `source_type='pdf'` e `storage_path`.
 
-## Scope rules (recap)
+## Passi
 
-- No iOS changes.
-- No AI provider calls (OpenAI / Anthropic / Lovable / ElevenLabs).
-- No PDF text extraction in this pass.
-- No retrieval, no embeddings.
-- Service role key stays server-side; no PDF contents / raw_text / JWTs logged.
-- Every status / context doc stays under 300 lines.
+### 1. Bucket Supabase Storage
+Creare il bucket privato `knowledge-sources` via `supabase--storage_create_bucket` (name=`knowledge-sources`, public=false).
 
-## Architecture target
+### 2. Policy RLS su `storage.objects`
+Migration SQL (dal contenuto già documentato in `docs/supabase-knowledge-storage-migration.sql`):
+- `kb_admin_read` — SELECT admin
+- `kb_admin_insert` — INSERT admin
+- `kb_admin_update` — UPDATE admin
+- `kb_admin_delete` — DELETE admin
 
-```
-Admin uploads PDF
-   └─► Supabase Storage (private bucket: knowledge-sources)
-         └─► ingest-knowledge-source (source_type='pdf', storage_path=...)
-               └─► ai_knowledge_sources row, raw_text=NULL, status='draft'
-                     └─► (future) process-knowledge-source: download → extract → chunk → embed → 'active'
-```
+Tutte gated da `bucket_id = 'knowledge-sources' AND public.is_admin(auth.uid())`. Edge Functions con service role bypassano RLS.
 
-Two ingestion paths coexist:
+### 3. Componente UI admin: upload PDF
 
-| Path | source_type | raw_text | storage_path |
-|---|---|---|---|
-| Manual text | `manual_text` / `note` / `markdown` / `txt` | required (100–200k chars) | null |
-| File upload | `pdf` | null | required |
+Nuovo file: `src/components/admin/KnowledgePdfUploadForm.tsx`
+- Input file (accept `application/pdf`, max ~50 MB lato client).
+- Campi metadata (riutilizzando lo stile di `KnowledgeSourceForm`): title, domain (select whitelistato), language (default `it`), author, origin, tags (comma-separated).
+- Flow al submit:
+  1. validazione client (file presente, title min 3, domain whitelistato, size limit).
+  2. `supabase.storage.from('knowledge-sources').upload(path, file)` dove `path = <domain>/<timestamp>-<slug-title>.pdf`. `upsert: false`.
+  3. al success, `supabase.functions.invoke('ingest-knowledge-source', { body: { source_type: 'pdf', storage_path, title, domain, language, author, origin, tags } })`.
+  4. su errore upload → toast + abort (no riga DB).
+  5. su errore Edge Function → tentativo `storage.remove([path])` di cleanup + toast.
+- Barra di progresso (Supabase JS v2 non emette progress nativo → mostrare stato `Caricamento... / Registrazione...`).
+- Privacy warning in fondo, coerente con `KnowledgeSourceForm`.
 
-Status lifecycle for PDFs: `draft` → `processing` → `active` / `failed`.
+### 4. Integrazione in `AdminKnowledgeBase.tsx`
+Sostituire il singolo dialog "Nuova fonte" con un dialog a due tab/segmenti:
+- Tab "Testo manuale" → `KnowledgeSourceForm` esistente.
+- Tab "Documento PDF" → nuovo `KnowledgePdfUploadForm`.
 
-## Task list
+Entrambi triggerano lo stesso `handleCreated` → chiude dialog + refresh lista.
 
-### 1. Docs — strategy
+Componente Tabs di shadcn già presente in `src/components/ui/tabs.tsx` (lo riusiamo).
 
-Update `docs/ai-knowledge-base-strategy-v1.md`:
-- Add section **"Large Document / PDF Ingestion"** describing the two paths, the status lifecycle, and the rule "do not paste large PDFs into the manual form".
-- Keep file short.
+### 5. Aggiornamento `KnowledgeSourcesList` (minimo)
+Verificare che la lista mostri il `source_type`. Se non lo mostra già, aggiungere un piccolo badge "PDF" / "Testo" accanto al titolo. (Solo se la modifica è banale; altrimenti deferire.)
 
-### 2. Docs — storage migration
+### 6. Documentazione
+- `docs/admin-knowledge-base-v1.md` — spostare la sezione "Pianificato — Upload PDF" da TODO a "Implementato (v1)", con nota sui limiti (no parsing, no progress nativo).
+- `docs/WEB_TASKS.md` — spuntare gli step "creazione bucket", "policy RLS", "admin UI form upload PDF". Lasciare aperti: `process-knowledge-source` PDF branch, estrazione testo, embeddings.
+- `docs/PROJECT_STATUS.md` — aggiornare `Last Updated` e aggiungere riga "Admin PDF upload UI" in Completed.
 
-Create `docs/supabase-knowledge-storage-migration.sql`:
-- Document private bucket `knowledge-sources` (not publicly readable).
-- Provide safe RLS policies on `storage.objects` restricting access to admins only (read + insert + delete via `public.is_admin(auth.uid())`), so Edge Functions using the service role still work and authenticated non-admins cannot reach the files.
-- Document that bucket creation itself must be done via the Supabase Storage tool / dashboard (manual step), since `INSERT INTO storage.buckets` is blocked by workspace rules. SQL in the file only handles policies.
-- Include a short manual-dashboard fallback section.
+Tutti i doc restano < 300 righe.
 
-### 3. Backend — extend `ingest-knowledge-source` (safe, minimal)
+## Out of scope (esplicito)
 
-Edit `supabase/functions/ingest-knowledge-source/index.ts`:
-- Extend the Zod schema:
-  - Add `"pdf"` to `source_type` enum.
-  - Add optional `storage_path: z.string().min(1).max(500).optional()`.
-  - Make `raw_text` conditional: required for non-pdf, optional for `pdf`.
-  - Cross-field validation via `superRefine`:
-    - if `source_type === "pdf"` → `storage_path` required, `raw_text` optional/null.
-    - otherwise → `raw_text` required (existing 100–200k rule), `storage_path` ignored.
-- Insert/update path: persist `storage_path` on the row. `metadata.ingest_method` becomes `"manual_text"` or `"pdf_upload"`. For PDFs, force `status = 'draft'` and `processed_at = null`.
-- **No file upload inside the function.** The admin UI (future task) is expected to upload directly to the bucket using a signed upload URL or service-side helper, then call this function with `storage_path` and metadata only.
-- **No PDF parsing.** Logging stays prefix-only.
+- Nessuna estrazione testo PDF.
+- Nessun chunking / embedding lato server in questa pass.
+- Nessuna modifica iOS.
+- Nessuna chiamata AI.
+- Nessuna modifica a `ingest-knowledge-source` (già pronto per `source_type='pdf'` dalla pass precedente).
 
-This is a backwards-compatible extension: existing manual_text clients keep working unchanged.
+## Note tecniche
 
-### 4. Docs — ingest function update
+- L'upload usa l'anon key + JWT utente: le nuove policy RLS richiedono `is_admin(auth.uid())` → solo admin possono uploadare. Coerente con il pattern esistente.
+- Il `storage_path` salvato in DB è il path relativo al bucket (es. `alchemy/1717420000-jung-psicologia.pdf`), non l'URL pubblico.
+- Non viene generato alcun signed URL in questa pass: i file verranno letti server-side da `process-knowledge-source` con service role.
 
-Update `docs/admin-knowledge-ingest-v1.md`:
-- Document the new `source_type='pdf'` + `storage_path` flow.
-- Add a small example curl for PDF metadata insertion.
-- Restate "no PDF parsing here".
+## Report finale (dopo build mode)
 
-### 5. Docs — admin UI plan
-
-Update `docs/admin-knowledge-base-v1.md`:
-- Add a "Planned: PDF upload form" section: file input, drag&drop, progress, domain/tags/language metadata, status badge, "Processa documento" CTA (disabled placeholder), "Preview extracted text" (future).
-- Clarify that the upload uses the private `knowledge-sources` Storage bucket, then calls `ingest-knowledge-source` with `source_type='pdf'` and `storage_path`.
-
-### 6. Docs — processing roadmap
-
-Update `docs/admin-knowledge-process-v1.md`:
-- Add branch: if `source_type === 'pdf'` → download from `storage_path` (service role) → extract text → clean → chunk → (later) embeddings → activate.
-- Add **timeout / large-document risk** section: very large PDFs may exceed Edge Function limits, future queue / batch / background job may be needed.
-
-### 7. Status docs
-
-- `docs/WEB_TASKS.md`: move "PDF / Markdown / TXT upload" to a new "In Progress (scaffolding)" line; add TODOs for bucket creation, admin UI form, signed upload URL helper. Keep under 300 lines.
-- `docs/AI_BACKEND_STATUS.md`: note that `ingest-knowledge-source` accepts `source_type='pdf'` + `storage_path`; PDF parsing & embeddings still planned.
-- `docs/PROJECT_STATUS.md`: add one line under Active Workstream about PDF ingestion scaffolding. Bump `Last Updated`.
-
-### 8. No deploy / no AI
-
-- Do not run `supabase functions deploy`.
-- Do not call the function.
-- Do not call any AI provider.
-- Do not create the Storage bucket automatically — surface it as a manual step (user can ask me to create it next).
-
-## Out of scope (explicitly)
-
-- Building the admin UI PDF form (planned next).
-- PDF text extraction implementation.
-- `embed-knowledge-source`.
-- Any retrieval wiring.
-- iOS changes.
-
-## Final report (after build mode)
-
-- Files added / changed.
-- Confirmation: no runtime AI calls, no deploy, no iOS changes.
-- Whether PDF upload is implemented (answer: only metadata path + storage policies; UI + parsing still planned).
-- Whether bucket creation is required (answer: yes, manual — via Storage tool or dashboard).
-- Line counts for updated status docs.
-- Next safe step recommendation.
+- bucket creato? sì/no
+- migration policy applicata? sì/no
+- file aggiunti / modificati
+- conferma: no AI calls, no iOS, no estrazione PDF
+- next step: implementare il branch PDF di `process-knowledge-source`
