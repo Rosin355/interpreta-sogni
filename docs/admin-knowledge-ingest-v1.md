@@ -215,3 +215,8 @@ dell'utente admin.
 `process-knowledge-source`: chunking del `raw_text`, generazione embedding,
 inserimento in `ai_knowledge_chunks`, aggiornamento `processed_at` e `status`.
 
+
+
+---
+
+_See also: [PROJECT_STATUS](./PROJECT_STATUS.md) · [WEB_TASKS](./WEB_TASKS.md) · [AI_BACKEND_STATUS](./AI_BACKEND_STATUS.md)_

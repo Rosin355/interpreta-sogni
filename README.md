@@ -1,8 +1,11 @@
 # Welcome to your Lovable project
 
+> **New Claude Code session?** Read [`docs/CLAUDE_CONTEXT_GUIDE.md`](./docs/CLAUDE_CONTEXT_GUIDE.md) first, then [`docs/PROJECT_STATUS.md`](./docs/PROJECT_STATUS.md).
+
 ## Project info
 
 **URL**: https://lovable.dev/projects/579b4e62-1239-4277-a4c7-d1bec80def7d
+
 
 ## How can I edit this code?
 

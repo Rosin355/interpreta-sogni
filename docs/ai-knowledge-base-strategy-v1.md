@@ -50,3 +50,8 @@ log in `ai_knowledge_retrieval_logs`.
 - Mai usare service role lato client.
 - Mai incollare nella KB sogni privati di utenti.
 - Mai loggare `raw_text` o JWT.
+
+
+---
+
+_See also: [PROJECT_STATUS](./PROJECT_STATUS.md) · [WEB_TASKS](./WEB_TASKS.md) · [AI_BACKEND_STATUS](./AI_BACKEND_STATUS.md)_
