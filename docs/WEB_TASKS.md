@@ -32,9 +32,19 @@ are still to be built.
 - [ ] Run dry_run + process tests from `admin-knowledge-process-v1.md`
 - [ ] Confirm minimal admin KB UI loads at `/admin/knowledge-base` for an admin user
 
+## In Progress (scaffolding)
+
+- [ ] PDF / large-document ingest path:
+  - [x] `ingest-knowledge-source` accetta `source_type='pdf'` + `storage_path` (validazione cross-field, raw_text=NULL)
+  - [x] Documentato bucket privato Storage `knowledge-sources` (`docs/supabase-knowledge-storage-migration.sql`)
+  - [ ] Creazione manuale del bucket via Supabase dashboard / Storage tool
+  - [ ] Applicazione policy RLS dello SQL di cui sopra
+  - [ ] Admin UI: form upload PDF (drag & drop, progress, metadata → call `ingest-knowledge-source`)
+  - [ ] `process-knowledge-source`: branch download da Storage + estrazione testo PDF
+
 ## Later TODOs
 
-- [ ] PDF / Markdown / TXT upload (Supabase Storage + `storage_path` on `ai_knowledge_sources`)
+- [ ] Markdown / TXT upload (stesso pattern del PDF)
 - [ ] `embed-knowledge-source` Edge Function (OpenAI `text-embedding-3-small`, promotes source to `active`)
 - [ ] `search-knowledge` Edge Function (pgvector similarity)
 - [ ] Wire retrieval into `interpret-dream`
