@@ -1,6 +1,6 @@
 # DreamAlchemist — Project Status
 
-> **Last Updated:** 2026-06-03
+> **Last Updated:** 2026-06-03 (PDF upload UI + bucket)
 > Update this file after every significant implementation pass.
 
 ## Current Milestone
@@ -36,13 +36,14 @@ interpretations and the subscription/entitlement layer.
 - [x] KB schema migration (`ai_knowledge_sources`, `ai_knowledge_chunks`, `ai_knowledge_retrieval_logs`)
 - [x] `ingest-knowledge-source` Edge Function (admin-only, JWT + `public.is_admin` check, optional `KB_ADMIN_USER_IDS` fallback)
 - [x] Minimal admin Knowledge Base UI (list + create form) at `/admin/knowledge-base`
+- [x] Bucket Storage privato `knowledge-sources` + policy RLS admin-only
+- [x] Admin PDF upload UI (`KnowledgePdfUploadForm`, registra source come `pdf` draft)
 
 ## Active Workstream
 
 - Knowledge Base / RAG foundation
-- Admin ingestion and end-to-end manual testing
-- PDF / large-document ingest path scaffolding (Storage bucket + `source_type='pdf'` su `ingest-knowledge-source`)
-- Later: `process-knowledge-source` PDF branch → chunking → embeddings → `search-knowledge` → retrieval wired into `interpret-dream` and `chat-with-alchemist`
+- Admin ingestion e end-to-end manual testing
+- Prossimo: `process-knowledge-source` branch PDF → download da Storage → estrazione testo → chunking → embeddings → `search-knowledge` → retrieval wired into `interpret-dream` e `chat-with-alchemist`
 
 ## Golden Rules
 
