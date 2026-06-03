@@ -7,7 +7,8 @@
 Admin console operational (`/admin`, `/admin/knowledge-base`, audio admin,
 errors, attribution, professional approvals). KB ingestion path is in
 place from UI → Edge Function → DB. Chunking is built for both text and
-**PDF** sources (`process-knowledge-source`, no embeddings yet). Embeddings /
+**PDF** sources (`process-knowledge-source`, no embeddings yet) and can be
+triggered per-source from the admin UI ("Processa fonte"). Embeddings /
 retrieval are still to be built.
 
 ## Completed
@@ -43,6 +44,8 @@ retrieval are still to be built.
   - [x] Admin UI: form upload PDF (`KnowledgePdfUploadForm`) con tab nel dialog "Nuova fonte"
   - [x] `process-knowledge-source`: branch download da Storage + estrazione testo
         PDF (`unpdf`, no OCR, max 20 MB, dry_run + process) — embedding esclusi
+  - [x] Admin UI: azione "Processa fonte" per riga (`KnowledgeProcessAction`):
+        dry_run → conferma → process, refresh lista, admin-only, nessun JWT esposto
 
 ## Later TODOs
 
@@ -61,7 +64,8 @@ retrieval are still to be built.
 - `src/pages/AdminKnowledgeBase.tsx` — KB admin page
 - `src/components/admin/KnowledgeSourceForm.tsx` — create / edit form (testo)
 - `src/components/admin/KnowledgePdfUploadForm.tsx` — upload PDF al bucket + chiamata ingest
-- `src/components/admin/KnowledgeSourcesList.tsx` — list of sources
+- `src/components/admin/KnowledgeSourcesList.tsx` — list of sources (colonna Azioni)
+- `src/components/admin/KnowledgeProcessAction.tsx` — bottone "Processa fonte" (dry_run + process)
 - `supabase/functions/ingest-knowledge-source/index.ts` — server-side ingest
 - `supabase/migrations/` — search for `ai_knowledge_sources` to find the KB migration
 - `docs/admin-knowledge-base-v1.md` — UI details

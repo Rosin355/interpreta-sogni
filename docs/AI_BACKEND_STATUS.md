@@ -30,7 +30,7 @@
 - `speech-to-text-elevenlabs`
 - `text-to-speech-elevenlabs`
 - `ingest-knowledge-source` (manual text **and** `source_type='pdf'` + `storage_path` metadata; no PDF parsing here)
-- `process-knowledge-source` (text **and** PDF chunking → `embedding=null`, source stays `draft`; PDF via `unpdf` text-layer extraction, no OCR, ≤20MB; embeddings still in a later pass)
+- `process-knowledge-source` (text **and** PDF chunking → `embedding=null`, source stays `draft`; PDF via `unpdf` text-layer extraction, no OCR, ≤20MB; embeddings still in a later pass; triggerable from admin UI "Processa fonte" — dry_run + process)
 - `approve-professional`
 - `send-email-notification` / `send-contact-email` / `send-dream-diary`
 - `send-push-notifications`

@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import KnowledgeProcessAction from "@/components/admin/KnowledgeProcessAction";
 
 type KnowledgeSource = {
   id: string;
@@ -53,9 +54,10 @@ const statusVariant = (status: string): "default" | "secondary" | "outline" | "d
 
 interface Props {
   refreshKey: number;
+  onProcessed: () => void;
 }
 
-const KnowledgeSourcesList = ({ refreshKey }: Props) => {
+const KnowledgeSourcesList = ({ refreshKey, onProcessed }: Props) => {
   const [rows, setRows] = useState<KnowledgeSource[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -176,6 +178,7 @@ const KnowledgeSourcesList = ({ refreshKey }: Props) => {
                 <TableHead>Lingua</TableHead>
                 <TableHead>Tag</TableHead>
                 <TableHead>Aggiornato</TableHead>
+                <TableHead className="text-right">Azioni</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -206,6 +209,13 @@ const KnowledgeSourcesList = ({ refreshKey }: Props) => {
                       month: "short",
                       year: "numeric",
                     })}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <KnowledgeProcessAction
+                      sourceId={r.id}
+                      title={r.title}
+                      onProcessed={onProcessed}
+                    />
                   </TableCell>
                 </TableRow>
               ))}

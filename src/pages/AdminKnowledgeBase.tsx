@@ -91,7 +91,10 @@ const AdminKnowledgeBase = () => {
             </Button>
           </div>
 
-          <KnowledgeSourcesList refreshKey={refreshKey} />
+          <KnowledgeSourcesList
+            refreshKey={refreshKey}
+            onProcessed={() => setRefreshKey((k) => k + 1)}
+          />
 
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">

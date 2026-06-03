@@ -1,6 +1,6 @@
 # DreamAlchemist — Project Status
 
-> **Last Updated:** 2026-06-03 (PDF text extraction + chunking in process-knowledge-source)
+> **Last Updated:** 2026-06-04 (admin "Processa fonte" action for KB sources)
 > Update this file after every significant implementation pass.
 
 ## Current Milestone
@@ -39,6 +39,7 @@ interpretations and the subscription/entitlement layer.
 - [x] Bucket Storage privato `knowledge-sources` + policy RLS admin-only
 - [x] Admin PDF upload UI (`KnowledgePdfUploadForm`, registra source come `pdf` draft)
 - [x] `process-knowledge-source`: chunking testo **e PDF** (download Storage + `unpdf`, no OCR, ≤20MB), chunk con `embedding=NULL`, sorgente resta `draft`
+- [x] Admin UI "Processa fonte" (`KnowledgeProcessAction`): dry_run → conferma → process, refresh lista (admin-only, nessun embedding)
 
 ## Active Workstream
 

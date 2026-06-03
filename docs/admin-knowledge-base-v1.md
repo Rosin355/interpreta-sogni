@@ -21,10 +21,29 @@ Accessibile dal pulsante "Knowledge Base AI" nella Dashboard Amministratore.
 - L'Edge Function valida JWT, verifica `is_admin`, applica zod schema, inserisce con service role.
 - Privacy warning visibile nel form: i sogni privati degli utenti **non** vanno copiati nella KB.
 
+## Azione "Processa fonte" (v1 implementata)
+
+Ogni riga della lista fonti ha un bottone **"Processa fonte"**
+(`KnowledgeProcessAction`), admin-only:
+
+1. apre un dialog e chiama `process-knowledge-source` in `mode='dry_run'`;
+2. mostra solo conteggi/lunghezze: `chunk_count`, `estimated_token_count`,
+   `extracted_text_length` (se presente), `embeddings: not_generated`
+   (**mai** `raw_text` o contenuto dei chunk);
+3. con **"Conferma processing"** chiama `mode='process'`: inserisce i chunk con
+   `embedding = null`, la fonte resta `draft`;
+4. messaggio di successo *"Fonte processata. I chunk sono stati creati senza
+   embeddings."* e refresh della lista.
+
+- Usa la sessione Supabase autenticata esistente (`functions.invoke` allega il
+  JWT automaticamente; nessun JWT esposto a mano).
+- Errori: messaggio neutro *"Non siamo riusciti a processare la fonte. Controlla
+  i log della funzione."* (+ eventuale `codice:` sicuro, es. `document_too_large`).
+
 ## Cosa NON è implementato (intenzionale)
 
 - **Nessuna chiamata AI** (OpenAI / Anthropic / Lovable / ElevenLabs).
-- **Nessun chunking**, nessun embedding, nessuna retrieval.
+- **Nessun embedding**, nessuna retrieval (il chunking c'è via "Processa fonte").
 - **Nessun edit / archive / activate dal client** — le RLS UPDATE/DELETE non sono aperte agli admin; richiederanno una Edge Function dedicata o nuove policy.
 - **Nessuna delete permanente.**
 - **Nessuna modifica iOS / Capacitor.**
@@ -52,8 +71,8 @@ Limiti noti:
 
 - nessuna barra di progresso reale (Supabase JS v2 non emette `onUploadProgress`).
 - nessun preview del PDF caricato.
-- nessuna CTA "Processa documento" in UI: `process-knowledge-source` va per ora
-  invocata manualmente (curl) — vedi `admin-knowledge-process-v1.md`.
+- il processing si avvia dalla lista fonti con **"Processa fonte"** (dry_run →
+  conferma → process); vedi sezione dedicata sotto.
 - solo PDF con text layer: gli scansionati / solo-immagine danno
   `pdf_text_extraction_failed`.
 
