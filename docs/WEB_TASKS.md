@@ -34,12 +34,11 @@ are still to be built.
 
 ## In Progress (scaffolding)
 
-- [ ] PDF / large-document ingest path:
-  - [x] `ingest-knowledge-source` accetta `source_type='pdf'` + `storage_path` (validazione cross-field, raw_text=NULL)
-  - [x] Documentato bucket privato Storage `knowledge-sources` (`docs/supabase-knowledge-storage-migration.sql`)
-  - [ ] Creazione manuale del bucket via Supabase dashboard / Storage tool
-  - [ ] Applicazione policy RLS dello SQL di cui sopra
-  - [ ] Admin UI: form upload PDF (drag & drop, progress, metadata → call `ingest-knowledge-source`)
+- [x] PDF / large-document ingest path:
+  - [x] `ingest-knowledge-source` accetta `source_type='pdf'` + `storage_path`
+  - [x] Bucket privato Storage `knowledge-sources` creato (migration)
+  - [x] Policy RLS admin-only su `storage.objects` (read/insert/update/delete)
+  - [x] Admin UI: form upload PDF (`KnowledgePdfUploadForm`) con tab nel dialog "Nuova fonte"
   - [ ] `process-knowledge-source`: branch download da Storage + estrazione testo PDF
 
 ## Later TODOs
@@ -57,7 +56,8 @@ are still to be built.
 
 - `src/pages/AdminDashboard.tsx` — admin tab layout
 - `src/pages/AdminKnowledgeBase.tsx` — KB admin page
-- `src/components/admin/KnowledgeSourceForm.tsx` — create / edit form
+- `src/components/admin/KnowledgeSourceForm.tsx` — create / edit form (testo)
+- `src/components/admin/KnowledgePdfUploadForm.tsx` — upload PDF al bucket + chiamata ingest
 - `src/components/admin/KnowledgeSourcesList.tsx` — list of sources
 - `supabase/functions/ingest-knowledge-source/index.ts` — server-side ingest
 - `supabase/migrations/` — search for `ai_knowledge_sources` to find the KB migration
