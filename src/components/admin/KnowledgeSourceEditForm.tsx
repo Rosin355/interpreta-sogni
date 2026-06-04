@@ -43,6 +43,8 @@ type FullSource = {
   tags: string[] | null;
   raw_text: string | null;
   storage_path: string | null;
+  processed_at: string | null;
+  error_message: string | null;
 };
 
 interface Props {
@@ -67,6 +69,8 @@ const KnowledgeSourceEditForm = ({ sourceId, onSaved, onCancel }: Props) => {
   const [tagsInput, setTagsInput] = useState("");
   const [rawText, setRawText] = useState("");
   const [storagePath, setStoragePath] = useState("");
+  const [processedAt, setProcessedAt] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const isPdf = sourceType === "pdf";
 
@@ -78,7 +82,7 @@ const KnowledgeSourceEditForm = ({ sourceId, onSaved, onCancel }: Props) => {
       const { data, error } = await supabase
         .from("ai_knowledge_sources")
         .select(
-          "id, title, domain, source_type, status, language, author, origin, tags, raw_text, storage_path",
+          "id, title, domain, source_type, status, language, author, origin, tags, raw_text, storage_path, processed_at, error_message",
         )
         .eq("id", sourceId)
         .maybeSingle();
@@ -99,6 +103,8 @@ const KnowledgeSourceEditForm = ({ sourceId, onSaved, onCancel }: Props) => {
       setTagsInput((s.tags ?? []).join(", "));
       setRawText(s.raw_text ?? "");
       setStoragePath(s.storage_path ?? "");
+      setProcessedAt(s.processed_at ?? null);
+      setErrorMessage(s.error_message ?? null);
       setLoading(false);
     };
     load();
@@ -217,10 +223,26 @@ const KnowledgeSourceEditForm = ({ sourceId, onSaved, onCancel }: Props) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        <Badge variant="outline">tipo: {sourceType}</Badge>
-        <Badge variant="outline">status: {status}</Badge>
-        <span>Tipo e status non sono modificabili qui (usa archivia/ripristina).</span>
+      {/* Readonly / help fields */}
+      <div className="rounded-md border bg-muted/40 p-3 text-xs space-y-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline">id: {sourceId.slice(0, 8)}…</Badge>
+          <Badge variant="outline">tipo: {sourceType}</Badge>
+          <Badge variant="outline">status: {status}</Badge>
+        </div>
+        <div className="text-muted-foreground">
+          Processato il:{" "}
+          {processedAt ? new Date(processedAt).toLocaleString("it-IT") : "—"}
+        </div>
+        {errorMessage && (
+          <div className="text-destructive">Ultimo errore: {errorMessage}</div>
+        )}
+        <p className="text-muted-foreground">
+          {isPdf
+            ? "Fonte PDF: il testo viene estratto in fase di processing dal file in Storage."
+            : "Fonte testuale: il contenuto è in raw_text qui sotto."}{" "}
+          Tipo e status non sono modificabili qui (usa archivia/ripristina).
+        </p>
       </div>
 
       <div className="space-y-2">

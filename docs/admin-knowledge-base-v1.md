@@ -35,21 +35,27 @@ Voci del menu:
   la fonte è `failed`. **Mai** `raw_text`/contenuto chunk.
 - **Modifica** — dialog con `KnowledgeSourceEditForm` (precompilato): title,
   domain, language, author, origin, tags e `raw_text` (testo) **oppure**
-  `storage_path` (PDF). `source_type` e `status` sono mostrati ma non editabili
-  qui. Salva via `ingest-knowledge-source` in **update mode** (`source_id` nel
-  body). Se `raw_text`/`storage_path` cambia, il backend riporta la fonte a
-  `draft` e azzera `processed_at`. Toast: *"Fonte aggiornata"* /
-  *"Non siamo riusciti ad aggiornare la fonte"*. Disabilitata se archiviata.
+  `storage_path` (PDF) modificabili. Campi read-only/aiuto mostrati nel dialog:
+  id (prefix), `status`, `source_type` (+ spiegazione), `processed_at` e
+  `error_message`. Salva via `ingest-knowledge-source` in **update mode**
+  (`source_id` nel body). Se `raw_text`/`storage_path` cambia, il backend
+  riporta la fonte a `draft` e azzera `processed_at`. Toast: *"Fonte aggiornata"*
+  / *"Non siamo riusciti ad aggiornare la fonte"*. Disabilitata se archiviata.
 - **Processa fonte** — dialog `KnowledgeProcessDialog`: `dry_run` →
   mostra `chunk_count` / `estimated_token_count` / `extracted_text_length` /
   `embeddings: not_generated` → **Conferma processing** (`mode='process'`,
   `embedding = null`, fonte resta `draft`). Nessun embedding, nessuna AI.
-- **Archivia** / **Ripristina in bozza** — via `manage-knowledge-source`
-  (`archive` / `restore_draft`). L'archiviazione è **preferita** alla
-  cancellazione; i chunk NON vengono eliminati.
+- **Archivia** / **Ripristina in bozza** — entrambe con dialog di conferma, via
+  `manage-knowledge-source` (`archive` / `restore_draft`). Archivia:
+  *"Vuoi archiviare questa fonte? Non sarà usata nei futuri processi finché non
+  verrà ripristinata."* → toast *"Fonte archiviata"*. Ripristina:
+  *"Ripristinare questa fonte in bozza?"* → toast *"Fonte ripristinata in bozza"*.
+  L'archiviazione è **preferita** alla cancellazione; i chunk NON vengono
+  eliminati. Le fonti archiviate restano visibili e filtrabili (filtro
+  status = `archived`).
 - **Elimina definitivamente** — azione protetta (AlertDialog): copy
-  *"Questa azione eliminerà la fonte e tutti i chunk collegati. Non può essere
-  annullata."* e richiede di digitare **ELIMINA**. Chiama
+  *"Questa azione eliminerà definitivamente la fonte e tutti i chunk collegati.
+  Non può essere annullata."* e richiede di digitare **ELIMINA**. Chiama
   `manage-knowledge-source` (`delete_permanently`): elimina i chunk e poi la
   riga sorgente. Il file PDF in Storage **non** viene rimosso in questa pass
   (TODO).

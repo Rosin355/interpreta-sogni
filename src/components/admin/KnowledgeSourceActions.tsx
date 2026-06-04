@@ -64,6 +64,7 @@ const KnowledgeSourceActions = ({ source, onChanged }: Props) => {
   const [editOpen, setEditOpen] = useState(false);
   const [processOpen, setProcessOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [restoreOpen, setRestoreOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const [busy, setBusy] = useState(false);
@@ -132,8 +133,13 @@ const KnowledgeSourceActions = ({ source, onChanged }: Props) => {
     if (ok) setArchiveOpen(false);
   };
 
-  const onRestore = async () => {
-    await callManage("restore_draft", "Fonte ripristinata in bozza", "Non siamo riusciti a ripristinare la fonte");
+  const onRestoreConfirm = async () => {
+    const ok = await callManage(
+      "restore_draft",
+      "Fonte ripristinata in bozza",
+      "Non siamo riusciti a ripristinare la fonte",
+    );
+    if (ok) setRestoreOpen(false);
   };
 
   const onDeleteConfirm = async () => {
@@ -168,7 +174,7 @@ const KnowledgeSourceActions = ({ source, onChanged }: Props) => {
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {isArchived ? (
-            <DropdownMenuItem onSelect={() => onRestore()}>Ripristina in bozza</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setRestoreOpen(true)}>Ripristina in bozza</DropdownMenuItem>
           ) : (
             <DropdownMenuItem onSelect={() => setArchiveOpen(true)}>Archivia</DropdownMenuItem>
           )}
@@ -250,8 +256,8 @@ const KnowledgeSourceActions = ({ source, onChanged }: Props) => {
           <AlertDialogHeader>
             <AlertDialogTitle>Archiviare questa fonte?</AlertDialogTitle>
             <AlertDialogDescription>
-              La fonte verrà archiviata e nascosta dalla pipeline. I chunk non vengono
-              eliminati e potrai ripristinarla in bozza in qualsiasi momento.
+              Vuoi archiviare questa fonte? Non sarà usata nei futuri processi finché non
+              verrà ripristinata. I chunk non vengono eliminati.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -266,14 +272,36 @@ const KnowledgeSourceActions = ({ source, onChanged }: Props) => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Restore confirm */}
+      <AlertDialog open={restoreOpen} onOpenChange={(o) => { if (!busy) setRestoreOpen(o); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ripristinare questa fonte in bozza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              La fonte tornerà in stato <code>draft</code> e potrà essere modificata e
+              riprocessata. Non viene generato alcun embedding.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button variant="ghost" onClick={() => setRestoreOpen(false)} disabled={busy}>
+              Annulla
+            </Button>
+            <Button onClick={onRestoreConfirm} disabled={busy} className="gap-2">
+              {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+              Ripristina in bozza
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Protected permanent delete */}
       <AlertDialog open={deleteOpen} onOpenChange={(o) => { if (!busy) { setDeleteOpen(o); if (!o) setDeleteConfirm(""); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Elimina definitivamente</AlertDialogTitle>
             <AlertDialogDescription>
-              Questa azione eliminerà la fonte e tutti i chunk collegati. Non può essere
-              annullata.
+              Questa azione eliminerà definitivamente la fonte e tutti i chunk collegati.
+              Non può essere annullata.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2">
