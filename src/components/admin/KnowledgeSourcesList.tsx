@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import KnowledgeProcessAction from "@/components/admin/KnowledgeProcessAction";
+import KnowledgeSourceActions from "@/components/admin/KnowledgeSourceActions";
 
 type KnowledgeSource = {
   id: string;
@@ -54,10 +54,10 @@ const statusVariant = (status: string): "default" | "secondary" | "outline" | "d
 
 interface Props {
   refreshKey: number;
-  onProcessed: () => void;
+  onChanged: () => void;
 }
 
-const KnowledgeSourcesList = ({ refreshKey, onProcessed }: Props) => {
+const KnowledgeSourcesList = ({ refreshKey, onChanged }: Props) => {
   const [rows, setRows] = useState<KnowledgeSource[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -168,7 +168,8 @@ const KnowledgeSourcesList = ({ refreshKey, onProcessed }: Props) => {
               : "Nessuna fonte corrisponde ai filtri selezionati."}
           </div>
         ) : (
-          <Table>
+          <div className="overflow-x-auto">
+          <Table className="min-w-[880px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Titolo</TableHead>
@@ -211,20 +212,26 @@ const KnowledgeSourcesList = ({ refreshKey, onProcessed }: Props) => {
                     })}
                   </TableCell>
                   <TableCell className="text-right">
-                    <KnowledgeProcessAction
-                      sourceId={r.id}
-                      title={r.title}
-                      onProcessed={onProcessed}
+                    <KnowledgeSourceActions
+                      source={{
+                        id: r.id,
+                        title: r.title,
+                        status: r.status,
+                        source_type: r.source_type,
+                      }}
+                      onChanged={onChanged}
                     />
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          </div>
         )}
       </div>
 
-      {/* TODO: azioni edit/archive/activate richiedono Edge Function dedicata o nuove policy RLS UPDATE admin. */}
+      {/* Azioni per riga (dettagli, modifica, processa, archivia/ripristina, elimina)
+          in KnowledgeSourceActions. activate/active da una futura embed-knowledge-source. */}
     </div>
   );
 };

@@ -72,6 +72,9 @@ Se non admin → `403`.
 
 ## Modalità update
 
+Usata anche dall'azione admin **"Modifica"** della Knowledge Base UI
+(`KnowledgeSourceEditForm` → `functions.invoke('ingest-knowledge-source', { body: { source_id, … } })`).
+
 Se `source_id` è presente:
 - carica la riga esistente
 - aggiorna i campi editabili

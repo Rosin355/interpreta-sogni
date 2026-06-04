@@ -44,8 +44,11 @@ retrieval are still to be built.
   - [x] Admin UI: form upload PDF (`KnowledgePdfUploadForm`) con tab nel dialog "Nuova fonte"
   - [x] `process-knowledge-source`: branch download da Storage + estrazione testo
         PDF (`unpdf`, no OCR, max 20 MB, dry_run + process) — embedding esclusi
-  - [x] Admin UI: azione "Processa fonte" per riga (`KnowledgeProcessAction`):
-        dry_run → conferma → process, refresh lista, admin-only, nessun JWT esposto
+  - [x] Admin UI: menu "Azioni" per riga (`KnowledgeSourceActions`) — dettagli,
+        modifica, processa, archivia/ripristina, elimina (protetta) — admin-only,
+        nessun JWT esposto, tabella responsive (overflow-x-auto)
+  - [x] `manage-knowledge-source` Edge Function: archive / restore_draft /
+        delete_permanently (chunk cancellati esplicitamente; nessun embedding)
 
 ## Later TODOs
 
@@ -64,8 +67,11 @@ retrieval are still to be built.
 - `src/pages/AdminKnowledgeBase.tsx` — KB admin page
 - `src/components/admin/KnowledgeSourceForm.tsx` — create / edit form (testo)
 - `src/components/admin/KnowledgePdfUploadForm.tsx` — upload PDF al bucket + chiamata ingest
-- `src/components/admin/KnowledgeSourcesList.tsx` — list of sources (colonna Azioni)
-- `src/components/admin/KnowledgeProcessAction.tsx` — bottone "Processa fonte" (dry_run + process)
+- `src/components/admin/KnowledgeSourcesList.tsx` — list of sources (responsive, colonna Azioni)
+- `src/components/admin/KnowledgeSourceActions.tsx` — menu Azioni per riga (CRUD) + dialog
+- `src/components/admin/KnowledgeSourceEditForm.tsx` — form Modifica (ingest update mode)
+- `src/components/admin/KnowledgeProcessDialog.tsx` — dialog "Processa fonte" (dry_run + process)
+- `supabase/functions/manage-knowledge-source/index.ts` — archive / restore / delete
 - `supabase/functions/ingest-knowledge-source/index.ts` — server-side ingest
 - `supabase/migrations/` — search for `ai_knowledge_sources` to find the KB migration
 - `docs/admin-knowledge-base-v1.md` — UI details

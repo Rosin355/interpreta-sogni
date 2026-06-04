@@ -93,7 +93,7 @@ const AdminKnowledgeBase = () => {
 
           <KnowledgeSourcesList
             refreshKey={refreshKey}
-            onProcessed={() => setRefreshKey((k) => k + 1)}
+            onChanged={() => setRefreshKey((k) => k + 1)}
           />
 
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
