@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Plus, ArrowLeft } from "lucide-react";
+import { Loader2, Plus, ArrowLeft, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import KnowledgeSourcesList from "@/components/admin/KnowledgeSourcesList";
 import KnowledgeSourceForm from "@/components/admin/KnowledgeSourceForm";
 import KnowledgePdfUploadForm from "@/components/admin/KnowledgePdfUploadForm";
+import KnowledgeSearchTestDialog from "@/components/admin/KnowledgeSearchTestDialog";
 
 const AdminKnowledgeBase = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const AdminKnowledgeBase = () => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -86,9 +88,14 @@ const AdminKnowledgeBase = () => {
                 degli utenti deve essere inserito qui.
               </p>
             </div>
-            <Button onClick={() => setDialogOpen(true)} className="gap-2 shrink-0">
-              <Plus className="h-4 w-4" /> Nuova fonte
-            </Button>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button variant="outline" onClick={() => setSearchOpen(true)} className="gap-2">
+                <Search className="h-4 w-4" /> Test ricerca
+              </Button>
+              <Button onClick={() => setDialogOpen(true)} className="gap-2">
+                <Plus className="h-4 w-4" /> Nuova fonte
+              </Button>
+            </div>
           </div>
 
           <KnowledgeSourcesList
@@ -121,6 +128,8 @@ const AdminKnowledgeBase = () => {
               </Tabs>
             </DialogContent>
           </Dialog>
+
+          <KnowledgeSearchTestDialog open={searchOpen} onOpenChange={setSearchOpen} />
         </div>
       </div>
     </>

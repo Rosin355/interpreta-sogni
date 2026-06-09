@@ -64,10 +64,14 @@ del form è 200k caratteri ed è pensato per note curate brevi.
   dei chunk pendenti a batch + promozione `status = 'active'`. Vedi
   [`admin-knowledge-embed-v1.md`](./admin-knowledge-embed-v1.md).
 
-## Fase 5 — Retrieval (TODO)
+## Fase 5 — Retrieval (DONE, da deployare)
 
-Edge function `retrieve-knowledge` con embedding query + top-k cosine,
-log in `ai_knowledge_retrieval_logs`.
+Edge function `search-knowledge`: embedding query OpenAI + top-k cosine via RPC
+pgvector `match_knowledge_chunks` (solo fonti `active`), log in
+`ai_knowledge_retrieval_logs` + `usage_ledger` (`search_knowledge`). Vedi
+[`admin-knowledge-search-v1.md`](./admin-knowledge-search-v1.md). RPC da
+eseguire manualmente, funzione da deployare. Wiring in `interpret-dream`: TODO
+separato.
 
 ## Note di sicurezza
 

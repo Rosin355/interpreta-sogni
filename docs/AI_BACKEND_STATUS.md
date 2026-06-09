@@ -13,6 +13,7 @@
 | `chat-with-alchemist` | Claude / OpenAI | **working** (basic) |
 | `audio-reflection` (TTS) | ElevenLabs (Jessica voice clone) | working for `text-to-speech-elevenlabs`; iOS UI **planned** |
 | Knowledge Base embeddings | OpenAI `text-embedding-3-small` | **working** (admin-triggered, not deployed) |
+| `search-knowledge` (KB semantic retrieval) | OpenAI query embedding + pgvector RPC | **working** (admin-tested, not deployed) |
 | KB retrieval into interpret-dream / chat | server-side composition | **planned** |
 
 ## Supabase Edge Functions
@@ -33,14 +34,13 @@
 - `process-knowledge-source` (text **and** PDF chunking → `embedding=null`, source stays `draft`; PDF via `unpdf` text-layer extraction, no OCR, ≤20MB; embeddings still in a later pass; triggerable from admin UI "Processa fonte" — dry_run + process)
 - `manage-knowledge-source` (admin status transitions + protected delete: `activate` / `move_to_draft` / `archive` / `restore_draft` / `delete_permanently`; `activate` enforces server-side readiness — ≥1 chunk, all embeddings present, not archived, no error — else `409 source_not_ready_for_activation`; deletes chunks then source row on delete; no embeddings, no AI)
 - `embed-knowledge-source` (OpenAI `text-embedding-3-small`, 1536 dims; batches pending chunks, promotes source to `active`; dry_run = zero provider calls; usage_ledger `embed_knowledge_source`; admin-triggered — see [details](./admin-knowledge-embed-v1.md))
+- `search-knowledge` (OpenAI query embedding + `public.match_knowledge_chunks` pgvector RPC over active-source chunks; dry_run = zero provider calls; usage_ledger `search_knowledge` + retrieval log; any authenticated user; does NOT touch interpret-dream — see [details](./admin-knowledge-search-v1.md))
 - `approve-professional`
 - `send-email-notification` / `send-contact-email` / `send-dream-diary`
 - `send-push-notifications`
 - `request-password-reset` / `verify-reset-token`
 
 **Planned**:
-
-- `search-knowledge` (pgvector similarity)
 - `astrology-insight` (KB-grounded astrology readings)
 - `get-user-entitlements` (RevenueCat-backed)
 - `revenuecat-webhook` (subscription state sync)

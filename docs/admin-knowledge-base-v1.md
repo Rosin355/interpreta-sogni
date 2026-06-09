@@ -96,6 +96,15 @@ attivata"* / *"Fonte spostata in bozza"*.
 Tutte le azioni usano la sessione Supabase autenticata (`functions.invoke`
 allega il JWT; nessun JWT esposto a mano) e fanno refresh della lista.
 
+## Test ricerca (retrieval semantico)
+
+Pulsante **"Test ricerca"** in alto nella pagina (`KnowledgeSearchTestDialog`,
+admin-only): pannello di test/debug per `search-knowledge`. Dry run (token
+stimati, modello, `provider_call=false`) → Conferma ricerca (embedding query
+OpenAI + RPC pgvector su fonti `active`) → top risultati con titolo fonte,
+dominio, similarity e breve anteprima. Gli embedding non sono mai mostrati.
+Dettagli: [`admin-knowledge-search-v1.md`](./admin-knowledge-search-v1.md).
+
 ## Status ammessi (DB constraint)
 
 La colonna `ai_knowledge_sources.status` accetta:

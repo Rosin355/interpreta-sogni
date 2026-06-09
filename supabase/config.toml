@@ -54,3 +54,6 @@ verify_jwt = false
 [functions.embed-knowledge-source]
 verify_jwt = false
 
+[functions.search-knowledge]
+verify_jwt = false
+

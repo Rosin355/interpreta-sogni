@@ -37,6 +37,11 @@ retrieval are still to be built.
 - [ ] Deploy `embed-knowledge-source` (OpenAI embeddings, promotes `active`)
   - `npx supabase functions deploy embed-knowledge-source`
   - prerequisito: secret `OPENAI_API_KEY` configurato (opz. `EMBEDDING_MODEL`)
+- [ ] Run `docs/supabase-match-knowledge-chunks-migration.sql` in Supabase
+      (crea la RPC pgvector `match_knowledge_chunks`; idempotente, non-distruttiva)
+- [ ] Deploy `search-knowledge` (KB semantic retrieval) — DOPO la RPC sopra
+  - `npx supabase functions deploy search-knowledge`
+  - prerequisito: secret `OPENAI_API_KEY` (opz. `EMBEDDING_MODEL`)
 - [ ] Run the manual end-to-end test from `admin-knowledge-ingest-v1.md`
 - [ ] Run dry_run + process tests from `admin-knowledge-process-v1.md`
 - [ ] Confirm minimal admin KB UI loads at `/admin/knowledge-base` for an admin user
@@ -66,11 +71,16 @@ retrieval are still to be built.
         via `manage-knowledge-source` (`activate` / `move_to_draft`) con readiness
         check server-side (`activate` → `409 source_not_ready_for_activation` se
         embedding mancanti); content change → ritorno a `draft`, niente reattivazione
+  - [x] `search-knowledge` Edge Function: retrieval semantico (embedding query
+        OpenAI + RPC pgvector `match_knowledge_chunks` su fonti `active`); dry_run
+        = zero chiamate provider; usage_ledger `search_knowledge` + retrieval log;
+        admin UI "Test ricerca" (`KnowledgeSearchTestDialog`) — vedi
+        [`admin-knowledge-search-v1.md`](./admin-knowledge-search-v1.md).
+        **interpret-dream NON toccato**.
 
 ## Later TODOs
 
 - [ ] Markdown / TXT upload (stesso pattern del PDF)
-- [ ] `search-knowledge` Edge Function (pgvector similarity)
 - [ ] Wire retrieval into `interpret-dream`
 - [ ] Wire retrieval into `chat-with-alchemist`
 - [ ] `astrology-insight` Edge Function with KB-grounded context
@@ -88,7 +98,10 @@ retrieval are still to be built.
 - `src/components/admin/KnowledgeSourceEditForm.tsx` — form Modifica (ingest update mode)
 - `src/components/admin/KnowledgeProcessDialog.tsx` — dialog "Processa fonte" (dry_run + process)
 - `src/components/admin/KnowledgeEmbedDialog.tsx` — dialog "Genera embeddings" (dry_run + batch)
+- `src/components/admin/KnowledgeSearchTestDialog.tsx` — dialog "Test ricerca" (dry_run + search)
 - `supabase/functions/embed-knowledge-source/index.ts` — OpenAI embeddings + promozione `active`
+- `supabase/functions/search-knowledge/index.ts` — retrieval semantico (embedding query + RPC)
+- `docs/supabase-match-knowledge-chunks-migration.sql` — RPC pgvector (da eseguire manualmente)
 - `supabase/functions/manage-knowledge-source/index.ts` — archive / restore / delete
 - `supabase/functions/ingest-knowledge-source/index.ts` — server-side ingest
 - `supabase/migrations/` — search for `ai_knowledge_sources` to find the KB migration
