@@ -55,14 +55,14 @@ Ciclo di vita PDF: `draft` → `processing` → `active` / `failed`.
 del form è 200k caratteri ed è pensato per note curate brevi.
 
 
-## Fase 4 — Processing (TODO)
+## Fase 4 — Processing + Embedding (DONE)
 
-Edge function `process-knowledge-source` (non ancora implementata):
-- chunk del `raw_text` (token-based, overlap controllato)
-- embedding via provider scelto
-- insert in `ai_knowledge_chunks`
-- aggiornamento `processed_at` e `status = 'active'`
-- gestione reprocessing: cancellazione chunk vecchi
+- `process-knowledge-source`: chunk del testo/PDF in `ai_knowledge_chunks` con
+  `embedding = NULL` (nessun embedding, fonte resta `draft`). Vedi
+  [`admin-knowledge-process-v1.md`](./admin-knowledge-process-v1.md).
+- `embed-knowledge-source`: embedding OpenAI (`text-embedding-3-small`, 1536)
+  dei chunk pendenti a batch + promozione `status = 'active'`. Vedi
+  [`admin-knowledge-embed-v1.md`](./admin-knowledge-embed-v1.md).
 
 ## Fase 5 — Retrieval (TODO)
 

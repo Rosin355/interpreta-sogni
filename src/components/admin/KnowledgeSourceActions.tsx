@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, MoreHorizontal } from "lucide-react";
 import KnowledgeSourceEditForm from "@/components/admin/KnowledgeSourceEditForm";
 import KnowledgeProcessDialog from "@/components/admin/KnowledgeProcessDialog";
+import KnowledgeEmbedDialog from "@/components/admin/KnowledgeEmbedDialog";
 
 export type SourceRow = {
   id: string;
@@ -63,6 +64,7 @@ const KnowledgeSourceActions = ({ source, onChanged }: Props) => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [processOpen, setProcessOpen] = useState(false);
+  const [embedOpen, setEmbedOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -172,6 +174,9 @@ const KnowledgeSourceActions = ({ source, onChanged }: Props) => {
           <DropdownMenuItem onSelect={() => setProcessOpen(true)} disabled={isArchived}>
             Processa fonte
           </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setEmbedOpen(true)} disabled={isArchived}>
+            Genera embeddings
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           {isArchived ? (
             <DropdownMenuItem onSelect={() => setRestoreOpen(true)}>Ripristina in bozza</DropdownMenuItem>
@@ -248,6 +253,15 @@ const KnowledgeSourceActions = ({ source, onChanged }: Props) => {
         open={processOpen}
         onOpenChange={setProcessOpen}
         onProcessed={onChanged}
+      />
+
+      {/* Embed */}
+      <KnowledgeEmbedDialog
+        sourceId={source.id}
+        title={source.title}
+        open={embedOpen}
+        onOpenChange={setEmbedOpen}
+        onEmbedded={onChanged}
       />
 
       {/* Archive confirm */}

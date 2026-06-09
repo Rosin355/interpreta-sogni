@@ -281,7 +281,10 @@ where id = '<UUID>';
 
 ## Prossimo step
 
-`embed-knowledge-source` — generazione embedding + promozione a `active`.
+✅ `embed-knowledge-source` — generazione embedding OpenAI + promozione a
+`active` (implementata; vedi
+[`admin-knowledge-embed-v1.md`](./admin-knowledge-embed-v1.md)).
+Successivo: `search-knowledge` (pgvector similarity).
 
 ---
 

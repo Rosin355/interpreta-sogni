@@ -1,6 +1,6 @@
 # DreamAlchemist — Project Status
 
-> **Last Updated:** 2026-06-04 (admin KB CRUD: edit/archive/restore/delete + process)
+> **Last Updated:** 2026-06-09 (KB embeddings: `embed-knowledge-source` + admin "Genera embeddings")
 > Update this file after every significant implementation pass.
 
 ## Current Milestone
@@ -41,12 +41,13 @@ interpretations and the subscription/entitlement layer.
 - [x] `process-knowledge-source`: chunking testo **e PDF** (download Storage + `unpdf`, no OCR, ≤20MB), chunk con `embedding=NULL`, sorgente resta `draft`
 - [x] Admin UI "Processa fonte" (dry_run → conferma → process, nessun embedding)
 - [x] Admin KB CRUD per riga (`KnowledgeSourceActions`): dettagli, modifica (ingest update), archivia/ripristina, elimina protetta; nuova Edge Function `manage-knowledge-source`
+- [x] `embed-knowledge-source`: embedding OpenAI (`text-embedding-3-small`, 1536) dei chunk `embedding IS NULL` a batch, promozione `active`; dry_run a zero chiamate provider; usage_ledger `embed_knowledge_source`; admin UI "Genera embeddings" (`KnowledgeEmbedDialog`)
 
 ## Active Workstream
 
 - Knowledge Base / RAG foundation
 - Admin ingestion e end-to-end manual testing (incl. PDF: dry_run + process)
-- Prossimo: `embed-knowledge-source` (embedding dei chunk + promozione `active`) → `search-knowledge` (pgvector) → retrieval wired into `interpret-dream` e `chat-with-alchemist`
+- Prossimo: `search-knowledge` (pgvector similarity) → retrieval wired into `interpret-dream` e `chat-with-alchemist`
 
 ## Golden Rules
 

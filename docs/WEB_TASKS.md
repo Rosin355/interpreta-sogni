@@ -26,11 +26,17 @@ retrieval are still to be built.
 ## Current TODOs
 
 - [ ] Run / confirm KB migration in Supabase (verify the 3 tables + RLS)
+- [ ] Run `docs/supabase-ai-knowledge-status-archived-migration.sql` in Supabase
+      (widens `ai_knowledge_sources.status` CHECK to allow `archived`; idempotent,
+      non-destructive). Needed for the archive/restore flow to persist.
 - [ ] Deploy `ingest-knowledge-source` if not already deployed
   - `npx supabase functions deploy ingest-knowledge-source`
 - [ ] Deploy `process-knowledge-source` (text + PDF chunking, no embeddings yet)
   - `npx supabase functions deploy process-knowledge-source`
   - prima deploy: verifica che `unpdf@1.6.2` si risolva nel runtime edge
+- [ ] Deploy `embed-knowledge-source` (OpenAI embeddings, promotes `active`)
+  - `npx supabase functions deploy embed-knowledge-source`
+  - prerequisito: secret `OPENAI_API_KEY` configurato (opz. `EMBEDDING_MODEL`)
 - [ ] Run the manual end-to-end test from `admin-knowledge-ingest-v1.md`
 - [ ] Run dry_run + process tests from `admin-knowledge-process-v1.md`
 - [ ] Confirm minimal admin KB UI loads at `/admin/knowledge-base` for an admin user
@@ -49,11 +55,16 @@ retrieval are still to be built.
         nessun JWT esposto, tabella responsive (overflow-x-auto)
   - [x] `manage-knowledge-source` Edge Function: archive / restore_draft /
         delete_permanently (chunk cancellati esplicitamente; nessun embedding)
+  - [x] `embed-knowledge-source` Edge Function: embedding OpenAI
+        (`text-embedding-3-small`, 1536) dei chunk `embedding IS NULL` a batch,
+        promozione `active`; dry_run = zero chiamate provider; usage_ledger
+        `embed_knowledge_source` — vedi [`admin-knowledge-embed-v1.md`](./admin-knowledge-embed-v1.md)
+  - [x] Admin UI: azione "Genera embeddings" (`KnowledgeEmbedDialog`,
+        dry_run → conferma → batch successivo)
 
 ## Later TODOs
 
 - [ ] Markdown / TXT upload (stesso pattern del PDF)
-- [ ] `embed-knowledge-source` Edge Function (OpenAI `text-embedding-3-small`, promotes source to `active`)
 - [ ] `search-knowledge` Edge Function (pgvector similarity)
 - [ ] Wire retrieval into `interpret-dream`
 - [ ] Wire retrieval into `chat-with-alchemist`
@@ -71,6 +82,8 @@ retrieval are still to be built.
 - `src/components/admin/KnowledgeSourceActions.tsx` — menu Azioni per riga (CRUD) + dialog
 - `src/components/admin/KnowledgeSourceEditForm.tsx` — form Modifica (ingest update mode)
 - `src/components/admin/KnowledgeProcessDialog.tsx` — dialog "Processa fonte" (dry_run + process)
+- `src/components/admin/KnowledgeEmbedDialog.tsx` — dialog "Genera embeddings" (dry_run + batch)
+- `supabase/functions/embed-knowledge-source/index.ts` — OpenAI embeddings + promozione `active`
 - `supabase/functions/manage-knowledge-source/index.ts` — archive / restore / delete
 - `supabase/functions/ingest-knowledge-source/index.ts` — server-side ingest
 - `supabase/migrations/` — search for `ai_knowledge_sources` to find the KB migration

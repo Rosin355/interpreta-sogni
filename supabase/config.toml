@@ -51,5 +51,6 @@ verify_jwt = false
 [functions.manage-knowledge-source]
 verify_jwt = false
 
-
+[functions.embed-knowledge-source]
+verify_jwt = false
 

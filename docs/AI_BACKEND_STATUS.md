@@ -12,7 +12,7 @@
 | `generate-dream-image` | Lovable AI Gateway (Gemini 2.5 Flash) | **working** (web) |
 | `chat-with-alchemist` | Claude / OpenAI | **working** (basic) |
 | `audio-reflection` (TTS) | ElevenLabs (Jessica voice clone) | working for `text-to-speech-elevenlabs`; iOS UI **planned** |
-| Knowledge Base embeddings | OpenAI `text-embedding-3-small` | **planned** |
+| Knowledge Base embeddings | OpenAI `text-embedding-3-small` | **working** (admin-triggered, not deployed) |
 | KB retrieval into interpret-dream / chat | server-side composition | **planned** |
 
 ## Supabase Edge Functions
@@ -32,6 +32,7 @@
 - `ingest-knowledge-source` (manual text **and** `source_type='pdf'` + `storage_path` metadata; no PDF parsing here)
 - `process-knowledge-source` (text **and** PDF chunking → `embedding=null`, source stays `draft`; PDF via `unpdf` text-layer extraction, no OCR, ≤20MB; embeddings still in a later pass; triggerable from admin UI "Processa fonte" — dry_run + process)
 - `manage-knowledge-source` (admin status transitions + protected delete: `archive` / `restore_draft` / `delete_permanently`; deletes chunks then source row; no embeddings, no AI)
+- `embed-knowledge-source` (OpenAI `text-embedding-3-small`, 1536 dims; batches pending chunks, promotes source to `active`; dry_run = zero provider calls; usage_ledger `embed_knowledge_source`; admin-triggered — see [details](./admin-knowledge-embed-v1.md))
 - `approve-professional`
 - `send-email-notification` / `send-contact-email` / `send-dream-diary`
 - `send-push-notifications`
@@ -39,7 +40,6 @@
 
 **Planned**:
 
-- `embed-knowledge-source` (OpenAI `text-embedding-3-small`, promotes source to `active`)
 - `search-knowledge` (pgvector similarity)
 - `astrology-insight` (KB-grounded astrology readings)
 - `get-user-entitlements` (RevenueCat-backed)
@@ -63,6 +63,7 @@ Configured in Supabase Edge Functions secrets:
 - `AI_PROVIDER_TEST_OVERRIDE`
 - `AI_PROVIDER_TEST_USER_IDS`
 - `OPENAI_API_KEY` / `OPENAI_MODEL`
+- `EMBEDDING_MODEL` *(optional, KB embeddings; default `text-embedding-3-small`, 1536 dims)*
 - `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL`
 - `LOVABLE_API_KEY`
 - `ELEVENLABS_API_KEY`

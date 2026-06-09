@@ -45,6 +45,14 @@ Voci del menu:
   mostra `chunk_count` / `estimated_token_count` / `extracted_text_length` /
   `embeddings: not_generated` → **Conferma processing** (`mode='process'`,
   `embedding = null`, fonte resta `draft`). Nessun embedding, nessuna AI.
+- **Genera embeddings** — dialog `KnowledgeEmbedDialog`: `dry_run` → mostra
+  chunk totali / pendenti / già con embedding, token stimati, modello,
+  `provider_call=false` → **Conferma generazione embeddings** (`mode='embed'`,
+  `batch_size=20`). Mostra embeddings generati nel batch + chunk rimanenti +
+  stato fonte; se restano batch → **"Continua con il batch successivo"**.
+  Genera embedding **OpenAI** (`text-embedding-3-small`, 1536) lato server e,
+  quando non restano chunk pendenti, promuove la fonte ad `active`. Disabilitata
+  se archiviata. Vedi [`admin-knowledge-embed-v1.md`](./admin-knowledge-embed-v1.md).
 - **Archivia** / **Ripristina in bozza** — entrambe con dialog di conferma, via
   `manage-knowledge-source` (`archive` / `restore_draft`). Archivia:
   *"Vuoi archiviare questa fonte? Non sarà usata nei futuri processi finché non
@@ -63,11 +71,26 @@ Voci del menu:
 Tutte le azioni usano la sessione Supabase autenticata (`functions.invoke`
 allega il JWT; nessun JWT esposto a mano) e fanno refresh della lista.
 
+## Status ammessi (DB constraint)
+
+La colonna `ai_knowledge_sources.status` accetta:
+`draft`, `processing`, `active`, `archived`, `failed`.
+
+Lo schema originale (creato via dashboard) non includeva `archived`, aggiunto
+dopo per il flusso archive/restore di `manage-knowledge-source`. Per allineare
+il `CHECK` constraint eseguire **manualmente** la migration idempotente
+[`supabase-ai-knowledge-status-archived-migration.sql`](./supabase-ai-knowledge-status-archived-migration.sql)
+(non distruttiva, nessuna AI, nessun embedding).
+
 ## Cosa NON è implementato (intenzionale)
 
-- **Nessuna chiamata AI** (OpenAI / Anthropic / Lovable / ElevenLabs).
-- **Nessun embedding**, nessuna retrieval (il chunking c'è via "Processa fonte").
-- **Nessuna promozione ad `active`** dal client (resterà a `embed-knowledge-source`).
+- **Solo OpenAI per gli embedding** (nessun Anthropic / Lovable / ElevenLabs).
+  Embedding generati dall'azione "Genera embeddings" (`embed-knowledge-source`),
+  mai automaticamente.
+- **Nessuna retrieval / search** lato client (il chunking c'è via "Processa
+  fonte", gli embedding via "Genera embeddings"; `search-knowledge` è TODO).
+- La **promozione ad `active`** avviene solo server-side in `embed-knowledge-source`
+  (mai un update di status diretto dal client).
 - **Nessuna rimozione del file PDF da Storage** alla delete (TODO).
 - Scritture KB (incl. archive/restore/delete) passano **solo** da Edge Function
   admin con service role — nessuna policy RLS UPDATE/DELETE aperta ai client.
@@ -104,10 +127,10 @@ Nota: i sogni privati degli utenti NON vanno caricati in questo bucket.
 
 ## Prossimi step previsti
 
-1. `embed-knowledge-source`: embedding dei chunk (`embedding IS NULL`) +
-   promozione della sorgente ad `active`.
+1. ~~`embed-knowledge-source`: embedding dei chunk + promozione ad `active`.~~
+   ✅ implementato — vedi [`admin-knowledge-embed-v1.md`](./admin-knowledge-embed-v1.md).
 2. `search-knowledge`: similarità pgvector per fornire contesto curato ai prompt.
-3. UI admin: CTA "Processa documento" + archive / activate / edit (via Edge Function).
+3. Wiring retrieval in `interpret-dream` / `chat-with-alchemist`.
 
 ## Regola di sicurezza
 
