@@ -35,12 +35,37 @@ Voci del menu:
   la fonte è `failed`. **Mai** `raw_text`/contenuto chunk.
 - **Modifica** — dialog con `KnowledgeSourceEditForm` (precompilato): title,
   domain, language, author, origin, tags e `raw_text` (testo) **oppure**
-  `storage_path` (PDF) modificabili. Campi read-only/aiuto mostrati nel dialog:
-  id (prefix), `status`, `source_type` (+ spiegazione), `processed_at` e
-  `error_message`. Salva via `ingest-knowledge-source` in **update mode**
-  (`source_id` nel body). Se `raw_text`/`storage_path` cambia, il backend
-  riporta la fonte a `draft` e azzera `processed_at`. Toast: *"Fonte aggiornata"*
-  / *"Non siamo riusciti ad aggiornare la fonte"*. Disabilitata se archiviata.
+  `storage_path` (PDF) modificabili, **più un selettore Stato** (vedi sotto).
+  Campi read-only/aiuto mostrati nel dialog: id (prefix), `source_type`
+  (+ spiegazione), `processed_at` e `error_message`. Salva via
+  `ingest-knowledge-source` in **update mode** (`source_id` nel body). Se
+  `raw_text`/`storage_path` cambia, il backend riporta la fonte a `draft` e
+  azzera `processed_at`. Toast: *"Fonte aggiornata"* / *"Non siamo riusciti ad
+  aggiornare la fonte"*. Disabilitata se archiviata.
+
+### Gestione stato (nel dialog Modifica)
+
+Il selettore **Stato** espone **solo** `draft` (Bozza) e `active` (Attiva).
+`processing` (In elaborazione) e `failed` (Errore) sono **gestiti dal sistema**
+e mostrati read-only; `archived` (Archiviata) usa le azioni dedicate
+Archivia/Ripristina. Salvataggio in due passi, senza race:
+
+1. salva metadati/contenuto via `ingest-knowledge-source` (lo status corrente
+   viene **preservato**, mai attivato qui);
+2. se lo stato è cambiato, chiama `manage-knowledge-source` separatamente
+   (`activate` / `move_to_draft`) — **mai** un update diretto client-side;
+3. refresh di dettagli/lista.
+
+`activate` è validato **lato server**: una fonte diventa `active` solo se ha
+≥1 chunk, **tutti con embedding**, non è archiviata e non ha `error_message`;
+altrimenti `409 source_not_ready_for_activation` → toast *"Genera prima gli
+embeddings per tutti i chunk."*. `move_to_draft` non tocca chunk/embedding.
+L'opzione Attiva è disabilitata nella UI quando il client vede già embedding
+pendenti (best-effort; il server resta autoritativo). Se il **contenuto
+cambia**, la fonte torna a `draft` e **non** viene riattivata automaticamente:
+toast *"La fonte è tornata in bozza perché il contenuto è cambiato. Processala
+e rigenera gli embeddings prima di riattivarla."*. Toast stato: *"Fonte
+attivata"* / *"Fonte spostata in bozza"*.
 - **Processa fonte** — dialog `KnowledgeProcessDialog`: `dry_run` →
   mostra `chunk_count` / `estimated_token_count` / `extracted_text_length` /
   `embeddings: not_generated` → **Conferma processing** (`mode='process'`,
@@ -89,8 +114,10 @@ il `CHECK` constraint eseguire **manualmente** la migration idempotente
   mai automaticamente.
 - **Nessuna retrieval / search** lato client (il chunking c'è via "Processa
   fonte", gli embedding via "Genera embeddings"; `search-knowledge` è TODO).
-- La **promozione ad `active`** avviene solo server-side in `embed-knowledge-source`
-  (mai un update di status diretto dal client).
+- La **promozione ad `active`** avviene solo server-side: automaticamente in
+  `embed-knowledge-source` a fine embedding, o manualmente via
+  `manage-knowledge-source` (`activate`, con readiness check). Mai un update di
+  status diretto dal client.
 - **Nessuna rimozione del file PDF da Storage** alla delete (TODO).
 - Scritture KB (incl. archive/restore/delete) passano **solo** da Edge Function
   admin con service role — nessuna policy RLS UPDATE/DELETE aperta ai client.

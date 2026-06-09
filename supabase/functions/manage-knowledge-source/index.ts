@@ -1,9 +1,19 @@
 // Manage Knowledge Source — admin status transitions + protected delete.
 //
 // Actions:
+//   * activate           → status='active' ONLY if the source is ready (see
+//                          readiness checks below); else 409. error_message=null
+//   * move_to_draft      → status='draft' (chunks + embeddings kept, no AI)
 //   * archive            → status='archived', archived_at=now()  (chunks kept)
 //   * restore_draft      → status='draft', archived_at=null, error_message=null
 //   * delete_permanently → delete chunks for source_id, then delete the source row
+//
+// Activation readiness (server-side, authoritative — never trust the client):
+//   1. the source has at least one ai_knowledge_chunks row
+//   2. every chunk has embedding IS NOT NULL (no pending embeddings)
+//   3. the source is not archived
+//   4. the source has no current error_message
+// If not ready → 409 with error_code `source_not_ready_for_activation`.
 //
 // This function does NOT call OpenAI / Anthropic / Lovable / ElevenLabs, does
 // NOT generate embeddings, and does NOT process documents. Same admin auth
@@ -22,7 +32,13 @@ const corsHeaders = {
 
 const BodySchema = z.object({
   source_id: z.string().uuid(),
-  action: z.enum(["archive", "restore_draft", "delete_permanently"]),
+  action: z.enum([
+    "activate",
+    "move_to_draft",
+    "archive",
+    "restore_draft",
+    "delete_permanently",
+  ]),
 });
 
 const json = (body: unknown, status = 200) =>
@@ -76,10 +92,11 @@ serve(async (req) => {
       `[manage-knowledge-source] started userIdPrefix=${prefix(user.id)} sourceIdPrefix=${prefix(source_id)} action=${action}`,
     );
 
-    // Ensure the source exists (avoid silent no-op on a bad id).
+    // Ensure the source exists (avoid silent no-op on a bad id). Also pull the
+    // fields the activation readiness check needs.
     const { data: source, error: srcErr } = await admin
       .from("ai_knowledge_sources")
-      .select("id")
+      .select("id, status, archived_at, error_message")
       .eq("id", source_id)
       .maybeSingle();
     if (srcErr) {
@@ -89,6 +106,96 @@ serve(async (req) => {
     if (!source) return json({ error: "Sorgente non trovata" }, 404);
 
     const nowIso = new Date().toISOString();
+    const isArchived = source.status === "archived" || !!source.archived_at;
+
+    if (action === "activate") {
+      // Archived sources must be restored first (dedicated action), not activated.
+      if (isArchived) {
+        return json(
+          { error: "Sorgente archiviata", error_code: "source_archived" },
+          409,
+        );
+      }
+      // A source carrying an error must be reprocessed/embedded before activation.
+      if (source.error_message) {
+        console.log(
+          `[manage-knowledge-source] activate rejected sourceIdPrefix=${prefix(source_id)} reason=error_message`,
+        );
+        return json(
+          {
+            error: "Fonte non pronta per l'attivazione",
+            error_code: "source_not_ready_for_activation",
+          },
+          409,
+        );
+      }
+
+      // Readiness: at least one chunk AND zero pending embeddings. Service role
+      // sees all chunks regardless of RLS, so this is authoritative.
+      const totalQ = await admin
+        .from("ai_knowledge_chunks")
+        .select("id", { count: "exact", head: true })
+        .eq("source_id", source_id);
+      if (totalQ.error) {
+        console.error(`[manage-knowledge-source] activate count error code=${totalQ.error.code ?? "unknown"}`);
+        return json({ error: "Errore verifica chunk" }, 500);
+      }
+      const pendingQ = await admin
+        .from("ai_knowledge_chunks")
+        .select("id", { count: "exact", head: true })
+        .eq("source_id", source_id)
+        .is("embedding", null);
+      if (pendingQ.error) {
+        console.error(`[manage-knowledge-source] activate pending error code=${pendingQ.error.code ?? "unknown"}`);
+        return json({ error: "Errore verifica chunk" }, 500);
+      }
+      const total = totalQ.count ?? 0;
+      const pending = pendingQ.count ?? 0;
+      if (total === 0 || pending > 0) {
+        console.log(
+          `[manage-knowledge-source] activate rejected sourceIdPrefix=${prefix(source_id)} total=${total} pending=${pending}`,
+        );
+        return json(
+          {
+            error: "Fonte non pronta per l'attivazione",
+            error_code: "source_not_ready_for_activation",
+          },
+          409,
+        );
+      }
+
+      const { error } = await admin
+        .from("ai_knowledge_sources")
+        .update({ status: "active", error_message: null, updated_at: nowIso })
+        .eq("id", source_id);
+      if (error) {
+        console.error(`[manage-knowledge-source] activate error code=${error.code ?? "unknown"}`);
+        return json({ error: "Errore attivazione" }, 500);
+      }
+      console.log(`[manage-knowledge-source] activated sourceIdPrefix=${prefix(source_id)}`);
+      return json({ source_id, status: "active", message: "Fonte attivata" });
+    }
+
+    if (action === "move_to_draft") {
+      // Demote to draft WITHOUT touching chunks/embeddings or running anything.
+      // Archived sources use restore_draft (dedicated action) instead.
+      if (isArchived) {
+        return json(
+          { error: "Sorgente archiviata", error_code: "source_archived" },
+          409,
+        );
+      }
+      const { error } = await admin
+        .from("ai_knowledge_sources")
+        .update({ status: "draft", updated_at: nowIso })
+        .eq("id", source_id);
+      if (error) {
+        console.error(`[manage-knowledge-source] move_to_draft error code=${error.code ?? "unknown"}`);
+        return json({ error: "Errore spostamento in bozza" }, 500);
+      }
+      console.log(`[manage-knowledge-source] moved_to_draft sourceIdPrefix=${prefix(source_id)}`);
+      return json({ source_id, status: "draft", message: "Fonte spostata in bozza" });
+    }
 
     if (action === "archive") {
       const { error } = await admin

@@ -31,7 +31,7 @@
 - `text-to-speech-elevenlabs`
 - `ingest-knowledge-source` (manual text **and** `source_type='pdf'` + `storage_path` metadata; no PDF parsing here)
 - `process-knowledge-source` (text **and** PDF chunking → `embedding=null`, source stays `draft`; PDF via `unpdf` text-layer extraction, no OCR, ≤20MB; embeddings still in a later pass; triggerable from admin UI "Processa fonte" — dry_run + process)
-- `manage-knowledge-source` (admin status transitions + protected delete: `archive` / `restore_draft` / `delete_permanently`; deletes chunks then source row; no embeddings, no AI)
+- `manage-knowledge-source` (admin status transitions + protected delete: `activate` / `move_to_draft` / `archive` / `restore_draft` / `delete_permanently`; `activate` enforces server-side readiness — ≥1 chunk, all embeddings present, not archived, no error — else `409 source_not_ready_for_activation`; deletes chunks then source row on delete; no embeddings, no AI)
 - `embed-knowledge-source` (OpenAI `text-embedding-3-small`, 1536 dims; batches pending chunks, promotes source to `active`; dry_run = zero provider calls; usage_ledger `embed_knowledge_source`; admin-triggered — see [details](./admin-knowledge-embed-v1.md))
 - `approve-professional`
 - `send-email-notification` / `send-contact-email` / `send-dream-diary`

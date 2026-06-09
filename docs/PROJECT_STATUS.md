@@ -1,6 +1,6 @@
 # DreamAlchemist — Project Status
 
-> **Last Updated:** 2026-06-09 (KB embeddings: `embed-knowledge-source` + admin "Genera embeddings")
+> **Last Updated:** 2026-06-09 (KB embeddings + safe draft/active status controls in edit dialog)
 > Update this file after every significant implementation pass.
 
 ## Current Milestone
@@ -42,6 +42,7 @@ interpretations and the subscription/entitlement layer.
 - [x] Admin UI "Processa fonte" (dry_run → conferma → process, nessun embedding)
 - [x] Admin KB CRUD per riga (`KnowledgeSourceActions`): dettagli, modifica (ingest update), archivia/ripristina, elimina protetta; nuova Edge Function `manage-knowledge-source`
 - [x] `embed-knowledge-source`: embedding OpenAI (`text-embedding-3-small`, 1536) dei chunk `embedding IS NULL` a batch, promozione `active`; dry_run a zero chiamate provider; usage_ledger `embed_knowledge_source`; admin UI "Genera embeddings" (`KnowledgeEmbedDialog`)
+- [x] Controlli stato sicuri nel dialog Modifica: selettore `draft`/`active`, transizioni via `manage-knowledge-source` (`activate` con readiness check server-side / `move_to_draft`); content change → ritorno a `draft` senza reattivazione
 
 ## Active Workstream
 

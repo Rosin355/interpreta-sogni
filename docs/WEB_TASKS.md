@@ -61,6 +61,11 @@ retrieval are still to be built.
         `embed_knowledge_source` — vedi [`admin-knowledge-embed-v1.md`](./admin-knowledge-embed-v1.md)
   - [x] Admin UI: azione "Genera embeddings" (`KnowledgeEmbedDialog`,
         dry_run → conferma → batch successivo)
+  - [x] Gestione stato sicura nel dialog Modifica: selettore `draft`/`active`
+        (processing/failed read-only, archived via azioni dedicate); transizione
+        via `manage-knowledge-source` (`activate` / `move_to_draft`) con readiness
+        check server-side (`activate` → `409 source_not_ready_for_activation` se
+        embedding mancanti); content change → ritorno a `draft`, niente reattivazione
 
 ## Later TODOs
 
