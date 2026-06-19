@@ -16,7 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, CalendarIcon, Clock, Image, ChevronDown, Sparkles, Plus } from "lucide-react";
+import { ArrowLeft, Save, CalendarIcon, Clock, Image, ChevronDown, Sparkles, Plus, RotateCcw, X } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,16 @@ import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { useDreamDraft } from "@/hooks/useDreamDraft";
 import { Cloud, CloudOff } from "lucide-react";
 import { useAppCache } from "@/contexts/AppCacheContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface SuggestedTag {
   tag: string;
