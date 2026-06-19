@@ -16,7 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, CalendarIcon, Clock, Image, ChevronDown, Sparkles, Plus } from "lucide-react";
+import { ArrowLeft, Save, CalendarIcon, Clock, Image, ChevronDown, Sparkles, Plus, RotateCcw, X } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,16 @@ import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { useDreamDraft } from "@/hooks/useDreamDraft";
 import { Cloud, CloudOff } from "lucide-react";
 import { useAppCache } from "@/contexts/AppCacheContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface SuggestedTag {
   tag: string;
@@ -55,7 +65,71 @@ const NewDream = () => {
   const debounceTimerRef = useRef<number | null>(null);
   
   // Auto-save draft functionality
-  const { isSaving, lastSavedText, saveDraft, deleteDraft } = useDreamDraft(formData, true);
+  const {
+    isSaving,
+    lastSavedText,
+    hasDraft,
+    draft,
+    saveDraft,
+    deleteDraft,
+    restoreDraft,
+  } = useDreamDraft(formData, true);
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const userStartedTypingRef = useRef(false);
+
+  // Track if the user has typed before draft loads — avoid silent overwrite
+  useEffect(() => {
+    if (formData.title || formData.content || formData.tags || formData.mood) {
+      userStartedTypingRef.current = true;
+    }
+  }, [formData]);
+
+  // When a draft is detected, prompt the user
+  useEffect(() => {
+    if (hasDraft && draft) {
+      setShowRestoreDialog(true);
+    }
+  }, [hasDraft, draft]);
+
+  const handleRestoreDraft = () => {
+    const restored = restoreDraft();
+    if (restored) {
+      setFormData({
+        title: restored.title || "",
+        content: restored.content || "",
+        dream_date: restored.dream_date || new Date().toISOString().split("T")[0],
+        dream_time: restored.dream_time || new Date().toTimeString().slice(0, 5),
+        mood: restored.mood || "",
+        tags: restored.tags || "",
+      });
+      if (restored.dream_date) {
+        const d = new Date(restored.dream_date);
+        if (!isNaN(d.getTime())) setSelectedDate(d);
+      }
+      toast({ title: "Bozza ripristinata", description: "Continua dove avevi lasciato." });
+    }
+    setShowRestoreDialog(false);
+  };
+
+  const handleDiscardDraft = async () => {
+    await deleteDraft();
+    setShowRestoreDialog(false);
+    toast({ title: "Bozza eliminata" });
+  };
+
+  const hasUnsavedContent = () =>
+    !!(formData.title.trim() || formData.content.trim() || formData.tags.trim());
+
+  const handleLeave = async () => {
+    if (hasUnsavedContent()) {
+      await saveDraft();
+      const confirmed = window.confirm(
+        "Hai una bozza non salvata. Vuoi uscire comunque? La bozza resterà disponibile."
+      );
+      if (!confirmed) return;
+    }
+    navigate("/dashboard");
+  };
 
   const moodOptions = [
     { value: "felicita", label: "😊 Felicità" },
@@ -317,7 +391,7 @@ const NewDream = () => {
       <div className="container mx-auto px-4 sm:px-6 max-w-3xl">
         <Button
           variant="ghost"
-          onClick={() => navigate("/dashboard")}
+          onClick={handleLeave}
           className="mb-6 gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -629,7 +703,7 @@ const NewDream = () => {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => navigate("/dashboard")}
+                    onClick={handleLeave}
                     disabled={loading}
                   >
                     Annulla
@@ -639,6 +713,27 @@ const NewDream = () => {
             </CardContent>
           </Card>
         </div>
+
+      <AlertDialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bozza non salvata trovata</AlertDialogTitle>
+            <AlertDialogDescription>
+              Abbiamo trovato una bozza non salvata. Vuoi ripristinarla?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDiscardDraft}>
+              <X className="h-4 w-4 mr-2" />
+              Scarta
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleRestoreDraft}>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Ripristina
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </div>
   );
 };

@@ -22,6 +22,8 @@ retrieval are still to be built.
   - List of sources with status / domain / tags
   - Create / edit form (title, domain, language, tags, raw text, status)
 - [x] Manual end-to-end test guide for `ingest-knowledge-source`
+- [x] Dream draft autosave resilience — local + cloud, restore dialog,
+      mobile close handlers ([`dream-draft-autosave-v1.md`](./dream-draft-autosave-v1.md))
 
 ## Current TODOs
 
