@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
-interface DraftData {
+export interface DraftData {
   title: string;
   content: string;
   dream_date: string;
@@ -11,165 +11,301 @@ interface DraftData {
   tags: string;
 }
 
+interface LocalDraftPayload extends DraftData {
+  updated_at: string;
+}
+
+const LOCAL_KEY_PREFIX = "dream_draft_local_";
+const LOCAL_DEBOUNCE_MS = 800;
+const REMOTE_DEBOUNCE_MS = 8000;
+
+const isEmpty = (d: DraftData) =>
+  !d.title.trim() && !d.content.trim() && !d.tags.trim() && !d.mood.trim();
+
+const localKey = (userId: string) => `${LOCAL_KEY_PREFIX}${userId}`;
+
+const readLocal = (userId: string): LocalDraftPayload | null => {
+  try {
+    const raw = localStorage.getItem(localKey(userId));
+    if (!raw) return null;
+    return JSON.parse(raw) as LocalDraftPayload;
+  } catch {
+    return null;
+  }
+};
+
+const writeLocal = (userId: string, data: DraftData) => {
+  try {
+    const payload: LocalDraftPayload = { ...data, updated_at: new Date().toISOString() };
+    localStorage.setItem(localKey(userId), JSON.stringify(payload));
+  } catch {
+    // quota exceeded or unavailable — silent
+  }
+};
+
+const clearLocal = (userId: string) => {
+  try {
+    localStorage.removeItem(localKey(userId));
+  } catch {
+    /* noop */
+  }
+};
+
+const toFormDraft = (row: any): DraftData => ({
+  title: row?.title ?? "",
+  content: row?.content ?? "",
+  dream_date: row?.dream_date
+    ? new Date(row.dream_date).toISOString().split("T")[0]
+    : new Date().toISOString().split("T")[0],
+  dream_time: row?.dream_time ?? "",
+  mood: row?.mood ?? "",
+  tags: Array.isArray(row?.tags) ? row.tags.join(", ") : (row?.tags ?? ""),
+});
+
 export const useDreamDraft = (formData: DraftData, enabled: boolean = true) => {
+  const [userId, setUserId] = useState<string | null>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const saveTimerRef = useRef<number | null>(null);
-  const isInitialMount = useRef(true);
+  const [lastLocalSaved, setLastLocalSaved] = useState<Date | null>(null);
+  const [draft, setDraft] = useState<DraftData | null>(null);
+  const [hasDraft, setHasDraft] = useState(false);
 
-  // Load existing draft on mount
+  const localTimerRef = useRef<number | null>(null);
+  const remoteTimerRef = useRef<number | null>(null);
+  const lastSerializedRef = useRef<string>("");
+  const formDataRef = useRef<DraftData>(formData);
+  const userIdRef = useRef<string | null>(null);
+  const draftIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
+
+  useEffect(() => {
+    userIdRef.current = userId;
+  }, [userId]);
+
+  useEffect(() => {
+    draftIdRef.current = draftId;
+  }, [draftId]);
+
+  // Load drafts on mount (supabase + localStorage; choose newest)
   useEffect(() => {
     if (!enabled) return;
-    loadLatestDraft();
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user || cancelled) return;
+        setUserId(user.id);
+
+        const local = readLocal(user.id);
+
+        const { data: remote } = await (supabase as any)
+          .from("dream_drafts")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (cancelled) return;
+
+        if (remote) {
+          setDraftId(remote.id);
+          setLastSaved(new Date(remote.updated_at));
+        }
+
+        const remoteTs = remote ? new Date(remote.updated_at).getTime() : 0;
+        const localTs = local ? new Date(local.updated_at).getTime() : 0;
+
+        let chosen: DraftData | null = null;
+        if (localTs > remoteTs && local) {
+          chosen = {
+            title: local.title ?? "",
+            content: local.content ?? "",
+            dream_date: local.dream_date ?? new Date().toISOString().split("T")[0],
+            dream_time: local.dream_time ?? "",
+            mood: local.mood ?? "",
+            tags: local.tags ?? "",
+          };
+        } else if (remote) {
+          chosen = toFormDraft(remote);
+        }
+
+        if (chosen && !isEmpty(chosen)) {
+          setDraft(chosen);
+          setHasDraft(true);
+        }
+      } catch {
+        // silent — never log draft content
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [enabled]);
 
-  // Auto-save every 30 seconds when form data changes
-  useEffect(() => {
-    if (!enabled || isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
+  const saveLocalNow = useCallback(() => {
+    const uid = userIdRef.current;
+    const data = formDataRef.current;
+    if (!uid || isEmpty(data)) return;
+    writeLocal(uid, data);
+    setLastLocalSaved(new Date());
+  }, []);
 
-    // Clear existing timer
-    if (saveTimerRef.current) {
-      clearTimeout(saveTimerRef.current);
-    }
+  const saveRemoteNow = useCallback(async () => {
+    const uid = userIdRef.current;
+    const data = formDataRef.current;
+    if (!uid || isEmpty(data)) return;
 
-    // Set new timer for 30 seconds
-    saveTimerRef.current = window.setTimeout(() => {
-      saveDraft();
-    }, 30000);
-
-    return () => {
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current);
-      }
-    };
-  }, [formData, enabled]);
-
-  const loadLatestDraft = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await (supabase as any)
-        .from('dream_drafts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data) {
-        setDraftId(data.id);
-        setLastSaved(new Date(data.updated_at));
-      }
-    } catch (error) {
-      console.error('Error loading draft:', error);
-    }
-  };
-
-  const saveDraft = async () => {
-    // Don't save if content is empty
-    if (!formData.content && !formData.title) {
-      return;
-    }
+    const serialized = JSON.stringify(data);
+    if (serialized === lastSerializedRef.current) return;
 
     setIsSaving(true);
-
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      const draftData = {
-        user_id: user.id,
-        title: formData.title || null,
-        content: formData.content || null,
-        dream_date: formData.dream_date ? new Date(formData.dream_date).toISOString().split('T')[0] : null,
-        dream_time: formData.dream_time || null,
-        mood: formData.mood || null,
-        tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : null,
+      const draftRow = {
+        user_id: uid,
+        title: data.title || null,
+        content: data.content || null,
+        dream_date: data.dream_date
+          ? new Date(data.dream_date).toISOString().split("T")[0]
+          : null,
+        dream_time: data.dream_time || null,
+        mood: data.mood || null,
+        tags: data.tags
+          ? data.tags.split(",").map((t) => t.trim()).filter(Boolean)
+          : null,
       };
 
-      if (draftId) {
-        // Update existing draft
+      const currentId = draftIdRef.current;
+      if (currentId) {
         const { error } = await (supabase as any)
-          .from('dream_drafts')
-          .update(draftData)
-          .eq('id', draftId);
-
+          .from("dream_drafts")
+          .update(draftRow)
+          .eq("id", currentId);
         if (error) throw error;
       } else {
-        // Create new draft
-        const { data, error } = await (supabase as any)
-          .from('dream_drafts')
-          .insert(draftData)
+        const { data: inserted, error } = await (supabase as any)
+          .from("dream_drafts")
+          .insert(draftRow)
           .select()
           .single();
-
         if (error) throw error;
-        if (data) setDraftId(data.id);
+        if (inserted) setDraftId(inserted.id);
       }
 
+      lastSerializedRef.current = serialized;
       setLastSaved(new Date());
-    } catch (error) {
-      console.error('Error saving draft:', error);
+    } catch {
       toast({
         title: "Errore",
-        description: "Impossibile salvare la bozza",
+        description: "Impossibile salvare la bozza nel cloud",
         variant: "destructive",
       });
     } finally {
       setIsSaving(false);
     }
-  };
+  }, []);
 
-  const deleteDraft = async () => {
-    if (!draftId) return;
+  // Debounced autosave (local fast, remote slow)
+  useEffect(() => {
+    if (!enabled || !userId) return;
+    if (isEmpty(formData)) return;
 
-    try {
-      const { error } = await (supabase as any)
-        .from('dream_drafts')
-        .delete()
-        .eq('id', draftId);
+    if (localTimerRef.current) clearTimeout(localTimerRef.current);
+    if (remoteTimerRef.current) clearTimeout(remoteTimerRef.current);
 
-      if (error) throw error;
+    localTimerRef.current = window.setTimeout(() => {
+      saveLocalNow();
+    }, LOCAL_DEBOUNCE_MS);
 
+    remoteTimerRef.current = window.setTimeout(() => {
+      saveRemoteNow();
+    }, REMOTE_DEBOUNCE_MS);
+
+    return () => {
+      if (localTimerRef.current) clearTimeout(localTimerRef.current);
+      if (remoteTimerRef.current) clearTimeout(remoteTimerRef.current);
+    };
+  }, [formData, enabled, userId, saveLocalNow, saveRemoteNow]);
+
+  // Save on page hide / visibility change / beforeunload
+  useEffect(() => {
+    if (!enabled) return;
+
+    const flush = () => {
+      saveLocalNow();
+      // best-effort async, don't block unload
+      void saveRemoteNow();
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+
+    window.addEventListener("pagehide", flush);
+    window.addEventListener("beforeunload", flush);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      window.removeEventListener("beforeunload", flush);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [enabled, saveLocalNow, saveRemoteNow]);
+
+  const saveDraft = useCallback(async () => {
+    saveLocalNow();
+    await saveRemoteNow();
+  }, [saveLocalNow, saveRemoteNow]);
+
+  const deleteDraft = useCallback(async () => {
+    const uid = userIdRef.current;
+    if (uid) clearLocal(uid);
+    const currentId = draftIdRef.current;
+    if (currentId) {
+      try {
+        await (supabase as any).from("dream_drafts").delete().eq("id", currentId);
+      } catch {
+        /* silent */
+      }
       setDraftId(null);
-      setLastSaved(null);
-    } catch (error) {
-      console.error('Error deleting draft:', error);
     }
-  };
+    setDraft(null);
+    setHasDraft(false);
+    setLastSaved(null);
+    setLastLocalSaved(null);
+    lastSerializedRef.current = "";
+  }, []);
+
+  const restoreDraft = useCallback((): DraftData | null => {
+    if (!draft) return null;
+    setHasDraft(false);
+    return draft;
+  }, [draft]);
 
   const getLastSavedText = () => {
-    if (!lastSaved) return null;
-
-    const now = new Date();
-    const diffMs = now.getTime() - lastSaved.getTime();
-    const diffSeconds = Math.floor(diffMs / 1000);
-
-    if (diffSeconds < 60) {
-      return `Salvato ${diffSeconds} secondi fa`;
-    }
-
-    const diffMinutes = Math.floor(diffSeconds / 60);
-    if (diffMinutes < 60) {
-      return `Salvato ${diffMinutes} minuti fa`;
-    }
-
-    const diffHours = Math.floor(diffMinutes / 60);
-    return `Salvato ${diffHours} ore fa`;
+    const ts = lastSaved ?? lastLocalSaved;
+    if (!ts) return null;
+    const diffSeconds = Math.floor((Date.now() - ts.getTime()) / 1000);
+    const prefix = lastSaved ? "Bozza salvata" : "Salvato localmente";
+    if (diffSeconds < 60) return `${prefix} · ${diffSeconds}s fa`;
+    const m = Math.floor(diffSeconds / 60);
+    if (m < 60) return `${prefix} · ${m} min fa`;
+    const h = Math.floor(m / 60);
+    return `${prefix} · ${h}h fa`;
   };
 
   return {
     isSaving,
     lastSaved,
     lastSavedText: getLastSavedText(),
+    draft,
+    hasDraft,
     saveDraft,
     deleteDraft,
+    restoreDraft,
   };
 };
