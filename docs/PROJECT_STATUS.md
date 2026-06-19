@@ -1,6 +1,6 @@
 # DreamAlchemist — Project Status
 
-> **Last Updated:** 2026-06-10 (tester-gated KB retrieval wired into `interpret-dream`)
+> **Last Updated:** 2026-06-20 (interpret-dream accepts `dream_id`/`dreamId`; tester-gated KB retrieval live)
 > Update this file after every significant implementation pass.
 
 ## Current Milestone

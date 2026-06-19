@@ -24,8 +24,16 @@ export const sanitizeText = (text: string, maxLength: number): string => {
 
 // Schemas for edge function inputs
 
+// interpret-dream accepts BOTH the iOS snake_case `dream_id` and the web
+// camelCase `dreamId`. Both are optional at the schema level so the function can
+// normalize after parsing and return a clear `missing_dream_id` instead of a
+// confusing "dreamId Required" error. `style` / `locale` are accepted (iOS sends
+// them) but currently advisory — they do not change behavior yet.
 export const interpretDreamSchema = z.object({
-  dreamId: uuidSchema,
+  dream_id: uuidSchema.optional(),
+  dreamId: uuidSchema.optional(),
+  style: z.string().max(64).optional(),
+  locale: z.string().max(16).optional(),
 });
 
 export const generateDreamImageSchema = z.object({

@@ -11,8 +11,17 @@ renaming fields is a breaking change.
 ### Request
 
 ```jsonc
-{ "dreamId": "uuid" }   // the dream row is fetched server-side (service role)
+{
+  "dream_id": "uuid",   // iOS sends snake_case; the dream row is fetched server-side
+  "style": "string",    // optional, advisory (not yet used)
+  "locale": "string"    // optional, advisory (e.g. "it-IT")
+}
 ```
+
+**Both `dream_id` (iOS, snake_case) and `dreamId` (web, camelCase) are accepted.**
+The function normalizes to an internal `dreamId = dream_id ?? dreamId`. If neither
+is present it returns `400 { error, error_code: "missing_dream_id" }`. A malformed
+UUID returns `400 "Dati non validi"`.
 
 ### Response (200)
 
@@ -41,6 +50,8 @@ optionally surface `kb_sources`.
 
 | Status | Body | Meaning |
 |--------|------|---------|
+| 400 | `{ error, error_code: "missing_dream_id" }` | neither `dream_id` nor `dreamId` provided |
+| 400 | `{ error: "Dati non validi", details }` | malformed body (e.g. invalid UUID) |
 | 401 | `{ error }` | missing / invalid JWT |
 | 403 | `{ error }` | dream not owned by caller |
 | 404 | `{ error }` | dream not found |

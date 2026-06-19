@@ -80,25 +80,38 @@ serve(async (req) => {
       );
     }
 
-    // 3. Input Validation
+    // 3. Input Validation — accept BOTH iOS snake_case `dream_id` and web
+    // camelCase `dreamId`. Validation must not require either before we can
+    // normalize, so both are optional in the schema and resolved here.
     const requestBody = await req.json();
-    console.log('[interpret-dream] Request body:', JSON.stringify(requestBody, null, 2));
-    
+
     const validation = interpretDreamSchema.safeParse(requestBody);
-    
+
     if (!validation.success) {
-      console.error('[interpret-dream] Validation failed:', JSON.stringify(validation.error.issues, null, 2));
+      console.error('[interpret-dream] Validation failed:', validation.error.issues.map(i => i.message).join(', '));
       return new Response(
-        JSON.stringify({ 
-          error: 'Dati non validi', 
+        JSON.stringify({
+          error: 'Dati non validi',
           details: validation.error.issues.map(i => i.message).join(', ')
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const { dreamId } = validation.data;
-    console.log('[interpret-dream] Processing dreamId:', dreamId);
+    const body = validation.data;
+    const dreamId = body.dream_id ?? body.dreamId;
+
+    // Safe request log — never the dream content; the id is truncated to a prefix.
+    console.log(
+      `[interpret-dream] request dreamIdPrefix=${dreamId ? dreamId.slice(0, 8) : 'none'} style=${body.style ?? 'none'} locale=${body.locale ?? 'none'} hasDreamIdSnake=${!!body.dream_id} hasDreamIdCamel=${!!body.dreamId}`
+    );
+
+    if (!dreamId) {
+      return new Response(
+        JSON.stringify({ error: 'dream_id mancante', error_code: 'missing_dream_id' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Use service role to fetch dream
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
