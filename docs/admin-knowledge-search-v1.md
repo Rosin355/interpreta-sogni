@@ -231,6 +231,19 @@ order by created_at desc limit 10;
 | 502 | `search_dimension_mismatch` | Vettore query ≠ 1536 | Verificare `EMBEDDING_MODEL` |
 | 500 | `search_failed` | RPC mancante / errore DB | Eseguire la migration RPC |
 
+### Migration: "operator does not exist: extensions.vector <=> extensions.vector"
+
+In questo progetto Supabase `pgvector` è installato nello schema `extensions`,
+quindi l'operatore di distanza coseno **non** si risolve con un semplice `<=>`
+(la validazione del corpo della funzione avviene al `CREATE`, quando il
+`SET search_path` della funzione non è ancora attivo). La migration usa quindi
+l'operatore **schema-qualificato** e include `extensions` nel search_path:
+
+```sql
+... 1 - (c.embedding OPERATOR(extensions.<=>) query_embedding) ...
+set search_path = public, extensions
+```
+
 ## Prossimo step
 
 Wiring del retrieval in `interpret-dream` / `chat-with-alchemist`

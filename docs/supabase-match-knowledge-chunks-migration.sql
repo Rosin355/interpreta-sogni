@@ -18,6 +18,13 @@
 --
 -- Cosine similarity = 1 - (embedding <=> query_embedding). The pgvector `<=>`
 -- operator is cosine distance, so ascending distance = descending similarity.
+--
+-- NOTE (Supabase): pgvector is installed in the `extensions` schema here, so the
+-- operator is schema-qualified as OPERATOR(extensions.<=>). A plain `<=>` fails
+-- function-body validation at CREATE time with "operator does not exist:
+-- extensions.vector <=> extensions.vector" (the function's own SET search_path
+-- does not apply during creation-time validation). search_path also includes
+-- `extensions` for execution-time resolution.
 
 create or replace function public.match_knowledge_chunks(
   query_embedding vector(1536),
@@ -40,7 +47,7 @@ returns table (
 language sql
 stable
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
   select
     c.id          as chunk_id,
@@ -48,7 +55,7 @@ as $$
     c.chunk_index as chunk_index,
     c.content     as content,
     c.token_count as token_count,
-    1 - (c.embedding <=> query_embedding) as similarity,
+    1 - (c.embedding OPERATOR(extensions.<=>) query_embedding) as similarity,
     s.title       as source_title,
     s.domain      as source_domain,
     s.language    as source_language
@@ -58,8 +65,8 @@ as $$
     and c.embedding is not null
     and (filter_domain   is null or s.domain    = filter_domain)
     and (filter_language is null or s.language  = filter_language)
-    and (1 - (c.embedding <=> query_embedding)) >= match_threshold
-  order by c.embedding <=> query_embedding asc
+    and (1 - (c.embedding OPERATOR(extensions.<=>) query_embedding)) >= match_threshold
+  order by c.embedding OPERATOR(extensions.<=>) query_embedding asc
   -- Clamp defensively even though the Edge Function validates 1..10.
   limit greatest(1, least(match_count, 50));
 $$;
