@@ -703,7 +703,7 @@ const NewDream = () => {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => navigate("/dashboard")}
+                    onClick={handleLeave}
                     disabled={loading}
                   >
                     Annulla
@@ -713,6 +713,27 @@ const NewDream = () => {
             </CardContent>
           </Card>
         </div>
+
+      <AlertDialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bozza non salvata trovata</AlertDialogTitle>
+            <AlertDialogDescription>
+              Abbiamo trovato una bozza non salvata. Vuoi ripristinarla?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDiscardDraft}>
+              <X className="h-4 w-4 mr-2" />
+              Scarta
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleRestoreDraft}>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Ripristina
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </div>
   );
 };
