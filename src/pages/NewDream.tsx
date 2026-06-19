@@ -65,7 +65,71 @@ const NewDream = () => {
   const debounceTimerRef = useRef<number | null>(null);
   
   // Auto-save draft functionality
-  const { isSaving, lastSavedText, saveDraft, deleteDraft } = useDreamDraft(formData, true);
+  const {
+    isSaving,
+    lastSavedText,
+    hasDraft,
+    draft,
+    saveDraft,
+    deleteDraft,
+    restoreDraft,
+  } = useDreamDraft(formData, true);
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const userStartedTypingRef = useRef(false);
+
+  // Track if the user has typed before draft loads — avoid silent overwrite
+  useEffect(() => {
+    if (formData.title || formData.content || formData.tags || formData.mood) {
+      userStartedTypingRef.current = true;
+    }
+  }, [formData]);
+
+  // When a draft is detected, prompt the user
+  useEffect(() => {
+    if (hasDraft && draft) {
+      setShowRestoreDialog(true);
+    }
+  }, [hasDraft, draft]);
+
+  const handleRestoreDraft = () => {
+    const restored = restoreDraft();
+    if (restored) {
+      setFormData({
+        title: restored.title || "",
+        content: restored.content || "",
+        dream_date: restored.dream_date || new Date().toISOString().split("T")[0],
+        dream_time: restored.dream_time || new Date().toTimeString().slice(0, 5),
+        mood: restored.mood || "",
+        tags: restored.tags || "",
+      });
+      if (restored.dream_date) {
+        const d = new Date(restored.dream_date);
+        if (!isNaN(d.getTime())) setSelectedDate(d);
+      }
+      toast({ title: "Bozza ripristinata", description: "Continua dove avevi lasciato." });
+    }
+    setShowRestoreDialog(false);
+  };
+
+  const handleDiscardDraft = async () => {
+    await deleteDraft();
+    setShowRestoreDialog(false);
+    toast({ title: "Bozza eliminata" });
+  };
+
+  const hasUnsavedContent = () =>
+    !!(formData.title.trim() || formData.content.trim() || formData.tags.trim());
+
+  const handleLeave = async () => {
+    if (hasUnsavedContent()) {
+      await saveDraft();
+      const confirmed = window.confirm(
+        "Hai una bozza non salvata. Vuoi uscire comunque? La bozza resterà disponibile."
+      );
+      if (!confirmed) return;
+    }
+    navigate("/dashboard");
+  };
 
   const moodOptions = [
     { value: "felicita", label: "😊 Felicità" },
