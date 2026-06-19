@@ -1,6 +1,6 @@
 # DreamAlchemist — Project Status
 
-> **Last Updated:** 2026-06-10 (KB semantic retrieval: `search-knowledge` + `match_knowledge_chunks` RPC)
+> **Last Updated:** 2026-06-10 (tester-gated KB retrieval wired into `interpret-dream`)
 > Update this file after every significant implementation pass.
 
 ## Current Milestone
@@ -43,13 +43,14 @@ interpretations and the subscription/entitlement layer.
 - [x] Admin KB CRUD per riga (`KnowledgeSourceActions`): dettagli, modifica (ingest update), archivia/ripristina, elimina protetta; nuova Edge Function `manage-knowledge-source`
 - [x] `embed-knowledge-source`: embedding OpenAI (`text-embedding-3-small`, 1536) dei chunk `embedding IS NULL` a batch, promozione `active`; dry_run a zero chiamate provider; usage_ledger `embed_knowledge_source`; admin UI "Genera embeddings" (`KnowledgeEmbedDialog`)
 - [x] Controlli stato sicuri nel dialog Modifica: selettore `draft`/`active`, transizioni via `manage-knowledge-source` (`activate` con readiness check server-side / `move_to_draft`); content change → ritorno a `draft` senza reattivazione
-- [x] `search-knowledge`: retrieval semantico (embedding query OpenAI + RPC pgvector `match_knowledge_chunks` su fonti `active`); dry_run a zero chiamate provider; usage_ledger `search_knowledge` + retrieval log; admin UI "Test ricerca" (`KnowledgeSearchTestDialog`) — RPC/funzione da eseguire/deployare; `interpret-dream` non toccato
+- [x] `search-knowledge`: retrieval semantico (embedding query OpenAI + RPC pgvector `match_knowledge_chunks` su fonti `active`); dry_run a zero chiamate provider; usage_ledger `search_knowledge` + retrieval log; admin UI "Test ricerca" (`KnowledgeSearchTestDialog`) — RPC eseguita, funzione **deployata**
+- [x] KB retrieval in `interpret-dream` (tester-gated, fail-open): `_shared/knowledge-retrieval.ts`, env `AI_KB_RETRIEVAL_ENABLED` + `AI_KB_TEST_USER_IDS`, match_count 3 / threshold 0.40, metadata `kb_*` additiva (nessun break iOS), provider interpretazione invariato — **da deployare**
 
 ## Active Workstream
 
 - Knowledge Base / RAG foundation
 - Admin ingestion e end-to-end manual testing (incl. PDF: dry_run + process)
-- Prossimo: deploy RPC + `search-knowledge`, poi wiring del retrieval in `interpret-dream` e `chat-with-alchemist`
+- Prossimo: deploy `interpret-dream` (KB retrieval tester-gated) + abilitare tester; poi wiring del retrieval in `chat-with-alchemist`
 
 ## Golden Rules
 

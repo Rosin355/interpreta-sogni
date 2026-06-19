@@ -83,7 +83,12 @@ retrieval are still to be built.
 ## Later TODOs
 
 - [ ] Markdown / TXT upload (stesso pattern del PDF)
-- [ ] Wire retrieval into `interpret-dream`
+- [x] Wire retrieval into `interpret-dream` — tester-gated, fail-open
+      (`_shared/knowledge-retrieval.ts`; env `AI_KB_RETRIEVAL_ENABLED` +
+      `AI_KB_TEST_USER_IDS`; match_count 3 / threshold 0.40; additive `kb_*`
+      response metadata, no iOS break) — vedi
+      [`interpret-dream-kb-retrieval-v1.md`](./interpret-dream-kb-retrieval-v1.md).
+      **Da deployare**: `npx supabase functions deploy interpret-dream`.
 - [ ] Wire retrieval into `chat-with-alchemist`
 - [ ] `astrology-insight` Edge Function with KB-grounded context
 - [ ] Community moderation tools (report queue, soft-hide)

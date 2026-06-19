@@ -1,0 +1,62 @@
+# AI Edge Functions — Request/Response Contract v1
+
+Concise contract notes for the iOS/web clients. Only documents fields clients
+rely on. Additive fields are safe (clients ignore unknown keys); removing or
+renaming fields is a breaking change.
+
+## interpret-dream
+
+`POST /functions/v1/interpret-dream` · `Authorization: Bearer <user JWT>`
+
+### Request
+
+```jsonc
+{ "dreamId": "uuid" }   // the dream row is fetched server-side (service role)
+```
+
+### Response (200)
+
+```jsonc
+{
+  "interpretation": "string",
+  "interpretation_summary": "string",
+  "alchemical_phase": "Nigredo | Albedo | Rubedo",
+
+  // --- additive KB metadata (v1, optional, non-breaking) ---
+  "kb_context_used": false,        // true only for tester-gated KB retrieval hits
+  "kb_result_count": 0,
+  "kb_sources": [                  // titles + domains only (never chunk content)
+    { "title": "string", "domain": "string" }
+  ]
+}
+```
+
+The three `kb_*` fields were added with tester-gated Knowledge Base retrieval
+(see [`interpret-dream-kb-retrieval-v1.md`](./interpret-dream-kb-retrieval-v1.md)).
+They are **always present** but default to `false` / `0` / `[]` when retrieval is
+disabled, finds nothing, or fails open. **iOS does not need to change**; it may
+optionally surface `kb_sources`.
+
+### Errors
+
+| Status | Body | Meaning |
+|--------|------|---------|
+| 401 | `{ error }` | missing / invalid JWT |
+| 403 | `{ error }` | dream not owned by caller |
+| 404 | `{ error }` | dream not found |
+| 429 | `{ error, errorCode?, resetAt? }` | rate limit / AI quota |
+| 500 | `{ error }` | internal error |
+
+KB retrieval failures are **never** surfaced as errors — interpretation still
+succeeds with `kb_context_used=false`.
+
+## Privacy invariants (all AI functions)
+
+- No dream content, KB chunk content, query text, embeddings, JWTs or API keys
+  in logs.
+- Retrieval logs store `query = NULL`.
+- AI provider keys are server-side only; never returned to clients.
+
+---
+
+_See also: [AI_BACKEND_STATUS](./AI_BACKEND_STATUS.md) · [interpret-dream-kb-retrieval-v1](./interpret-dream-kb-retrieval-v1.md)_

@@ -3,6 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { RateLimiter, RATE_LIMITS } from "../_shared/rate-limiter.ts";
 import { interpretDreamSchema } from "../_shared/validation.ts";
 import { calculateDreamPhase } from "../_shared/alchemical-calculator.ts";
+import {
+  buildKbPromptSection,
+  isKbRetrievalEnabledForUser,
+  retrieveKnowledgeContext,
+} from "../_shared/knowledge-retrieval.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -135,6 +140,38 @@ serve(async (req) => {
       .select('*')
       .limit(20);
 
+    // KB semantic retrieval (tester-gated, FAIL-OPEN). Never blocks interpretation:
+    // any failure proceeds with the normal flow and kb_context_used=false. The
+    // query is built from dream content but is NEVER logged or stored as the
+    // retrieval-log query (stored as NULL inside the helper).
+    let kbSection = "";
+    let kbContextUsed = false;
+    let kbResultCount = 0;
+    let kbSources: { title: string; domain: string }[] = [];
+    if (isKbRetrievalEnabledForUser(user.id)) {
+      const queryText = [
+        dream.title,
+        dream.tags?.join(", "),
+        dream.content,
+      ].filter(Boolean).join("\n").slice(0, 2000);
+
+      const kb = await retrieveKnowledgeContext({
+        supabaseAdmin: supabase,
+        userId: user.id,
+        queryText,
+        domain: null, // search across all active sources for first rollout
+        language: "it",
+        matchCount: 3,
+        matchThreshold: 0.40,
+      });
+      if (kb.chunks.length > 0) {
+        kbSection = buildKbPromptSection(kb.chunks);
+        kbContextUsed = true;
+        kbResultCount = kb.resultCount;
+        kbSources = kb.chunks.map((c) => ({ title: c.sourceTitle, domain: c.domain }));
+      }
+    }
+
     // Costruisci il prompt per l'AI
     const knowledgeContext = knowledgeEntries && knowledgeEntries.length > 0
       ? knowledgeEntries
@@ -146,7 +183,7 @@ serve(async (req) => {
 Usa la seguente knowledge base per aiutarti nell'interpretazione:
 
 ${knowledgeContext}
-
+${kbSection ? `\n${kbSection}\n` : ''}
 ${profile?.gender ? `Il sognatore è di genere ${profile.gender}. Considera questo aspetto nelle tue interpretazioni quando rilevante per archetipi, simbolismi o dinamiche psicologiche.` : ''}
 
 LESSICO SIMBOLICO ALCHEMICO (usalo come griglia di lettura, non come tassonomia rigida):
@@ -330,17 +367,22 @@ Fornisci un'interpretazione dettagliata e significativa.`;
     }
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         interpretation,
         interpretation_summary: interpretationSummary,
-        alchemical_phase: alchemicalPhase
+        alchemical_phase: alchemicalPhase,
+        // Additive, non-breaking metadata (older iOS clients simply ignore it).
+        // Source titles/domains only — never chunk content, IDs or embeddings.
+        kb_context_used: kbContextUsed,
+        kb_result_count: kbResultCount,
+        kb_sources: kbSources
       }),
-      { 
-        headers: { 
-          ...corsHeaders, 
+      {
+        headers: {
+          ...corsHeaders,
           'Content-Type': 'application/json',
           'X-RateLimit-Remaining': rateLimit.remaining.toString()
-        } 
+        }
       }
     );
 

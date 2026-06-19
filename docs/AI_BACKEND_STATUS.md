@@ -13,14 +13,15 @@
 | `chat-with-alchemist` | Claude / OpenAI | **working** (basic) |
 | `audio-reflection` (TTS) | ElevenLabs (Jessica voice clone) | working for `text-to-speech-elevenlabs`; iOS UI **planned** |
 | Knowledge Base embeddings | OpenAI `text-embedding-3-small` | **working** (admin-triggered, not deployed) |
-| `search-knowledge` (KB semantic retrieval) | OpenAI query embedding + pgvector RPC | **working** (admin-tested, not deployed) |
-| KB retrieval into interpret-dream / chat | server-side composition | **planned** |
+| `search-knowledge` (KB semantic retrieval) | OpenAI query embedding + pgvector RPC | **working** (deployed) |
+| KB retrieval into `interpret-dream` | OpenAI query embedding + RPC, tester-gated | **working** (not deployed) |
+| KB retrieval into `chat-with-alchemist` | server-side composition | **planned** |
 
 ## Supabase Edge Functions
 
 **Existing** (`supabase/functions/`):
 
-- `interpret-dream`
+- `interpret-dream` (Lovable AI / Gemini; now with **tester-gated** KB retrieval — OpenAI query embedding + `match_knowledge_chunks`, fail-open, additive `kb_*` response metadata — via `_shared/knowledge-retrieval.ts`; see [details](./interpret-dream-kb-retrieval-v1.md))
 - `interpret-dream-with-astrology`
 - `chat-with-alchemist`
 - `suggest-tags`
@@ -71,6 +72,8 @@ Configured in Supabase Edge Functions secrets:
 - `FREE_ASTROLOGY_API_KEY` / `RAPIDAPI_KEY`
 - `WONDERPUSH_APPLICATION_ID` / `WONDERPUSH_ACCESS_TOKEN`
 - `KB_ADMIN_USER_IDS` *(optional, comma-separated UUID allowlist for KB ingest)*
+- `AI_KB_RETRIEVAL_ENABLED` *(optional, `"true"`/`"false"`; master switch for KB retrieval in `interpret-dream`, default off)*
+- `AI_KB_TEST_USER_IDS` *(optional, CSV UUID allowlist for KB retrieval; falls back to `AI_PROVIDER_TEST_USER_IDS`)*
 
 **Later**:
 

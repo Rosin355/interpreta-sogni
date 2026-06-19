@@ -73,6 +73,16 @@ pgvector `match_knowledge_chunks` (solo fonti `active`), log in
 eseguire manualmente, funzione da deployare. Wiring in `interpret-dream`: TODO
 separato.
 
+## Fase 6 — Retrieval in interpret-dream (DONE, tester-gated, da deployare)
+
+`interpret-dream` arricchisce il prompt con i chunk KB più simili (embedding
+query OpenAI + `match_knowledge_chunks`), **solo per utenti tester** e in
+**fail-open** (qualsiasi errore non blocca l'interpretazione). Env:
+`AI_KB_RETRIEVAL_ENABLED` + `AI_KB_TEST_USER_IDS`. Vedi
+[`interpret-dream-kb-retrieval-v1.md`](./interpret-dream-kb-retrieval-v1.md).
+Nessuna modifica al contratto iOS (campi `kb_*` additivi). Provider
+interpretazione invariato (Lovable AI / Gemini).
+
 ## Note di sicurezza
 
 - Mai usare service role lato client.
