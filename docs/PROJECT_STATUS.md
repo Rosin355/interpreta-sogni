@@ -1,6 +1,6 @@
 # DreamAlchemist — Project Status
 
-> **Last Updated:** 2026-06-20 (interpret-dream accepts `dream_id`/`dreamId`; tester-gated KB retrieval live)
+> **Last Updated:** 2026-06-20 (interpret-dream: app-native style + alchemical_phase consistency; accepts `dream_id`/`dreamId`; KB retrieval live)
 > Update this file after every significant implementation pass.
 
 ## Current Milestone

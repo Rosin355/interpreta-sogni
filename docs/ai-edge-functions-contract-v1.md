@@ -46,6 +46,14 @@ They are **always present** but default to `false` / `0` / `[]` when retrieval i
 disabled, finds nothing, or fails open. **iOS does not need to change**; it may
 optionally surface `kb_sources`.
 
+**Text conventions** (unchanged contract, documented for clients):
+- `interpretation` / `interpretation_summary` are in the user `locale` (Italian
+  by default); mood words stay in that language. They may contain **Markdown
+  bold** (`**keyword**`) for a few symbolic keywords only — clients may render it
+  as bold. No citation markers / source references appear.
+- `alchemical_phase` ∈ `nigredo | albedo | rubedo`, taken from the phase the
+  interpretation text declares (consistent with the written text).
+
 ### Errors
 
 | Status | Body | Meaning |

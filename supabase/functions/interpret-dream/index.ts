@@ -2,7 +2,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { RateLimiter, RATE_LIMITS } from "../_shared/rate-limiter.ts";
 import { interpretDreamSchema } from "../_shared/validation.ts";
-import { calculateDreamPhase } from "../_shared/alchemical-calculator.ts";
+import {
+  calculateDreamPhase,
+  extractPhaseFromInterpretation,
+  localizeItalianMoodWords,
+} from "../_shared/alchemical-calculator.ts";
 import {
   buildKbPromptSection,
   isKbRetrievalEnabledForUser,
@@ -101,6 +105,10 @@ serve(async (req) => {
 
     const body = validation.data;
     const dreamId = body.dream_id ?? body.dreamId;
+
+    // Locale drives the output language. Default to Italian (app-native).
+    const locale = (body.locale ?? 'it').trim() || 'it';
+    const isItalian = locale.toLowerCase().startsWith('it');
 
     // Safe request log — never the dream content; the id is truncated to a prefix.
     console.log(
@@ -223,7 +231,7 @@ REGOLE INTERPRETATIVE:
 
 SEZIONE "✦ ALCHIMIA" (OBBLIGATORIA in chiusura dell'interpretazione):
 Includi sempre un paragrafo finale dedicato, introdotto da "✦ Alchimia", in cui:
-1. Dichiari la fase dominante (Nigredo / Albedo / Rubedo) e la motivi citando i simboli precisi rilevati nel sogno.
+1. Dichiari la fase dominante (Nigredo / Albedo / Rubedo) come PRIMA cosa della sezione e la motivi citando i simboli precisi rilevati nel sogno. Questa fase è quella UFFICIALE del sogno e deve restare coerente con tutto il resto del testo (non contraddirla altrove).
 2. Riconosci eventuali aperture verso un'altra fase, se presenti.
 3. Espandi liberamente con ciò che ritieni più utile al sognatore: significato della fase nel suo percorso, cosa la fase "chiede" di integrare, suggerimenti di consapevolezza e pratiche di attenzione interiore coerenti.
 4. Se la fase è Nigredo, ricorda esplicitamente che non è un giudizio negativo ma una fase di indifferenziazione (Viveka) necessaria alla trasformazione.
@@ -243,10 +251,25 @@ REGOLE ESSENZIALI:
 - Se stai per raggiungere il limite, concludi elegantemente il discorso
 - È meglio una interpretazione più breve ma completa che una lunga ma tagliata
 
-Mantieni un tono empatico e professionale. Scrivi in italiano.`;
+STILE E LINGUA:
+- Scrivi ${isItalian ? 'esclusivamente in italiano' : `nella lingua dell'utente (locale "${locale}")`}.
+- Usa SEMPRE le parole emotive nella lingua dell'utente: se il mood è in italiano, mantienilo in italiano (es. "gioia", mai "Joy"; "paura", mai "Fear"). Non tradurre in inglese i termini emotivi.
+- Tono intimo, poetico, simbolico, caldo e umano: chiaro, mai clinico, mai generico, mai prolisso.
+- Evita le formule fatte da assistente generico (es. "Caro sognatore", "è estremamente significativo", "merita di essere esplorato con attenzione") salvo quando davvero necessario.
+- Parla al sognatore in modo diretto e naturale, come una guida simbolica, non come un chatbot.
+
+EMFASI E FORMATTAZIONE:
+- Puoi usare il grassetto Markdown (**parola**) SOLO per pochi termini simbolici chiave, con parsimonia: **Rubedo**, **Nigredo**, **Albedo**, **Re**, **Regina**, **unione degli opposti**, **luce dorata**, **Sé**.
+- Non mettere in grassetto intere frasi.
+- Niente titoli/heading Markdown (#, ##), niente elenchi puntati salvo esplicita necessità.
+- Niente citazioni, riferimenti a fonti o marcatori tra parentesi quadre ([1], [2], "Fonte ...").
+- Non menzionare mai meccanismi interni, retrieval o Knowledge Base.
+
+Mantieni un tono empatico e umano.`;
 
     const userPrompt = `Interpreta questo sogno:
 
+Locale utente: ${locale}
 Titolo: ${dream.title}
 Data: ${dream.dream_date}
 Mood: ${dream.mood || 'Non specificato'}
@@ -320,9 +343,13 @@ Fornisci un'interpretazione dettagliata e significativa.`;
       throw new Error('Nessuna interpretazione ricevuta dall\'AI');
     }
 
-    // Defensive: strip any internal KB citation markers ([1], [Fonte A]) the
-    // model may have echoed despite the prompt. Never removes dream text.
-    const interpretation = stripKbCitationMarkers(rawInterpretation);
+    // Defensive cleanup: strip any internal KB citation markers ([1], [Fonte A])
+    // the model may have echoed, then (Italian locale only) repair stray English
+    // mood words. Neither removes dream text nor valid Markdown bold.
+    const cleanedInterpretation = stripKbCitationMarkers(rawInterpretation);
+    const interpretation = isItalian
+      ? localizeItalianMoodWords(cleanedInterpretation)
+      : cleanedInterpretation;
 
     console.log('Interpretazione generata con successo');
 
@@ -340,9 +367,9 @@ Fornisci un'interpretazione dettagliata e significativa.`;
         body: JSON.stringify({
           model: 'google/gemini-2.5-flash',
           messages: [
-            { 
-              role: 'system', 
-              content: 'Sei un esperto nel riassumere interpretazioni di sogni. Crea un riassunto conciso ma completo, massimo 500 caratteri, mantenendo i concetti chiave.' 
+            {
+              role: 'system',
+              content: `Riassumi l'interpretazione del sogno in modo breve, lirico e naturale (massimo 500 caratteri), ${isItalian ? 'esclusivamente in italiano' : `nella lingua del locale "${locale}"`}. Mantieni le parole emotive nella stessa lingua (es. "gioia", mai "Joy"). Puoi usare il grassetto **solo** per 1-2 parole simboliche chiave (es. **Rubedo**). Niente citazioni, niente riferimenti a fonti, niente parentesi quadre, niente elenchi puntati. Evita il tono da assistente generico e i concetti incompleti.`
             },
             { 
               role: 'user', 
@@ -354,23 +381,27 @@ Fornisci un'interpretazione dettagliata e significativa.`;
 
       if (summaryResponse.ok) {
         const summaryData = await summaryResponse.json();
-        interpretationSummary = stripKbCitationMarkers(
+        const rawSummary = stripKbCitationMarkers(
           summaryData.choices?.[0]?.message?.content || interpretation.substring(0, 500)
         );
+        interpretationSummary = isItalian ? localizeItalianMoodWords(rawSummary) : rawSummary;
       } else {
         interpretationSummary = interpretation.substring(0, 500);
       }
     }
 
-    // Calcola la fase alchemica
-    console.log('Calcolo fase alchemica...');
-    const alchemicalPhase = calculateDreamPhase({
+    // Alchemical phase — single source of truth. The phase the AI DECLARED in the
+    // "✦ Alchimia" section wins (so the saved value matches the text the user
+    // reads). Only when the text declares no phase do we fall back to the
+    // heuristic calculateDreamPhase().
+    const declaredPhase = extractPhaseFromInterpretation(interpretation);
+    const alchemicalPhase = declaredPhase ?? calculateDreamPhase({
       content: dream.content,
       mood: dream.mood,
       tags: dream.tags,
       interpretation: interpretation
     });
-    console.log(`Fase alchemica calcolata: ${alchemicalPhase}`);
+    console.log(`[interpret-dream] phase=${alchemicalPhase} source=${declaredPhase ? 'interpretation' : 'heuristic'}`);
 
     // Salva l'interpretazione e la fase alchemica nel database
     const { error: updateError } = await supabase

@@ -243,3 +243,64 @@ export const calculateDreamPhase = (dream: {
 
   return dominantPhase;
 };
+
+const PHASE_WORDS: AlchemicalPhase[] = ['nigredo', 'albedo', 'rubedo'];
+
+/**
+ * Authoritative phase = the one the AI DECLARED in the closing "✦ Alchimia"
+ * section of the interpretation. The dominant phase is the FIRST phase named in
+ * that section (the section instruction declares it first, then mentions any
+ * secondary openings). Matching ignores surrounding Markdown bold (**Rubedo**)
+ * and case. Returns null if no phase is clearly declared, so the caller can fall
+ * back to the heuristic calculateDreamPhase().
+ *
+ * This keeps the saved public.dreams.alchemical_phase consistent with the text
+ * the user actually reads (fixes the "text says Rubedo, DB says nigredo" mismatch).
+ */
+export const extractPhaseFromInterpretation = (
+  interpretation?: string,
+): AlchemicalPhase | null => {
+  if (!interpretation) return null;
+  const marker = interpretation.indexOf('✦');
+  const section = marker >= 0 ? interpretation.slice(marker) : interpretation;
+  const lower = section.toLowerCase();
+
+  let best: { phase: AlchemicalPhase; at: number } | null = null;
+  for (const p of PHASE_WORDS) {
+    const at = lower.search(new RegExp(`\\b${p}\\b`));
+    if (at >= 0 && (best === null || at < best.at)) best = { phase: p, at };
+  }
+  return best ? best.phase : null;
+};
+
+// Common English emotion words → Italian. Used only to repair stray English mood
+// words when the locale is Italian (the prompt is the primary guard).
+const EN_TO_IT_MOOD: Record<string, string> = {
+  joy: 'gioia',
+  happiness: 'felicità',
+  fear: 'paura',
+  sadness: 'tristezza',
+  anger: 'rabbia',
+  love: 'amore',
+  peace: 'pace',
+  serenity: 'serenità',
+  hope: 'speranza',
+  calm: 'calma',
+  anxiety: 'angoscia',
+  disgust: 'disgusto',
+};
+
+/**
+ * Conservative repair of stray English mood words in Italian-locale text
+ * (e.g. "Joy" → "gioia"). Only replaces exact whitelist words, preserving a
+ * leading capital. Markdown bold is preserved (asterisks are not word chars, so
+ * "**Joy**" → "**gioia**"). Never touches other words.
+ */
+export const localizeItalianMoodWords = (text: string): string => {
+  if (!text) return text;
+  return text.replace(/\b([A-Za-z]+)\b/g, (whole, word: string) => {
+    const it = EN_TO_IT_MOOD[word.toLowerCase()];
+    if (!it) return whole;
+    return /^[A-Z]/.test(word) ? it.charAt(0).toUpperCase() + it.slice(1) : it;
+  });
+};

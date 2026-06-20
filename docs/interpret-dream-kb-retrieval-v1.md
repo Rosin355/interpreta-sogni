@@ -84,6 +84,33 @@ removes only isolated bracketed citation markers — `[1]`, `[ 2 ]`, `[1, 3]` an
 never removes ordinary dream text. This runs regardless of whether KB retrieval
 was used, so stray brackets can never reach the user.
 
+## Output style & phase consistency
+
+The interpretation prompt enforces an app-native voice (not generic chatbot):
+
+- **Language**: written in the user `locale` (request body). If `locale` starts
+  with `it` (default), Italian only. Emotion/mood words stay in that language —
+  e.g. "gioia", never "Joy". A conservative post-process
+  (`localizeItalianMoodWords`, Italian locale only) repairs stray English mood
+  words; it preserves Markdown bold and never alters other text.
+- **Tone**: intimate, poetic, symbolic, warm; avoids clichés ("Caro sognatore",
+  "è estremamente significativo", …).
+- **Bold emphasis is allowed but only for a few symbolic keywords** (e.g.
+  `**Rubedo**`, `**Nigredo**`, `**Albedo**`, `**Re**`, `**Regina**`,
+  `**unione degli opposti**`, `**luce dorata**`, `**Sé**`), used sparingly —
+  never whole sentences, no Markdown headings, no bullet lists. **Valid bold
+  markers are preserved** (iOS renders them); cleanup never strips `**…**`.
+- **No citations / source markers / "Fonte curatoriale"** in user-facing text.
+
+### alchemical_phase — single source of truth
+
+The saved `public.dreams.alchemical_phase` is taken from the phase the AI
+**declares** in the closing "✦ Alchimia" section
+(`extractPhaseFromInterpretation`), so it always matches the text the user reads.
+Only when the text declares no phase do we fall back to the heuristic
+`calculateDreamPhase()`. This fixes the prior mismatch (text said Rubedo while the
+DB saved nigredo). The column name and the iOS contract are unchanged.
+
 ## Response metadata (additive, non-breaking)
 
 `interpret-dream` adds:

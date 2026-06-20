@@ -21,7 +21,7 @@
 
 **Existing** (`supabase/functions/`):
 
-- `interpret-dream` (Lovable AI / Gemini; accepts both `dream_id` (iOS snake_case) and `dreamId` (web camelCase), normalized internally → `400 missing_dream_id` if neither; **tester-gated** KB retrieval — OpenAI query embedding + `match_knowledge_chunks`, fail-open, additive `kb_*` response metadata — via `_shared/knowledge-retrieval.ts`; see [details](./interpret-dream-kb-retrieval-v1.md))
+- `interpret-dream` (Lovable AI / Gemini; accepts both `dream_id` (iOS snake_case) and `dreamId` (web camelCase), normalized internally → `400 missing_dream_id` if neither; locale-aware app-native style — Italian mood words, sparse Markdown bold for symbolic keywords, no citations; `alchemical_phase` taken from the phase the interpretation declares (fallback heuristic); **tester-gated** KB retrieval — OpenAI query embedding + `match_knowledge_chunks`, fail-open, additive `kb_*` response metadata; see [details](./interpret-dream-kb-retrieval-v1.md))
 - `interpret-dream-with-astrology`
 - `chat-with-alchemist`
 - `suggest-tags`
