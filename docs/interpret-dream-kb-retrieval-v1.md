@@ -49,22 +49,40 @@ If the tester list is empty, retrieval stays disabled (safe default).
 
 ## Prompt section
 
+The KB context is **internal only**: it guides the interpretation but must NEVER
+surface in the user-facing text as citations, brackets, source names, chunk
+numbers or any Knowledge Base mechanics. Chunks are therefore labeled
+"Fonte curatoriale A/B/C" (NOT `[1]`/`[2]`, which models tend to echo) and the
+instruction block explicitly forbids citing.
+
 When chunks are found, this block is inserted into the system prompt:
 
 ```
-CONTESTO CURATORIALE DALLA KNOWLEDGE BASE
-(Riferimenti curatoriali selezionati per affinità simbolica. Istruzioni:
-- usali come guida simbolica/curatoriale, non come verità assoluta;
-- dai SEMPRE priorità al sogno dell'utente;
-- se non sono pertinenti, ignorali;
-- non citare identificatori interni delle fonti.)
+CONTESTO CURATORIALE (uso interno — NON citare)
+Materiale curatoriale selezionato per affinità simbolica. Istruzioni vincolanti:
+- usalo SILENZIOSAMENTE come guida simbolica/curatoriale, mai come verità assoluta;
+- dai SEMPRE priorità al sogno dell'utente; se non è pertinente, ignoralo;
+- NON citare la Knowledge Base né queste fonti;
+- NON inserire riferimenti tra parentesi quadre come [1], [2], [Fonte A];
+- NON menzionare fonti interne, numeri di chunk, ID, retrieval, embedding o
+  meccanismi della Knowledge Base;
+- integra eventuali spunti nel discorso in modo naturale, senza note o citazioni.
 
-[1] <source title> — dominio: <domain> (rilevanza ~0.84)
+Fonte curatoriale A — dominio: <domain> (affinità ~0.84)
 <chunk content>
 ...
 ```
 
 No source IDs, embeddings or retrieval internals are exposed to the model.
+
+### Post-processing safety net
+
+As a belt-and-braces measure, `stripKbCitationMarkers(text)` is applied to the
+interpretation (and the TTS summary) before saving/returning. It conservatively
+removes only isolated bracketed citation markers — `[1]`, `[ 2 ]`, `[1, 3]` and
+`[Fonte A]` / `[Riferimento …]` — then tidies leftover spacing/punctuation. It
+never removes ordinary dream text. This runs regardless of whether KB retrieval
+was used, so stray brackets can never reach the user.
 
 ## Response metadata (additive, non-breaking)
 

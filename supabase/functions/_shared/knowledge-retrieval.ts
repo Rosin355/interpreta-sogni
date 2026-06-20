@@ -227,25 +227,57 @@ export async function retrieveKnowledgeContext(
   }
 }
 
+// Non-citation labels for chunks (avoid [1]/[2] markers the model would echo).
+const KB_LABELS = ["A", "B", "C", "D", "E"];
+
 /**
  * Build a clearly-separated prompt section from retrieved chunks (max 3 shown).
  * Returns "" when there are no chunks. Never includes source IDs or embeddings.
+ *
+ * Chunks are labeled "Fonte curatoriale A/B/C" (NOT [1]/[2]) so the model does
+ * not reproduce citation-style brackets in the user-facing interpretation. The
+ * instruction block explicitly forbids citing the KB. See stripKbCitationMarkers
+ * for the defensive post-processing safety net.
  */
 export function buildKbPromptSection(chunks: KbChunk[]): string {
   if (!chunks.length) return "";
   const items = chunks.slice(0, 3).map((c, i) => {
     const sim = typeof c.similarity === "number" ? c.similarity.toFixed(2) : "—";
-    return `[${i + 1}] ${c.sourceTitle} — dominio: ${c.domain} (rilevanza ~${sim})\n${c.content}`;
+    const label = `Fonte curatoriale ${KB_LABELS[i] ?? String(i + 1)}`;
+    return `${label} — dominio: ${c.domain} (affinità ~${sim})\n${c.content}`;
   }).join("\n\n");
 
   return [
-    "CONTESTO CURATORIALE DALLA KNOWLEDGE BASE",
-    "(Riferimenti curatoriali selezionati per affinità simbolica. Istruzioni:",
-    "- usali come guida simbolica/curatoriale, non come verità assoluta;",
-    "- dai SEMPRE priorità al sogno dell'utente;",
-    "- se non sono pertinenti, ignorali;",
-    "- non citare identificatori interni delle fonti.)",
+    "CONTESTO CURATORIALE (uso interno — NON citare)",
+    "Materiale curatoriale selezionato per affinità simbolica. Istruzioni vincolanti:",
+    "- usalo SILENZIOSAMENTE come guida simbolica/curatoriale, mai come verità assoluta;",
+    "- dai SEMPRE priorità al sogno dell'utente; se non è pertinente, ignoralo;",
+    "- NON citare la Knowledge Base né queste fonti;",
+    "- NON inserire riferimenti tra parentesi quadre come [1], [2], [Fonte A];",
+    "- NON menzionare fonti interne, numeri di chunk, ID, retrieval, embedding o",
+    "  meccanismi della Knowledge Base;",
+    "- integra eventuali spunti nel discorso in modo naturale, senza note o citazioni.",
     "",
     items,
   ].join("\n");
+}
+
+/**
+ * Conservative safety net: strip isolated KB citation markers a model might echo
+ * despite the prompt — bracketed numeric citations ("[1]", "[ 2 ]", "[1, 3]")
+ * and bracketed "Fonte"/"Riferimento" labels ("[Fonte A]"). It ONLY removes
+ * those bracketed markers, never ordinary dream text, then tidies the leftover
+ * whitespace/punctuation.
+ */
+export function stripKbCitationMarkers(text: string): string {
+  if (!text) return text;
+  const cleaned = text
+    // [1]  [ 2 ]  [1, 2]  [1,2 , 3]
+    .replace(/\[\s*\d+(\s*,\s*\d+)*\s*\]/g, "")
+    // [Fonte ...]  [Fonte curatoriale A]  [Riferimento curatoriale]
+    .replace(/\[\s*(?:fonte|riferiment\w*)[^\]]*\]/gi, "")
+    .replace(/[ \t]{2,}/g, " ") // collapse doubled spaces left behind
+    .replace(/[ \t]+([,.;:!?…])/g, "$1") // drop space before punctuation
+    .replace(/[ \t]+\n/g, "\n"); // drop trailing spaces before newlines
+  return cleaned.trim();
 }

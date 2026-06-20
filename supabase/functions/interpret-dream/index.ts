@@ -7,6 +7,7 @@ import {
   buildKbPromptSection,
   isKbRetrievalEnabledForUser,
   retrieveKnowledgeContext,
+  stripKbCitationMarkers,
 } from "../_shared/knowledge-retrieval.ts";
 
 const corsHeaders = {
@@ -313,11 +314,15 @@ Fornisci un'interpretazione dettagliata e significativa.`;
     }
 
     const aiData = await aiResponse.json();
-    const interpretation = aiData.choices?.[0]?.message?.content;
+    const rawInterpretation = aiData.choices?.[0]?.message?.content;
 
-    if (!interpretation) {
+    if (!rawInterpretation) {
       throw new Error('Nessuna interpretazione ricevuta dall\'AI');
     }
+
+    // Defensive: strip any internal KB citation markers ([1], [Fonte A]) the
+    // model may have echoed despite the prompt. Never removes dream text.
+    const interpretation = stripKbCitationMarkers(rawInterpretation);
 
     console.log('Interpretazione generata con successo');
 
@@ -349,7 +354,9 @@ Fornisci un'interpretazione dettagliata e significativa.`;
 
       if (summaryResponse.ok) {
         const summaryData = await summaryResponse.json();
-        interpretationSummary = summaryData.choices?.[0]?.message?.content || interpretation.substring(0, 500);
+        interpretationSummary = stripKbCitationMarkers(
+          summaryData.choices?.[0]?.message?.content || interpretation.substring(0, 500)
+        );
       } else {
         interpretationSummary = interpretation.substring(0, 500);
       }
