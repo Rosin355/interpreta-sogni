@@ -1,6 +1,6 @@
 # DreamAlchemist — Project Status
 
-> **Last Updated:** 2026-06-20 (interpret-dream: app-native style + alchemical_phase consistency; accepts `dream_id`/`dreamId`; KB retrieval live)
+> **Last Updated:** 2026-06-21 (Celeste astrology Phase 1: read-only `get-astrology-profile`)
 > Update this file after every significant implementation pass.
 
 ## Current Milestone
@@ -45,6 +45,7 @@ interpretations and the subscription/entitlement layer.
 - [x] Controlli stato sicuri nel dialog Modifica: selettore `draft`/`active`, transizioni via `manage-knowledge-source` (`activate` con readiness check server-side / `move_to_draft`); content change → ritorno a `draft` senza reattivazione
 - [x] `search-knowledge`: retrieval semantico (embedding query OpenAI + RPC pgvector `match_knowledge_chunks` su fonti `active`); dry_run a zero chiamate provider; usage_ledger `search_knowledge` + retrieval log; admin UI "Test ricerca" (`KnowledgeSearchTestDialog`) — RPC eseguita, funzione **deployata**
 - [x] KB retrieval in `interpret-dream` (tester-gated, fail-open): `_shared/knowledge-retrieval.ts`, env `AI_KB_RETRIEVAL_ENABLED` + `AI_KB_TEST_USER_IDS`, match_count 3 / threshold 0.40, metadata `kb_*` additiva (nessun break iOS), provider interpretazione invariato — **da deployare**
+- [x] Celeste astrology Phase 1: `get-astrology-profile` Edge Function (read-only normalizer di `profiles.natal_chart_data` per iOS — Big Three / Planets / profile completion; nessuna chiamata provider, nessuna scrittura DB) — vedi [`astrology-profile-endpoint-v1.md`](./astrology-profile-endpoint-v1.md); **da deployare**
 
 ## Active Workstream
 
