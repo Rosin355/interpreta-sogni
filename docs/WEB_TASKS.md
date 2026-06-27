@@ -90,6 +90,10 @@ retrieval are still to be built.
       [`interpret-dream-kb-retrieval-v1.md`](./interpret-dream-kb-retrieval-v1.md).
       **Da deployare**: `npx supabase functions deploy interpret-dream`.
 - [ ] Wire retrieval into `chat-with-alchemist`
+- [ ] Celeste astrology backend per [`astrologer-api-integration-plan-v1.md`](./astrologer-api-integration-plan-v1.md)
+      — preserves current Celeste UI; Phase 1 = read-only `get-astrology-profile`
+      over existing `profiles` (Big Three / Planets), then refresh + transits;
+      builds on existing Astrologer/RapidAPI integration; no API keys in iOS
 - [ ] `astrology-insight` Edge Function with KB-grounded context
 - [ ] Community moderation tools (report queue, soft-hide)
 

@@ -42,6 +42,7 @@
 - `request-password-reset` / `verify-reset-token`
 
 **Planned**:
+- Celeste astrology backend: `get-astrology-profile` / `save-astrology-profile` / `refresh-astrology-profile` / `get-current-transits` (normalized cache over existing Astrologer/RapidAPI integration) — see [astrologer-api-integration-plan-v1](./astrologer-api-integration-plan-v1.md)
 - `astrology-insight` (KB-grounded astrology readings)
 - `get-user-entitlements` (RevenueCat-backed)
 - `revenuecat-webhook` (subscription state sync)
