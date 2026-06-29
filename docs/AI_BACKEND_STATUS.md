@@ -28,7 +28,8 @@
 - `generate-dream-image`
 - `calculate-natal-chart`
 - `check-astrological-transits`
-- `get-astrology-profile` (read-only normalizer of cached `profiles.natal_chart_data` for iOS Celeste — Big Three / Planets / profile completion; **no provider call**, no DB writes, auth user self-read only; see [details](./astrology-profile-endpoint-v1.md))
+- `get-astrology-profile` (read-only normalizer of cached `profiles.natal_chart_data` for iOS Celeste — Big Three / Planets / profile completion + **precision** `profile_level`/`precision`/`*_reliable`/`notes`; **no provider call**, no DB writes, auth user self-read only; see [details](./astrology-profile-endpoint-v1.md))
+- `create-astrology-profile` (mobile natal-chart creation — exact/approximate/unknown birth time; delegates chart calc to `calculate-natal-chart`, persists precision metadata to `profiles`; auth user-only write, safe summary, no raw payload; see [details](./mobile-astrology-profile-creation-v1.md))
 - `transcribe-audio`
 - `speech-to-text-elevenlabs`
 - `text-to-speech-elevenlabs`
@@ -43,7 +44,7 @@
 - `request-password-reset` / `verify-reset-token`
 
 **Planned**:
-- Celeste astrology backend: `get-astrology-profile` **done (Phase 1, read-only, not deployed)**; `save-astrology-profile` / `refresh-astrology-profile` / `get-current-transits` planned — see [astrologer-api-integration-plan-v1](./astrologer-api-integration-plan-v1.md)
+- Celeste astrology backend: `get-astrology-profile` **deployed (Phase 1)**; `create-astrology-profile` **done (Phase 2, mobile creation + precision, not deployed; needs precision migration)**; `get-current-transits` planned — see [astrologer-api-integration-plan-v1](./astrologer-api-integration-plan-v1.md)
 - `astrology-insight` (KB-grounded astrology readings)
 - `get-user-entitlements` (RevenueCat-backed)
 - `revenuecat-webhook` (subscription state sync)

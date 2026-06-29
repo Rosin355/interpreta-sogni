@@ -60,3 +60,6 @@ verify_jwt = false
 [functions.get-astrology-profile]
 verify_jwt = false
 
+[functions.create-astrology-profile]
+verify_jwt = false
+

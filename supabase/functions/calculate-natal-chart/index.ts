@@ -77,17 +77,20 @@ serve(async (req) => {
 
     // Input validation
     if (!birthDate || !birthTime || !birthPlace) {
-      console.error('Missing required fields:', { birthDate, birthTime, birthPlace });
+      // Privacy: log presence flags only, never the birth values.
+      console.error('Missing required fields:', {
+        hasBirthDate: !!birthDate, hasBirthTime: !!birthTime, hasBirthPlace: !!birthPlace,
+      });
       throw new Error('Missing required fields: birthDate, birthTime, and birthPlace are required');
     }
 
-    console.log('Input data:', { birthDate, birthTime, birthPlace });
+    console.log('[calculate-natal-chart] input received (values not logged)');
 
     const { latitude, longitude, placeName, timezone } = birthPlace;
 
     // Validate coordinates
     if (typeof latitude !== 'number' || typeof longitude !== 'number') {
-      console.error('Invalid coordinates:', { latitude, longitude });
+      console.error('Invalid coordinates: latitude/longitude must be numbers');
       throw new Error('Invalid coordinates: latitude and longitude must be numbers');
     }
 
@@ -112,7 +115,7 @@ serve(async (req) => {
       throw new Error('Invalid time format');
     }
 
-    console.log('Parsed data:', { year, month, day, hours, minutes, latitude, longitude });
+    console.log('[calculate-natal-chart] input parsed and validated (values not logged)');
 
     // Robust timezone validation with fallback
     let timezoneOffset: number;
@@ -143,12 +146,7 @@ serve(async (req) => {
     const roundedLat = Math.round(latitude * 10000) / 10000;
     const roundedLon = Math.round(longitude * 10000) / 10000;
 
-    console.log('Looking for cached data with:', {
-      birthDate,
-      birthTime,
-      latitude: roundedLat,
-      longitude: roundedLon
-    });
+    console.log('[calculate-natal-chart] checking cache (birth values not logged)');
 
     // Query il profilo per verificare se esiste già un tema natale con questi dati
     const supabaseServiceUrl = Deno.env.get('SUPABASE_URL')!;
@@ -257,11 +255,8 @@ serve(async (req) => {
       'Content-Type': 'application/json',
     };
 
-    console.log('=== FINAL API REQUEST DATA ===');
-    console.log('Date:', { year, month, day });
-    console.log('Time:', { hours, minutes });
-    console.log('Location:', { latitude, longitude, city: cityName, nation: 'IT' });
-    console.log('Timezone offset / IANA:', timezoneOffset, '/', tzString);
+    // Privacy: do not log birth date/time/coordinates/place.
+    console.log('[calculate-natal-chart] prepared provider request (birth values not logged)');
     console.log('Subject payload (sent to BOTH endpoints):', JSON.stringify(subjectPayload));
     console.log('==============================');
 

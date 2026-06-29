@@ -250,6 +250,28 @@ serve(async (req) => {
       return json({ error: "Errore lettura profilo" }, 500);
     }
 
+    // Best-effort read of precision columns. The migration may not be applied
+    // yet → tolerate "column does not exist" and treat as legacy (null).
+    let accuracy: string | null = null;
+    let precisionCol: string | null = null;
+    let notesCol: string[] = [];
+    try {
+      const { data: prec } = await admin
+        .from("profiles")
+        .select("birth_time_accuracy, natal_chart_precision, natal_chart_notes")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (prec) {
+        accuracy = (prec.birth_time_accuracy as string | null) ?? null;
+        precisionCol = (prec.natal_chart_precision as string | null) ?? null;
+        if (Array.isArray(prec.natal_chart_notes)) {
+          notesCol = (prec.natal_chart_notes as unknown[]).filter((n) => typeof n === "string") as string[];
+        }
+      }
+    } catch {
+      // Precision columns not present yet — legacy profile, keep nulls.
+    }
+
     const hasBirthDate = !!profile?.birth_date;
     const hasBirthTime = !!profile?.birth_time;
     const hasBirthPlace = !!profile?.birth_place_name;
@@ -267,12 +289,38 @@ serve(async (req) => {
 
     const profileComplete = hasBirthDate && hasBirthTime && hasCoordinates;
 
+    // Effective precision: explicit column wins; otherwise infer from legacy data
+    // (a chart with a real birth_time + coordinates is treated as "complete").
+    const precision: string | null = precisionCol
+      ?? (chartAvailable ? (hasBirthTime && hasCoordinates ? "complete" : "approximate") : null);
+    const unknownTime = accuracy === "unknown" || precision === "symbolic" || precision === "partial";
+    const ascendantReliable = chartAvailable && precision === "complete";
+    const housesReliable = ascendantReliable;
+    // A noon-fallback ascendant is not meaningful → omit the rising for unknown/
+    // symbolic charts rather than present a misleading value.
+    const showRising = chartAvailable && !unknownTime;
+
+    const profileLevel = !hasBirthDate ? "missing"
+      : (!hasBirthPlace || !hasCoordinates) ? "date_only"
+      : accuracy === "unknown" ? "partial"
+      : accuracy === "approximate" ? "approximate"
+      : (accuracy === "exact" || hasBirthTime) ? "complete"
+      : "partial";
+
+    const notes = notesCol.length > 0 ? notesCol
+      : precision === "approximate"
+        ? ["Ora di nascita approssimativa: ascendente e case sono indicativi."]
+      : (precision === "symbolic" || precision === "partial")
+        ? ["Ora di nascita sconosciuta: ascendente e case non sono affidabili."]
+      : [];
+
     console.log(
-      `[get-astrology-profile] userIdPrefix=${prefix(user.id)} profileComplete=${profileComplete} natalChartAvailable=${chartAvailable}`,
+      `[get-astrology-profile] userIdPrefix=${prefix(user.id)} profileLevel=${profileLevel} precision=${precision ?? "none"} natalChartAvailable=${chartAvailable}`,
     );
 
     return json({
       profile_complete: profileComplete,
+      profile_level: profileLevel,
       birth_profile: {
         has_birth_date: hasBirthDate,
         has_birth_time: hasBirthTime,
@@ -280,19 +328,24 @@ serve(async (req) => {
         has_coordinates: hasCoordinates,
         timezone: profile?.birth_timezone ?? null,
         birth_place_name: profile?.birth_place_name ?? null,
+        birth_time_accuracy: accuracy,
       },
       big_three: {
         sun: { sign: sunSign, degree: chartAvailable ? degreeOf(chart, "sun") : null, label: "Sun Sign", summary: signSummary(sunSign) },
         moon: { sign: moonSign, degree: chartAvailable ? degreeOf(chart, "moon") : null, label: "Moon Sign", summary: signSummary(moonSign) },
-        rising: { sign: risingSign, degree: chartAvailable ? (degreeOf(chart, "ascendant") ?? degreeOf(chart, "rising")) : null, label: "Rising", summary: signSummary(risingSign) },
+        rising: { sign: showRising ? risingSign : null, degree: showRising ? (degreeOf(chart, "ascendant") ?? degreeOf(chart, "rising")) : null, label: "Rising", summary: showRising ? signSummary(risingSign) : null },
       },
       natal_chart: {
         available: chartAvailable,
+        precision,
         dominant_element: chartAvailable ? inferDominantElement(chart) : null,
         dominant_modality: chartAvailable ? inferDominantModality(chart) : null,
         houses_available: chartAvailable ? housesAvailable(chart) : false,
+        houses_reliable: housesReliable,
+        ascendant_reliable: ascendantReliable,
         last_updated: profile?.updated_at ?? null,
         stale: false,
+        notes,
       },
       planets,
       current_sky: {
