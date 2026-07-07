@@ -86,6 +86,34 @@ Tolerant helpers that **never throw** and degrade to `null` / `[]`:
   personal points (sun/moon/mercury/venus/mars/ascendant).
 - Degrees default to integers from the cached chart; missing → `null`.
 
+### Additional bodies in `planets[]`
+
+`planets[]` includes **all bodies/points present in the cached chart**, not just
+Sun→Pluto — **read-only, no provider call** (the backend never invents bodies not
+in the cached data). Stable order:
+
+1. Core planets **Sun → Pluto**
+2. Chiron, Lilith, North Node, South Node
+3. Ascendant, Descendant, Midheaven (MC), Imum Coeli (IC)
+4. Ceres, Pallas, Juno, Vesta, Part of Fortune, Vertex
+5. any remaining unknown provider bodies, alphabetically
+
+Each keeps the existing `PlanetPlacement` shape (`name, glyph, sign, degree,
+house, retrograde, summary`) — no new fields. `name` is stable **English** (iOS
+maps to Italian). Matching is alias-tolerant (lowercase / camelCase / spaced /
+Italian / provider variants) and **never duplicates** a body seen under multiple
+keys. Glyphs use Unicode symbols with short **text fallbacks** where a symbol may
+render poorly (Lilith `Lil`, Ascendant `ASC`, Descendant `DSC`, MC `MC`, IC `IC`,
+Vertex `Vx`, Part of Fortune `⊗`). iOS "Vedi tutti" shows all of them; the main
+carousel keeps filtering to core planets.
+
+**Reliability caveat:** for **unknown** birth time (symbolic/partial precision,
+noon fallback) the time-dependent **angles** (Ascendant/Descendant/MC/IC/Vertex/
+Part of Fortune) are **omitted** from `planets[]` (as `rising` is from
+`big_three`). For **approximate**, angles are included but flagged indicative via
+`natal_chart.ascendant_reliable`/`houses_reliable = false` (no per-body precision
+field is added).
+
 ### Limitation
 
 If `natal_chart_data` exists but specific fields can't be extracted reliably,

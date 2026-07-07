@@ -96,8 +96,11 @@ Backward-compatible additions (no field removed/renamed):
 Legacy profiles (no precision columns / migration not yet applied) still return a
 valid response: precision is **inferred** — a chart with a real `birth_time` +
 coordinates → `complete`. For `unknown`/`symbolic` precision the **rising sign is
-omitted** (the noon-fallback ascendant is not meaningful) and reliability flags
-are `false`.
+omitted** (the noon-fallback ascendant is not meaningful), the time-dependent
+**angles** (Asc/Desc/MC/IC/Vertex/Part of Fortune) are omitted from `planets[]`,
+and reliability flags are `false`. `planets[]` otherwise includes every
+additional body present in the cached chart (Chiron, Lilith, nodes, asteroids, …)
+— read-only, no provider call.
 
 ## Schema changes
 

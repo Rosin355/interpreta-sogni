@@ -166,23 +166,193 @@ function extractAscendantSign(chart: any): Sign | null {
     ?? normalizeSignName(Array.isArray(chart?.houses) ? chart.houses[0]?.sign : null);
 }
 
+// ---- Body registry (core planets + additional bodies/points) --------------
+// `name` is stable ENGLISH (iOS maps display names to Italian). Glyphs use safe
+// symbols with short text fallbacks where a symbol may render poorly on iOS.
+// `isAngle` marks time/ascendant-dependent points that must be OMITTED for
+// unknown-time (noon-fallback) charts.
+interface BodyDef {
+  name: string;
+  glyph: string;
+  summary: string | null;
+  isAngle: boolean;
+  aliases: string[]; // matched case/space/underscore-insensitively
+}
+
+const normalizeKey = (s: string) => s.toLowerCase().replace(/[\s_\-]/g, "");
+
+// Core planets reuse the existing glyph/summary maps and order.
+const CORE_BODY_DEFS: BodyDef[] = PLANET_ORDER.map((key) => ({
+  name: titleCase(key),
+  glyph: PLANET_GLYPH[key] ?? "",
+  summary: PLANET_SUMMARY[key] ?? null,
+  isAngle: false,
+  aliases: [key],
+}));
+
+// Additional bodies/points in the required stable display order (rank 11+).
+const EXTRA_BODY_DEFS: BodyDef[] = [
+  { name: "Chiron", glyph: "⚷", summary: "Ferita e guarigione profonda", isAngle: false,
+    aliases: ["chiron", "chirone"] },
+  { name: "Lilith", glyph: "Lil", summary: "Ombra, istinto e desiderio autentico", isAngle: false,
+    aliases: ["lilith", "meanlilith", "blackmoonlilith", "lilithmean", "meanblackmoon"] },
+  { name: "North Node", glyph: "☊", summary: "Direzione evolutiva e crescita", isAngle: false,
+    aliases: ["northnode", "nodonord", "truenode", "meannode", "truenorthnode", "meannorthnode",
+              "northlunarnode", "truenorthlunarnode", "meannorthlunarnode", "nnode"] },
+  { name: "South Node", glyph: "☋", summary: "Doni innati e schemi da lasciare", isAngle: false,
+    aliases: ["southnode", "nodosud", "truesouthnode", "meansouthnode", "southlunarnode",
+              "truesouthlunarnode", "meansouthlunarnode", "snode"] },
+  { name: "Ascendant", glyph: "ASC", summary: "Maschera, corpo e primo impatto", isAngle: true,
+    aliases: ["ascendant", "ascendente", "asc", "rising", "risingsign"] },
+  { name: "Descendant", glyph: "DSC", summary: "Relazioni e proiezione sull'altro", isAngle: true,
+    aliases: ["descendant", "discendente", "dsc", "desc"] },
+  { name: "Midheaven", glyph: "MC", summary: "Vocazione, ruolo e immagine pubblica", isAngle: true,
+    aliases: ["midheaven", "mediocielo", "mc", "mediumcoeli"] },
+  { name: "Imum Coeli", glyph: "IC", summary: "Radici, casa e mondo interiore", isAngle: true,
+    aliases: ["imumcoeli", "ic", "fondocielo"] },
+  { name: "Ceres", glyph: "⚳", summary: "Nutrimento, cura e accudimento", isAngle: false,
+    aliases: ["ceres", "cerere"] },
+  { name: "Pallas", glyph: "⚴", summary: "Intelligenza creativa e strategia", isAngle: false,
+    aliases: ["pallas", "pallade", "pallasathena"] },
+  { name: "Juno", glyph: "⚵", summary: "Legami, patti e impegno", isAngle: false,
+    aliases: ["juno", "giunone"] },
+  { name: "Vesta", glyph: "⚶", summary: "Dedizione, fuoco interiore e focus", isAngle: false,
+    aliases: ["vesta"] },
+  { name: "Part of Fortune", glyph: "⊗", summary: "Punto di gioia e fluidità", isAngle: true,
+    aliases: ["partoffortune", "partofortune", "fortune", "partedifortuna", "parsfortunae", "pof"] },
+  { name: "Vertex", glyph: "Vx", summary: "Incontri fatali e svolte", isAngle: true,
+    aliases: ["vertex", "vertice"] },
+];
+
+const ALL_BODY_DEFS: BodyDef[] = [...CORE_BODY_DEFS, ...EXTRA_BODY_DEFS];
+
+// Every known alias (normalized) → keeps unknown-body discovery from re-adding a
+// known body (e.g. an angle omitted for unknown-time charts).
+const KNOWN_ALIAS_SET = new Set<string>(
+  ALL_BODY_DEFS.flatMap((b) => b.aliases.map(normalizeKey)),
+);
+
+// Keys in natal_chart_data that are NOT placements — never treated as bodies.
+const METADATA_KEYS = new Set<string>([
+  "houses", "aspects", "housesystem", "housesystemname", "calculationdetails",
+  "planets", "midheaven",
+]);
+
+/** Does a value look like a placement (a sign or a numeric degree/position)? */
 // deno-lint-ignore no-explicit-any
-function extractPlanetList(chart: any): Array<Record<string, unknown>> {
+function looksLikePlacement(v: any): boolean {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return false;
+  const hasSign = typeof v.sign === "string" || typeof v.sign_name === "string";
+  const hasDeg = numOrNull(v.degree ?? v.deg ?? v.position ?? v.abs_pos) !== null;
+  return hasSign || hasDeg;
+}
+
+/** Find a body node by any of its aliases across object-keyed, array, and
+ * top-level shapes. Returns the node + the normalized source key it matched. */
+// deno-lint-ignore no-explicit-any
+function findBodyNode(chart: any, aliases: string[]): { node: any; srcKey: string } | null {
+  const want = new Set(aliases.map(normalizeKey));
+  // deno-lint-ignore no-explicit-any
+  const containers: Array<[string, any]> = [];
+  const planets = chart?.planets;
+  if (planets && typeof planets === "object" && !Array.isArray(planets)) {
+    for (const [k, v] of Object.entries(planets)) containers.push([k, v]);
+  }
+  if (Array.isArray(planets)) {
+    for (const v of planets) {
+      const nm = (v && typeof v === "object" && typeof v.name === "string") ? v.name : "";
+      containers.push([nm, v]);
+    }
+  }
+  if (chart && typeof chart === "object") {
+    for (const [k, v] of Object.entries(chart)) {
+      if (k === "planets") continue;
+      containers.push([k, v]);
+    }
+  }
+  for (const [k, v] of containers) {
+    if (!looksLikePlacement(v)) continue;
+    const nk = normalizeKey(k);
+    const nn = typeof v.name === "string" ? normalizeKey(v.name) : "";
+    if (want.has(nk) || (nn && want.has(nn))) return { node: v, srcKey: nk || nn };
+  }
+  return null;
+}
+
+/**
+ * Build planets[]: core planets Sun→Pluto, then additional bodies/points that
+ * are PRESENT in the cached chart, in a stable order, then any remaining unknown
+ * placement-like bodies alphabetically. Never throws; never duplicates a body;
+ * omits time-dependent angles when includeAngles is false (unknown-time charts).
+ */
+// deno-lint-ignore no-explicit-any
+function extractPlanetList(chart: any, includeAngles: boolean): Array<Record<string, unknown>> {
   if (!chart || typeof chart !== "object") return [];
-  return PLANET_ORDER.map((key) => {
-    const node = pickNode(chart, key);
-    if (!node) return null;
-    const sign = normalizeSignName(node.sign ?? node.sign_name);
-    return {
-      name: titleCase(key),
-      glyph: PLANET_GLYPH[key] ?? "",
-      sign,
-      degree: numOrNull(node.degree ?? node.deg),
-      house: numOrNull(node.house),
-      retrograde: typeof node.retrograde === "boolean" ? node.retrograde : null,
-      summary: PLANET_SUMMARY[key] ?? null,
-    };
-  }).filter(Boolean) as Array<Record<string, unknown>>;
+  const out: Array<Record<string, unknown>> = [];
+  const usedSrc = new Set<string>();
+
+  // deno-lint-ignore no-explicit-any
+  const toPlacement = (def: BodyDef, node: any) => ({
+    name: def.name,
+    glyph: def.glyph,
+    sign: normalizeSignName(node.sign ?? node.sign_name ?? node.signName),
+    degree: numOrNull(node.degree ?? node.deg ?? node.position),
+    house: numOrNull(node.house),
+    retrograde: typeof node.retrograde === "boolean" ? node.retrograde : null,
+    summary: def.summary,
+  });
+
+  // 1) Known bodies in stable order.
+  for (const def of ALL_BODY_DEFS) {
+    // Reserve aliases so unknown-discovery can never resurrect them.
+    for (const a of def.aliases) usedSrc.add(normalizeKey(a));
+    if (def.isAngle && !includeAngles) continue; // omit noon-fallback angles
+    const hit = findBodyNode(chart, def.aliases);
+    if (!hit) continue;
+    usedSrc.add(hit.srcKey);
+    out.push(toPlacement(def, hit.node));
+  }
+
+  // 2) Unknown bodies: remaining placement-like nodes not metadata/known.
+  const unknown: Array<Record<string, unknown>> = [];
+  const seen = new Set<string>();
+  // deno-lint-ignore no-explicit-any
+  const consider = (k: string, v: any) => {
+    const nk = normalizeKey(k || "");
+    const nn = (v && typeof v.name === "string") ? normalizeKey(v.name) : "";
+    if (!looksLikePlacement(v)) return;
+    if ((nk && (METADATA_KEYS.has(nk) || KNOWN_ALIAS_SET.has(nk) || usedSrc.has(nk))) ||
+        (nn && (KNOWN_ALIAS_SET.has(nn) || usedSrc.has(nn)))) return;
+    const dedupe = nk || nn;
+    if (!dedupe || seen.has(dedupe)) return;
+    seen.add(dedupe);
+    const src = (typeof v.name === "string" && v.name.trim()) ? v.name : k;
+    const display = src.replace(/[_\-]+/g, " ").trim()
+      .replace(/\b\w/g, (c: string) => c.toUpperCase());
+    unknown.push({
+      name: display,
+      glyph: "",
+      sign: normalizeSignName(v.sign ?? v.sign_name),
+      degree: numOrNull(v.degree ?? v.deg ?? v.position),
+      house: numOrNull(v.house),
+      retrograde: typeof v.retrograde === "boolean" ? v.retrograde : null,
+      summary: null,
+    });
+  };
+  const p = chart.planets;
+  if (p && typeof p === "object" && !Array.isArray(p)) {
+    for (const [k, v] of Object.entries(p)) consider(k, v);
+  }
+  if (Array.isArray(p)) {
+    for (const v of p) consider(typeof v?.name === "string" ? v.name : "", v);
+  }
+  for (const [k, v] of Object.entries(chart)) {
+    if (k === "planets") continue;
+    consider(k, v);
+  }
+  unknown.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+
+  return [...out, ...unknown];
 }
 
 // deno-lint-ignore no-explicit-any
@@ -285,7 +455,6 @@ serve(async (req) => {
     const sunSign = chartAvailable ? extractSunSign(chart) : null;
     const moonSign = chartAvailable ? extractMoonSign(chart) : null;
     const risingSign = chartAvailable ? extractAscendantSign(chart) : null;
-    const planets = chartAvailable ? extractPlanetList(chart) : [];
 
     const profileComplete = hasBirthDate && hasBirthTime && hasCoordinates;
 
@@ -299,6 +468,9 @@ serve(async (req) => {
     // A noon-fallback ascendant is not meaningful → omit the rising for unknown/
     // symbolic charts rather than present a misleading value.
     const showRising = chartAvailable && !unknownTime;
+
+    // Additional bodies included when present; angles omitted for unknown-time.
+    const planets = chartAvailable ? extractPlanetList(chart, !unknownTime) : [];
 
     const profileLevel = !hasBirthDate ? "missing"
       : (!hasBirthPlace || !hasCoordinates) ? "date_only"

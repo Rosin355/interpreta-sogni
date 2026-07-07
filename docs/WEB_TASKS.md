@@ -98,6 +98,9 @@ retrieval are still to be built.
         birth time; delegates to `calculate-natal-chart`; precision metadata on `profiles`) +
         precision-aware `get-astrology-profile` — vedi [`mobile-astrology-profile-creation-v1.md`](./mobile-astrology-profile-creation-v1.md).
         **Da deployare** + eseguire `docs/supabase-astrology-precision-fields-migration.sql`.
+  - [x] `get-astrology-profile` `planets[]` includes additional bodies when present
+        (Chiron/Lilith/nodes/angles/asteroids/Part of Fortune/Vertex + unknown; read-only,
+        alias-tolerant, angles omitted for unknown-time). **Da deployare.**
   - [ ] Phase 3: `get-current-transits` ("Cielo del momento")
 - [ ] `astrology-insight` Edge Function with KB-grounded context
 - [ ] Community moderation tools (report queue, soft-hide)

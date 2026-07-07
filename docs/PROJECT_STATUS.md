@@ -1,6 +1,6 @@
 # DreamAlchemist — Project Status
 
-> **Last Updated:** 2026-06-21 (Celeste astrology Phase 2: mobile `create-astrology-profile` + precision)
+> **Last Updated:** 2026-06-21 (Celeste: `get-astrology-profile` `planets[]` extended to additional bodies)
 > Update this file after every significant implementation pass.
 
 ## Current Milestone

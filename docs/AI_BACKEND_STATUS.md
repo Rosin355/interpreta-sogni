@@ -28,7 +28,7 @@
 - `generate-dream-image`
 - `calculate-natal-chart`
 - `check-astrological-transits`
-- `get-astrology-profile` (read-only normalizer of cached `profiles.natal_chart_data` for iOS Celeste — Big Three / Planets / profile completion + **precision** `profile_level`/`precision`/`*_reliable`/`notes`; **no provider call**, no DB writes, auth user self-read only; see [details](./astrology-profile-endpoint-v1.md))
+- `get-astrology-profile` (read-only normalizer of cached `profiles.natal_chart_data` for iOS Celeste — Big Three / Planets / profile completion + **precision** `profile_level`/`precision`/`*_reliable`/`notes`; `planets[]` now includes **additional bodies when present** (Chiron/Lilith/nodes/angles/asteroids/Part of Fortune/Vertex + unknown), alias-tolerant, angles omitted for unknown-time; **no provider call**, no DB writes, auth user self-read only; see [details](./astrology-profile-endpoint-v1.md))
 - `create-astrology-profile` (mobile natal-chart creation — exact/approximate/unknown birth time; delegates chart calc to `calculate-natal-chart`, persists precision metadata to `profiles`; auth user-only write, safe summary, no raw payload; see [details](./mobile-astrology-profile-creation-v1.md))
 - `transcribe-audio`
 - `speech-to-text-elevenlabs`
