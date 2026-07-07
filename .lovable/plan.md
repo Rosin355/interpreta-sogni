@@ -1,72 +1,74 @@
-## Goal
+## Root cause
 
-Abilitare l'upload PDF nella Knowledge Base admin: bucket Storage privato + policy RLS + UI admin per caricare PDF e creare la riga `ai_knowledge_sources` con `source_type='pdf'` e `storage_path`.
+Il dominio produzione `https://dreamalchemist.app` mostra schermo blu/vuoto perché:
 
-## Passi
+1. **Origine reale**: `POST https://…supabase.co/auth/v1/token?grant_type=refresh_token` risponde **522 (Cloudflare origin timeout)**. Una risposta 522 non contiene gli header `Access-Control-Allow-Origin`, quindi il browser la segnala come errore CORS. Il CORS è un sintomo, non la causa: è un problema temporaneo/di config dell'endpoint Auth di Supabase, non del nostro codice.
+2. **Perché diventa schermo blu**: in `src/hooks/useAuth.ts` il refresh fallito lancia un `TypeError: Failed to fetch`. La `Promise` di `supabase.auth.getSession()` va in `.catch(handleAuthError)`. `handleAuthError` fa `signOut()` (che tenta di nuovo il network e può rilanciare) e imposta `globalLoading = false` SOLO se il messaggio contiene "Refresh Token" o status 400/401. Un `TypeError` di rete non matcha → `globalLoading` resta `true` per sempre → `AppLayout` fa `if (loading) return null` → **schermo vuoto**.
 
-### 1. Bucket Supabase Storage
-Creare il bucket privato `knowledge-sources` via `supabase--storage_create_bucket` (name=`knowledge-sources`, public=false).
+Quindi la fix frontend giusta è: **rendere `useAuth` a prova di errore di rete**, in modo che qualunque fallimento del boot auth porti comunque `loading=false` e utente `null`, così l'app renderizza la landing/login pubblica invece di rimanere in bianco.
 
-### 2. Policy RLS su `storage.objects`
-Migration SQL (dal contenuto già documentato in `docs/supabase-knowledge-storage-migration.sql`):
-- `kb_admin_read` — SELECT admin
-- `kb_admin_insert` — INSERT admin
-- `kb_admin_update` — UPDATE admin
-- `kb_admin_delete` — DELETE admin
+## Piano di intervento
 
-Tutte gated da `bucket_id = 'knowledge-sources' AND public.is_admin(auth.uid())`. Edge Functions con service role bypassano RLS.
+### 1. Fix frontend resilienza (`src/hooks/useAuth.ts`)
 
-### 3. Componente UI admin: upload PDF
+- Riscrivere `handleAuthError` per **sempre** impostare `globalLoading = false` e `globalUser = null`, indipendentemente dal tipo di errore. Log conciso senza token/sessione.
+- `signOut()` racchiuso in try/catch: se offline o Supabase down, non deve rilanciare.
+- Chiamare `localStorage.removeItem` sulla chiave `sb-<ref>-auth-token` solo se lo status è 400/401 (refresh token invalido). In caso di errore di rete puro (522, TypeError) **non** cancellare la sessione: il token potrebbe essere ancora valido e verrà riprovato al prossimo evento auto-refresh.
+- Aggiungere un **timeout di sicurezza** (es. 4s) sul boot: se dopo 4s né la promise di `getSession()` né `onAuthStateChange` hanno risolto `globalLoading`, forzare `globalLoading = false` (utente resta `null`) così la UI mostra almeno la landing pubblica.
+- Nessun loop infinito: il retry lo gestisce già il client Supabase internamente; noi non aggiungiamo retry manuali.
 
-Nuovo file: `src/components/admin/KnowledgePdfUploadForm.tsx`
-- Input file (accept `application/pdf`, max ~50 MB lato client).
-- Campi metadata (riutilizzando lo stile di `KnowledgeSourceForm`): title, domain (select whitelistato), language (default `it`), author, origin, tags (comma-separated).
-- Flow al submit:
-  1. validazione client (file presente, title min 3, domain whitelistato, size limit).
-  2. `supabase.storage.from('knowledge-sources').upload(path, file)` dove `path = <domain>/<timestamp>-<slug-title>.pdf`. `upsert: false`.
-  3. al success, `supabase.functions.invoke('ingest-knowledge-source', { body: { source_type: 'pdf', storage_path, title, domain, language, author, origin, tags } })`.
-  4. su errore upload → toast + abort (no riga DB).
-  5. su errore Edge Function → tentativo `storage.remove([path])` di cleanup + toast.
-- Barra di progresso (Supabase JS v2 non emette progress nativo → mostrare stato `Caricamento... / Registrazione...`).
-- Privacy warning in fondo, coerente con `KnowledgeSourceForm`.
+### 2. Nessuna modifica al client (`src/integrations/supabase/client.ts`)
 
-### 4. Integrazione in `AdminKnowledgeBase.tsx`
-Sostituire il singolo dialog "Nuova fonte" con un dialog a due tab/segmenti:
-- Tab "Testo manuale" → `KnowledgeSourceForm` esistente.
-- Tab "Documento PDF" → nuovo `KnowledgePdfUploadForm`.
+`autoRefreshToken: true` va bene. Nessun override di `fetch`, nessun cambio di storage.
 
-Entrambi triggerano lo stesso `handleCreated` → chiude dialog + refresh lista.
+### 3. Nessuna modifica a: Edge Functions, migrazioni, iOS, provider AI, Astrologer, secrets.
 
-Componente Tabs di shadcn già presente in `src/components/ui/tabs.tsx` (lo riusiamo).
+### 4. Verifica locale
 
-### 5. Aggiornamento `KnowledgeSourcesList` (minimo)
-Verificare che la lista mostri il `source_type`. Se non lo mostra già, aggiungere un piccolo badge "PDF" / "Testo" accanto al titolo. (Solo se la modifica è banale; altrimenti deferire.)
+- `npm run build` per confermare compilazione.
+- Typecheck (`tsgo` se disponibile) sui file toccati.
+- Test manuale: simulare boot con `localStorage` "sporco" per confermare che la landing renderizza invece dello schermo bianco (facoltativo, coperto dalla logica).
 
-### 6. Documentazione
-- `docs/admin-knowledge-base-v1.md` — spostare la sezione "Pianificato — Upload PDF" da TODO a "Implementato (v1)", con nota sui limiti (no parsing, no progress nativo).
-- `docs/WEB_TASKS.md` — spuntare gli step "creazione bucket", "policy RLS", "admin UI form upload PDF". Lasciare aperti: `process-knowledge-source` PDF branch, estrazione testo, embeddings.
-- `docs/PROJECT_STATUS.md` — aggiornare `Last Updated` e aggiungere riga "Admin PDF upload UI" in Completed.
+### 5. Config Supabase Dashboard (report, nessuna modifica automatica)
 
-Tutti i doc restano < 300 righe.
+L'errore 522 **non** dipende da Site URL/Redirect URLs (quelli darebbero errori 400/403, non 522). Tuttavia, per igiene, verificare in dashboard che siano presenti:
 
-## Out of scope (esplicito)
+- **Site URL**: `https://dreamalchemist.app`
+- **Redirect URLs** (Additional):
+  - `https://dreamalchemist.app/**`
+  - `https://www.dreamalchemist.app/**`
+  - `https://interpreta-sogni.lovable.app/**`
+  - `https://id-preview--579b4e62-1239-4277-a4c7-d1bec80def7d.lovable.app/**`
 
-- Nessuna estrazione testo PDF.
-- Nessun chunking / embedding lato server in questa pass.
-- Nessuna modifica iOS.
-- Nessuna chiamata AI.
-- Nessuna modifica a `ingest-knowledge-source` (già pronto per `source_type='pdf'` dalla pass precedente).
+Se il 522 persiste dopo il fix frontend (l'app non è più bianca ma il login continua a fallire), va aperto un ticket a Supabase: 522 = origin timeout lato loro, non risolvibile da codice cliente. Nessuna impostazione CORS lato Supabase Auth è esposta in dashboard (gestita automaticamente).
 
-## Note tecniche
+### 6. Commit
 
-- L'upload usa l'anon key + JWT utente: le nuove policy RLS richiedono `is_admin(auth.uid())` → solo admin possono uploadare. Coerente con il pattern esistente.
-- Il `storage_path` salvato in DB è il path relativo al bucket (es. `alchemy/1717420000-jung-psicologia.pdf`), non l'URL pubblico.
-- Non viene generato alcun signed URL in questa pass: i file verranno letti server-side da `process-knowledge-source` con service role.
+Solo `src/hooks/useAuth.ts`. Messaggio: `fix: handle Supabase auth refresh failures gracefully`. Nessun push/deploy.
 
-## Report finale (dopo build mode)
+## Dettagli tecnici (per revisione)
 
-- bucket creato? sì/no
-- migration policy applicata? sì/no
-- file aggiunti / modificati
-- conferma: no AI calls, no iOS, no estrazione PDF
-- next step: implementare il branch PDF di `process-knowledge-source`
+```text
+useAuth boot flow (nuovo):
+
+  getSession() ──ok──▶ set user, loading=false
+        │
+        ├─err(network/522/TypeError)──▶ log warn, loading=false, user=null (KEEP local session)
+        │
+        └─err(400/401 refresh invalid)─▶ signOut()(try/catch), clear, loading=false
+
+  Safety timeout 4s:
+        loading===true dopo 4s ──▶ force loading=false (user=null)
+
+  onAuthStateChange: invariato, continua a aggiornare stato.
+```
+
+## Deliverables finali del report post-implementazione
+
+- Root cause (già sopra)
+- File modificati: `src/hooks/useAuth.ts`
+- Frontend fixato: sì
+- Config dashboard da aggiornare: verificare Site/Redirect URLs (probabilmente già ok; 522 non è config)
+- Build/typecheck: risultati
+- Commit hash
+- Nessuna modifica iOS / migrazioni / secrets stampati / Edge Functions / AI providers
