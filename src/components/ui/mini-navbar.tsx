@@ -37,7 +37,7 @@ export function MiniNavbar() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [headerShapeClass, setHeaderShapeClass] = useState('rounded-full');
-  const shapeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const shapeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const goTo = (href: string) => (e: React.MouseEvent) => {
     e.preventDefault();
