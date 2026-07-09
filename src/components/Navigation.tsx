@@ -9,11 +9,20 @@ const Navigation = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Initial check
+    // Initial check. Must never leave `loading` stuck true: if the auth
+    // network call fails (e.g. Supabase 522 / CORS "Load failed"), treat the
+    // visitor as a guest and still render the public navbar/login CTA.
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setLoading(false);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.warn("[Navigation] auth check failed, showing guest navbar:", message);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
     };
 
     checkUser();
