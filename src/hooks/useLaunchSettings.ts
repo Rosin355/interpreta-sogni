@@ -14,7 +14,7 @@ export type LaunchSettingsRow = {
 const parseValue = (v: unknown): boolean =>
   v === true || v === "true" ? true : v === false || v === "false" ? false : true;
 
-export const useLaunchSettings = () => {
+export const useLaunchSettings = ({ realtime = false }: { realtime?: boolean } = {}) => {
   const [data, setData] = useState<LaunchSettingsRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,12 +49,15 @@ export const useLaunchSettings = () => {
         updated_at: row?.updated_at ?? null,
         updated_by: row?.updated_by ?? null,
       };
-      const enriched = await enrichEmail(next);
-      lastGoodRef.current = enriched;
-      setData(enriched);
+      // Only admin/realtime callers need updated_by's email (a 2nd query on
+      // `profiles`). App-wide "lite" clients only need the boolean `enabled`,
+      // so keep the profiles lookup off the hot path.
+      const finalRow = realtime ? await enrichEmail(next) : next;
+      lastGoodRef.current = finalRow;
+      setData(finalRow);
     }
     setLoading(false);
-  }, [enrichEmail]);
+  }, [enrichEmail, realtime]);
 
   useEffect(() => {
     fetchFlag();
@@ -68,6 +71,16 @@ export const useLaunchSettings = () => {
     };
     window.addEventListener(EVENT, onLocal);
 
+    // App-wide "lite" clients must NOT keep an app-wide Realtime subscription:
+    // it amplifies load on an already-struggling backend. Realtime is opt-in
+    // (admin only). By default the hook does a one-time fetch on mount plus the
+    // same-tab CustomEvent listener above.
+    if (!realtime) {
+      return () => {
+        window.removeEventListener(EVENT, onLocal);
+      };
+    }
+
     const channel = supabase
       .channel("app_settings_launch")
       .on(
@@ -80,8 +93,10 @@ export const useLaunchSettings = () => {
       )
       .subscribe((status: string) => {
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          // Do NOT refetch here. The Supabase client auto-reconnects on its
+          // own; piling REST calls on top of a struggling backend caused a
+          // retry storm. Surface the error only.
           setError("Connessione realtime interrotta — aggiornamento manuale necessario");
-          fetchFlag();
         }
       });
 
@@ -89,7 +104,7 @@ export const useLaunchSettings = () => {
       window.removeEventListener(EVENT, onLocal);
       supabase.removeChannel(channel);
     };
-  }, [fetchFlag]);
+  }, [fetchFlag, realtime]);
 
   const setFlag = useCallback(
     async (next: boolean): Promise<{ ok: boolean; error?: string }> => {
