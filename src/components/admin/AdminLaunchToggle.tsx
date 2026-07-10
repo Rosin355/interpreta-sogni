@@ -28,7 +28,7 @@ export const AdminLaunchToggle = () => {
     updatedAt,
     updatedBy,
     updatedByLabel,
-  } = useLaunchSettings();
+  } = useLaunchSettings({ realtime: true });
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
 
