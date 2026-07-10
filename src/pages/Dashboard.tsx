@@ -43,7 +43,14 @@ const Dashboard = () => {
   usePageLoading(loading);
   
   useEffect(() => {
-    if (!user) return;
+    // Auth has already resolved by the time this protected page mounts
+    // (AppLayout gates rendering on the auth loading state). If there is
+    // no user, the session is missing/expired: send them to login instead
+    // of leaving a nav-less page stuck on the loading state.
+    if (!user) {
+      navigate("/auth?mode=login", { replace: true });
+      return;
+    }
 
     const initDashboard = async () => {
       // Check cache
@@ -59,7 +66,7 @@ const Dashboard = () => {
     };
 
     initDashboard();
-  }, [user]);
+  }, [user, navigate]);
 
   const updateStatsAndInsights = (allData: any[]) => {
     const now = new Date();
