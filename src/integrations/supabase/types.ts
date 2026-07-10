@@ -796,12 +796,16 @@ export type Database = {
           birth_longitude: number | null
           birth_place_name: string | null
           birth_time: string | null
+          birth_time_accuracy: string | null
+          birth_time_source: string | null
           birth_timezone: string | null
           created_at: string | null
           gender: string | null
           has_completed_onboarding: boolean
           id: string
           natal_chart_data: Json | null
+          natal_chart_notes: Json | null
+          natal_chart_precision: string | null
           natal_chart_svg: string | null
           natal_context: string | null
           updated_at: string | null
@@ -816,12 +820,16 @@ export type Database = {
           birth_longitude?: number | null
           birth_place_name?: string | null
           birth_time?: string | null
+          birth_time_accuracy?: string | null
+          birth_time_source?: string | null
           birth_timezone?: string | null
           created_at?: string | null
           gender?: string | null
           has_completed_onboarding?: boolean
           id: string
           natal_chart_data?: Json | null
+          natal_chart_notes?: Json | null
+          natal_chart_precision?: string | null
           natal_chart_svg?: string | null
           natal_context?: string | null
           updated_at?: string | null
@@ -836,12 +844,16 @@ export type Database = {
           birth_longitude?: number | null
           birth_place_name?: string | null
           birth_time?: string | null
+          birth_time_accuracy?: string | null
+          birth_time_source?: string | null
           birth_timezone?: string | null
           created_at?: string | null
           gender?: string | null
           has_completed_onboarding?: boolean
           id?: string
           natal_chart_data?: Json | null
+          natal_chart_notes?: Json | null
+          natal_chart_precision?: string | null
           natal_chart_svg?: string | null
           natal_context?: string | null
           updated_at?: string | null
@@ -1122,6 +1134,26 @@ export type Database = {
           p_target_user_id?: string
         }
         Returns: string
+      }
+      match_knowledge_chunks: {
+        Args: {
+          filter_domain?: string
+          filter_language?: string
+          match_count: number
+          match_threshold: number
+          query_embedding: string
+        }
+        Returns: {
+          chunk_id: string
+          chunk_index: number
+          content: string
+          similarity: number
+          source_domain: string
+          source_id: string
+          source_language: string
+          source_title: string
+          token_count: number
+        }[]
       }
       update_user_streak: {
         Args: { p_dream_date: string; p_user_id: string }
