@@ -210,6 +210,10 @@ export class ElevenLabsTTS {
   private onProgressCallback?: (progress: number) => void;
   private onGenerationProgressCallback?: (current: number, total: number) => void;
   private onTimeUpdateCallback?: (currentTime: number, duration: number) => void;
+  private onErrorCallback?: () => void;
+  // Hash (text + voiceId) of the audio currently loaded in `this.audio`, so a
+  // replay of the same text reuses the element instead of re-fetching.
+  private loadedTextHash: string | null = null;
 
   setOnEndedCallback(callback: () => void): void {
     this.onEndedCallback = callback;
@@ -225,6 +229,10 @@ export class ElevenLabsTTS {
 
   setOnTimeUpdateCallback(callback: (currentTime: number, duration: number) => void): void {
     this.onTimeUpdateCallback = callback;
+  }
+
+  setOnErrorCallback(callback: () => void): void {
+    this.onErrorCallback = callback;
   }
 
   setPlaybackRate(rate: number): void {
@@ -294,14 +302,30 @@ export class ElevenLabsTTS {
 
   async speak(text: string, voiceId: string = 'cnDF6tD6CWVBeLKYlCXW'): Promise<void> {
     try {
-      this.stop();
-
       if (!text || text.trim().length === 0) {
         throw new Error('Testo vuoto');
       }
 
-      this.currentText = text;
       const textHash = hashText(text + voiceId);
+
+      // Instant replay: the same audio is already loaded in this.audio (e.g.
+      // after a stop or a natural end). Restart from 0:00 by reusing the
+      // existing element — no cache lookup, no new object URL, no TTS request.
+      if (this.audio && this.loadedTextHash === textHash) {
+        this.currentText = text;
+        this.audio.currentTime = 0;
+        this.audio.playbackRate = this.playbackRate;
+        await this.audio.play();
+        this.isCurrentlyPlaying = true;
+        this.isCurrentlyPaused = false;
+        console.log('ElevenLabsTTS: Replay istantaneo da 0:00');
+        return;
+      }
+
+      // Different text (or first play): release the previously loaded audio +
+      // object URL before loading the new one.
+      this.disposeAudio();
+      this.currentText = text;
 
       // Check memory cache first
       if (audioCache.has(textHash)) {
@@ -311,17 +335,7 @@ export class ElevenLabsTTS {
           description: "Audio trovato in cache, riproduzione immediata",
           duration: 2000,
         });
-        const cachedBlob = audioCache.get(textHash)!;
-        this.currentAudioBlob = cachedBlob;
-        const audioUrl = URL.createObjectURL(cachedBlob);
-        
-        this.audioUrl = audioUrl;
-        this.audio = new Audio(audioUrl);
-        this.audio.playbackRate = this.playbackRate;
-        this.setupAudioListeners();
-        await this.audio.play();
-        this.isCurrentlyPlaying = true;
-        this.isCurrentlyPaused = false;
+        await this.playBlob(audioCache.get(textHash)!, textHash);
         console.log('ElevenLabsTTS: Riproduzione da cache avviata');
         return;
       }
@@ -337,16 +351,7 @@ export class ElevenLabsTTS {
         });
         // Also save to memory cache for faster access
         audioCache.set(textHash, cachedBlob);
-        this.currentAudioBlob = cachedBlob;
-        
-        const audioUrl = URL.createObjectURL(cachedBlob);
-        this.audioUrl = audioUrl;
-        this.audio = new Audio(audioUrl);
-        this.audio.playbackRate = this.playbackRate;
-        this.setupAudioListeners();
-        await this.audio.play();
-        this.isCurrentlyPlaying = true;
-        this.isCurrentlyPaused = false;
+        await this.playBlob(cachedBlob, textHash);
         console.log('ElevenLabsTTS: Riproduzione da IndexedDB avviata');
         return;
       }
@@ -425,32 +430,22 @@ export class ElevenLabsTTS {
 
       // Concatenate all audio blobs
       const combinedBlob = new Blob(audioBlobs, { type: 'audio/mpeg' });
-      this.currentAudioBlob = combinedBlob;
-      
+
       toast({
         title: "Salvataggio audio",
         description: "Audio salvato nella cache locale per riproduzione offline",
         duration: 2000,
       });
-      
+
       // Save to memory cache
       audioCache.set(textHash, combinedBlob);
       console.log('ElevenLabsTTS: Audio salvato in cache memoria');
-      
+
       // Save to IndexedDB for persistence
       await saveToIndexedDB(textHash, combinedBlob);
       console.log('ElevenLabsTTS: Audio salvato in IndexedDB');
-      
-      const audioUrl = URL.createObjectURL(combinedBlob);
-      this.audioUrl = audioUrl;
 
-      this.audio = new Audio(audioUrl);
-      this.audio.playbackRate = this.playbackRate;
-      this.setupAudioListeners();
-      await this.audio.play();
-      this.isCurrentlyPlaying = true;
-      this.isCurrentlyPaused = false;
-
+      await this.playBlob(combinedBlob, textHash);
       console.log('ElevenLabsTTS: Riproduzione avviata');
 
     } catch (error) {
@@ -466,6 +461,25 @@ export class ElevenLabsTTS {
     }
   }
 
+  /**
+   * Loads a blob into a fresh audio element and starts playback from 0:00.
+   * Records the textHash so a later replay of the same text reuses this element
+   * instead of re-fetching. Assumes any previous element was already released
+   * via disposeAudio().
+   */
+  private async playBlob(blob: Blob, textHash: string): Promise<void> {
+    this.currentAudioBlob = blob;
+    const audioUrl = URL.createObjectURL(blob);
+    this.audioUrl = audioUrl;
+    this.audio = new Audio(audioUrl);
+    this.audio.playbackRate = this.playbackRate;
+    this.loadedTextHash = textHash;
+    this.setupAudioListeners();
+    await this.audio.play();
+    this.isCurrentlyPlaying = true;
+    this.isCurrentlyPaused = false;
+  }
+
   private setupAudioListeners(): void {
     if (!this.audio) return;
 
@@ -473,7 +487,10 @@ export class ElevenLabsTTS {
       console.log('ElevenLabsTTS: Riproduzione terminata');
       this.isCurrentlyPlaying = false;
       this.isCurrentlyPaused = false;
-      this.cleanup();
+      // Keep the element + object URL alive and rewind to 0 so pressing play
+      // again replays instantly from the start (no re-fetch). Released on
+      // dispose() (unmount) or when a different text is played.
+      if (this.audio) this.audio.currentTime = 0;
       if (this.onEndedCallback) {
         this.onEndedCallback();
       }
@@ -483,6 +500,9 @@ export class ElevenLabsTTS {
       console.error('ElevenLabsTTS: Errore riproduzione audio', e);
       this.isCurrentlyPlaying = false;
       this.isCurrentlyPaused = false;
+      if (this.onErrorCallback) {
+        this.onErrorCallback();
+      }
     };
 
     this.audio.ontimeupdate = () => {
@@ -515,13 +535,15 @@ export class ElevenLabsTTS {
   }
 
   stop(): void {
+    this.isCurrentlyPlaying = false;
+    this.isCurrentlyPaused = false;
     if (this.audio) {
       this.audio.pause();
+      // Reset position but KEEP the element + object URL so the next play
+      // replays instantly from 0:00 without re-fetching. Released on dispose()
+      // (unmount) or when a different text is played.
       this.audio.currentTime = 0;
-      this.cleanup();
-      this.isCurrentlyPlaying = false;
-      this.isCurrentlyPaused = false;
-      console.log('ElevenLabsTTS: Stop');
+      console.log('ElevenLabsTTS: Stop (posizione azzerata, audio mantenuto per replay)');
     }
   }
 
@@ -539,15 +561,32 @@ export class ElevenLabsTTS {
     }
   }
 
-  private cleanup(): void {
-    if (this.audioUrl) {
-      URL.revokeObjectURL(this.audioUrl);
-      this.audioUrl = null;
-    }
+  /**
+   * Releases the current audio element and revokes its object URL. Called when
+   * switching to a different text and by dispose(). Does NOT touch the cached
+   * blob (memory + IndexedDB), so the audio can be reloaded later without a new
+   * TTS request.
+   */
+  private disposeAudio(): void {
     if (this.audio) {
       this.audio.pause();
       this.audio = null;
     }
+    if (this.audioUrl) {
+      URL.revokeObjectURL(this.audioUrl);
+      this.audioUrl = null;
+    }
+    this.loadedTextHash = null;
+  }
+
+  /**
+   * Full teardown for component unmount: stops playback and releases the audio
+   * element + object URL. The cached blob is preserved for future playback.
+   */
+  dispose(): void {
+    this.isCurrentlyPlaying = false;
+    this.isCurrentlyPaused = false;
+    this.disposeAudio();
   }
 
   /**

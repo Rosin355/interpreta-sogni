@@ -55,8 +55,26 @@ export const TTSButton = ({
       setDuration(total);
     });
 
+    tts.setOnErrorCallback(() => {
+      // Keep the button/UI in sync if the audio element errors mid-playback.
+      setIsPlaying(false);
+      setIsPaused(false);
+      setIsLoading(false);
+      setProgress(0);
+      setGenerationProgress(null);
+      setCurrentTime(0);
+      setDuration(0);
+      toast({
+        title: "Errore audio",
+        description: "Riproduzione interrotta. Riprova.",
+        variant: "destructive",
+      });
+    });
+
     return () => {
-      tts.stop();
+      // Full teardown on unmount: releases the audio element + object URL.
+      // (stop() intentionally keeps them alive for instant replay.)
+      tts.dispose();
     };
   }, [tts]);
 
