@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.75.1";
 import { calculateDreamPhase } from "../_shared/alchemical-calculator.ts";
+import { RateLimiter } from "../_shared/rate-limiter.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -307,7 +308,10 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      throw new Error('Missing authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Autenticazione richiesta', success: false }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const supabase = createClient(
@@ -322,7 +326,41 @@ serve(async (req) => {
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
-      throw new Error('Unauthorized');
+      return new Response(
+        JSON.stringify({ error: 'Autenticazione non valida', success: false }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Rate limiting — stricter than interpret-dream (50/h). Each call makes up to
+    // 2 PAID RapidAPI requests (transit + moon phase) plus 1-2 AI calls, so we
+    // cap at 20/hour per user to bound third-party cost. Fails open if the
+    // limiter backend is unavailable (see RateLimiter.checkLimit).
+    const rateLimiter = new RateLimiter();
+    const rateLimit = await rateLimiter.checkLimit(
+      user.id,
+      'interpret-dream-with-astrology',
+      { maxRequests: 20, windowSeconds: 3600 }
+    );
+
+    if (!rateLimit.allowed) {
+      const resetDate = new Date(rateLimit.resetAt);
+      return new Response(
+        JSON.stringify({
+          error: 'Limite di richieste raggiunto. Riprova più tardi.',
+          resetAt: resetDate.toISOString(),
+          success: false
+        }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': resetDate.toISOString()
+          }
+        }
+      );
     }
 
     const { dreamId, dreamContent, dreamTags, dreamMood } = await req.json();
@@ -337,16 +375,35 @@ serve(async (req) => {
       throw new Error('Dream ID is required');
     }
 
-    // Carica il sogno per ottenere la data di creazione
-    const { data: dream, error: dreamError } = await supabase
+    // Carica il sogno con un client service-role, così il controllo di
+    // proprietà qui sotto è autoritativo e non dipende solo dalla RLS.
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const { data: dream, error: dreamError } = await supabaseAdmin
       .from('dreams')
-      .select('created_at')
+      .select('user_id, created_at')
       .eq('id', dreamId)
       .single();
 
     if (dreamError || !dream) {
       console.error('Error loading dream:', dreamError);
-      throw new Error('Dream not found');
+      return new Response(
+        JSON.stringify({ error: 'Sogno non trovato', success: false }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Controllo esplicito di proprietà: non affidarsi solo alla RLS per una
+    // funzione che riscrive l'interpretazione sulla riga del sogno.
+    if (dream.user_id !== user.id) {
+      console.error('Ownership verification failed:', { dreamUserId: dream.user_id, requestUserId: user.id });
+      return new Response(
+        JSON.stringify({ error: 'Non sei autorizzato ad interpretare questo sogno', success: false }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Carica il profilo con i dati del tema natale e del contesto
