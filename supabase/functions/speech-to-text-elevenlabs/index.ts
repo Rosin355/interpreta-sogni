@@ -152,7 +152,29 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
+      // Log the upstream detail server-side only. errorText never contains our
+      // API key (ElevenLabs does not echo the key back); do NOT put it in the
+      // client response.
       console.error('[STT] ElevenLabs STT API error:', response.status, errorText);
+
+      // Upstream auth failure = our ElevenLabs key is invalid/misconfigured
+      // (401/403, or a 400 saying the key id was used as the key, or an
+      // invalid_api_key body). Surface a clean, generic message; never leak
+      // the upstream payload to the client.
+      const isUpstreamAuthError =
+        response.status === 401 ||
+        response.status === 403 ||
+        (response.status === 400 &&
+          (errorText.includes('api_key_id_used_as_api_key') ||
+            errorText.includes('invalid_api_key')));
+
+      if (isUpstreamAuthError) {
+        return new Response(
+          JSON.stringify({ errorCode: 'UPSTREAM_AUTH', error: 'Servizio vocale non disponibile. Contatta l\'assistenza.' }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       if (response.status === 429) {
         const { notifyQuotaToAdmins } = await import("../_shared/error-response.ts");
         notifyQuotaToAdmins({
@@ -162,12 +184,12 @@ serve(async (req) => {
           technicalMessage: `ElevenLabs STT 429: ${errorText}`,
         }).catch(() => {});
         return new Response(
-          JSON.stringify({ errorCode: 'STT_QUOTA_EXCEEDED', error: `ElevenLabs STT quota: ${errorText}` }),
+          JSON.stringify({ errorCode: 'STT_QUOTA_EXCEEDED', error: 'Servizio vocale temporaneamente non disponibile per limite di utilizzo. Riprova più tardi.' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       return new Response(
-        JSON.stringify({ errorCode: 'UPSTREAM_UNAVAILABLE', error: `ElevenLabs STT ${response.status}: ${errorText}` }),
+        JSON.stringify({ errorCode: 'UPSTREAM_UNAVAILABLE', error: 'Servizio vocale momentaneamente non disponibile. Riprova tra poco.' }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
