@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { getUserFacingMessage } from "@/utils/edge-error-codes";
 
 // Static cache for generated audio
 const audioCache = new Map<string, Blob>();
@@ -386,16 +387,31 @@ export class ElevenLabsTTS {
           }
         });
 
-        if (error) {
-          // Check for 401 specifically
-          const errMsg = error?.message || '';
-          if (errMsg.includes('non-2xx') || errMsg.includes('401') || errMsg.includes('Unauthorized')) {
-            // Try to read the response body for details
-            const bodyError = (error as any)?.context?.body?.error || '';
-            if (bodyError.toLowerCase().includes('sessione') || errMsg.includes('401')) {
-              throw new Error('Devi effettuare l\'accesso per usare la lettura audio.');
-            }
+        if (error || data?.errorCode) {
+          // Read the structured { errorCode, error } the edge function returns.
+          // supabase.functions.invoke exposes the error body as a Response on
+          // error.context, so parse that (not error.message, which is only the
+          // generic "non-2xx status code").
+          const parsed = data?.errorCode
+            ? { errorCode: data.errorCode as string, status: undefined as number | undefined }
+            : await this.extractInvokeError(error);
+
+          // The function's own 401 (expired user session) — distinct from an
+          // upstream ElevenLabs key failure (UPSTREAM_AUTH).
+          if (parsed.status === 401 && parsed.errorCode !== 'UPSTREAM_AUTH') {
+            throw new Error('Devi effettuare l\'accesso per usare la lettura audio.');
           }
+
+          if (parsed.errorCode) {
+            // Neutral, user-safe message per code (never raw upstream detail).
+            throw new Error(
+              getUserFacingMessage(parsed.errorCode, {
+                fallback: 'Servizio audio temporaneamente non disponibile. Riprova tra poco.',
+              })
+            );
+          }
+
+          // Nothing parseable → generic fallback.
           throw this.mapErrorToUserFriendly(error);
         }
 
@@ -534,8 +550,31 @@ export class ElevenLabsTTS {
     }
   }
 
-  private mapErrorToUserFriendly(error: any): Error {
-    const msg = error?.message || error?.context?.body?.error || String(error);
+  /**
+   * Extracts the structured { errorCode, error } body from a
+   * supabase.functions.invoke error. The body is exposed as a Response on
+   * error.context; clone() so we never consume the original stream. Returns the
+   * HTTP status too, so callers can tell a user-session 401 from an upstream
+   * failure. Never returns raw upstream detail — only the errorCode.
+   */
+  private async extractInvokeError(
+    error: unknown
+  ): Promise<{ errorCode?: string; status?: number }> {
+    const ctx = (error as { context?: Response })?.context;
+    const status: number | undefined = ctx?.status;
+    if (ctx && typeof ctx.clone === 'function') {
+      try {
+        const body = (await ctx.clone().json()) as { errorCode?: string };
+        return { errorCode: body?.errorCode, status };
+      } catch {
+        // Body was not JSON — fall through to status-only.
+      }
+    }
+    return { status };
+  }
+
+  private mapErrorToUserFriendly(error: unknown): Error {
+    const msg = (error as { message?: string })?.message || String(error);
     return new Error(this.getUserFriendlyMessage(msg));
   }
 

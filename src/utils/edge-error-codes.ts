@@ -10,6 +10,7 @@ export type EdgeErrorCode =
   | "UNAUTHORIZED"
   | "NETWORK_ERROR"
   | "UPSTREAM_UNAVAILABLE"
+  | "UPSTREAM_AUTH"
   | "INTERNAL_ERROR";
 
 // Codici legati a quote/limiti di servizi terzi (messaggio generico per l'utente)
@@ -62,6 +63,8 @@ export const getUserFacingMessage = (
       return "Problema di connessione. Verifica la rete e riprova.";
     case "UPSTREAM_UNAVAILABLE":
       return "Il servizio è momentaneamente irraggiungibile. Riprova tra poco.";
+    case "UPSTREAM_AUTH":
+      return "Servizio vocale non disponibile. Contatta l'assistenza.";
     default:
       return (
         fallback ||
