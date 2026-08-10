@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.75.1";
-import { calculateDreamPhase } from "../_shared/alchemical-calculator.ts";
+import { computeDreamPhase, extractPhaseFromInterpretation } from "../_shared/alchemical-calculator.ts";
 import { RateLimiter } from "../_shared/rate-limiter.ts";
+import { captureDreamSymbols } from "../_shared/symbol-extraction.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -592,7 +593,7 @@ REGOLE:
 - Se il sogno è misto, riconosci la fase dominante e cita eventuali aperture di un'altra fase
 
 SEZIONE "✦ ALCHIMIA" (OBBLIGATORIA in chiusura):
-Concludi sempre con un paragrafo "✦ Alchimia" in cui dichiari la fase dominante (Nigredo / Albedo / Rubedo) motivandola con i simboli precisi del sogno, riconosci eventuali aperture di un'altra fase, ed espandi liberamente con ciò che ritieni più utile al sognatore (significato della fase nel suo percorso, cosa chiede di integrare, suggerimenti di consapevolezza). Se la fase è Nigredo, ricorda che non è un giudizio negativo ma indifferenziazione (Viveka) necessaria alla trasformazione.
+Concludi sempre con un paragrafo "✦ Alchimia" in cui dichiari la fase dominante — scrivi SOLTANTO il nome della fase, una sola tra Nigredo, Albedo o Rubedo, da solo e SENZA ripetere l'elenco delle opzioni — motivandola con i simboli precisi del sogno, riconosci eventuali aperture di un'altra fase, ed espandi liberamente con ciò che ritieni più utile al sognatore (significato della fase nel suo percorso, cosa chiede di integrare, suggerimenti di consapevolezza). Se la fase è Nigredo, ricorda che non è un giudizio negativo ma indifferenziazione (Viveka) necessaria alla trasformazione.
 
 ISTRUZIONI:
 1. Interpreta il sogno usando simbolismo, archetipi junghiani e psicologia dei sogni
@@ -628,7 +629,7 @@ Immagini: campi di grano, sole molto lucente, arcobaleno, nuvole paradisiache, a
 Usa questo lessico come SEGNALE, mai come verdetto: pesa ogni simbolo insieme al tono emotivo e alla narrazione del sogno; se il materiale è misto, motiva la fase dominante e cita eventuali aperture di un'altra fase.
 
 SEZIONE "✦ ALCHIMIA" (OBBLIGATORIA in chiusura):
-Concludi sempre con un paragrafo "✦ Alchimia" in cui dichiari la fase dominante motivandola con i simboli del sogno, riconosci eventuali aperture di un'altra fase, ed espandi liberamente con ciò che ritieni più utile al sognatore (significato nel percorso, cosa chiede di integrare, spunti di consapevolezza). Se Nigredo, ricorda che è indifferenziazione (Viveka), non un giudizio negativo.
+Concludi sempre con un paragrafo "✦ Alchimia" in cui dichiari la fase dominante — scrivi SOLTANTO il nome della fase (una sola tra Nigredo, Albedo o Rubedo), senza elencare le opzioni — motivandola con i simboli del sogno, riconosci eventuali aperture di un'altra fase, ed espandi liberamente con ciò che ritieni più utile al sognatore (significato nel percorso, cosa chiede di integrare, spunti di consapevolezza). Se Nigredo, ricorda che è indifferenziazione (Viveka), non un giudizio negativo.
 
 ISTRUZIONI:
 1. Interpreta il sogno in modo profondo e personale
@@ -748,15 +749,29 @@ Riassunto (max 500 caratteri):`;
       }
     }
 
-    // Calcola la fase alchemica
+    // Fase alchemica — stessa precedenza di interpret-dream: vince la fase che
+    // il modello ha DICHIARATO nella sezione "✦ Alchimia" (così il valore salvato
+    // non contraddice il testo letto dall'utente); altrimenti l'euristica. Sui
+    // casi ciechi (segnale basso o pareggio) NON si ripiega su nigredo: si salva
+    // null e si logga, per non gonfiare la distribuzione verso la Nigredo.
     console.log('Calculating alchemical phase...');
-    const alchemicalPhase = calculateDreamPhase({
-      content: dreamContent,
-      mood: dreamMood,
-      tags: dreamTags,
-      interpretation: interpretation
-    });
-    console.log(`Alchemical phase calculated: ${alchemicalPhase}`);
+    const declaredPhase = extractPhaseFromInterpretation(interpretation);
+    let alchemicalPhase = declaredPhase;
+    let phaseSource = 'interpretation';
+    if (!alchemicalPhase) {
+      const heuristic = computeDreamPhase({
+        content: dreamContent,
+        mood: dreamMood,
+        tags: dreamTags,
+        interpretation: interpretation
+      });
+      alchemicalPhase = heuristic.phase;
+      phaseSource = heuristic.blind ? `heuristic_blind:${heuristic.reason}` : 'heuristic';
+      if (heuristic.blind) {
+        console.warn(`ALCHEMICAL_PHASE_NULL function=interpret-dream-with-astrology reason=${heuristic.reason}`);
+      }
+    }
+    console.log(`Alchemical phase: ${alchemicalPhase ?? 'null'} source=${phaseSource}`);
 
     // Salva nel database
     console.log('Saving interpretation to database...');
@@ -776,6 +791,17 @@ Riassunto (max 500 caratteri):`;
     }
 
     console.log('Dream interpretation with astrology saved successfully');
+
+    // Symbol capture — background, best-effort. Runs ONLY because the
+    // interpretation succeeded; a failure never blocks or alters it.
+    EdgeRuntime.waitUntil(captureDreamSymbols({
+      supabase: supabaseAdmin,
+      lovableApiKey: LOVABLE_API_KEY,
+      dreamId,
+      dreamContent,
+      interpretation,
+      functionName: 'interpret-dream-with-astrology',
+    }));
 
     // Pre-cache TTS audio in background (non-blocking) for both interpretation and dream content
     if (interpretationSummary && interpretationSummary.length > 0) {

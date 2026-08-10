@@ -157,20 +157,19 @@ const alchemicalPhases: Record<AlchemicalPhase, PhaseDefinition> = {
   }
 };
 
-/**
- * Calcola la fase alchemica di un sogno
- */
-export const calculateDreamPhase = (dream: {
+interface DreamForPhase {
   content?: string;
   mood?: string;
   tags?: string[];
   interpretation?: string;
-}): AlchemicalPhase => {
-  const scores = {
-    nigredo: 0,
-    albedo: 0,
-    rubedo: 0
-  };
+}
+
+/**
+ * Punteggia le tre fasi (nigredo/albedo/rubedo) da mood (30%), tag (40%) e
+ * testo di contenuto+interpretazione (30%).
+ */
+const scoreDreamPhases = (dream: DreamForPhase): Record<AlchemicalPhase, number> => {
+  const scores: Record<AlchemicalPhase, number> = { nigredo: 0, albedo: 0, rubedo: 0 };
 
   // 1. Analisi del mood (peso: 30%)
   if (dream.mood) {
@@ -203,7 +202,7 @@ export const calculateDreamPhase = (dream: {
     .filter(Boolean)
     .join(' ')
     .toLowerCase();
-  
+
   if (textToAnalyze) {
     Object.entries(alchemicalPhases).forEach(([phaseId, phase]) => {
       let keywordMatches = 0;
@@ -212,65 +211,106 @@ export const calculateDreamPhase = (dream: {
           keywordMatches++;
         }
       });
-      
+
       // Normalizza il punteggio delle keyword (massimo 30 punti)
       const keywordScore = Math.min((keywordMatches / phase.keywords.length) * 30, 30);
       scores[phaseId as AlchemicalPhase] += keywordScore;
     });
   }
 
-  // 4. Determina la fase dominante
+  return scores;
+};
+
+// Soglia minima di segnale: sotto questa il calcolo è "cieco".
+const PHASE_SIGNAL_THRESHOLD = 10;
+
+export type PhaseComputation =
+  | { phase: AlchemicalPhase; blind: false }
+  | { phase: null; blind: true; reason: 'low_signal' | 'tie' };
+
+/**
+ * Calcolo euristico della fase, con i casi CIECHI resi espliciti invece di
+ * ripiegare silenziosamente su 'nigredo':
+ *   - segnale totale sotto la soglia -> { phase: null, reason: 'low_signal' }
+ *   - pareggio tra due o più fasi     -> { phase: null, reason: 'tie' }
+ * Il chiamante decide se salvare null. Vedi calculateDreamPhase per il
+ * comportamento legacy (default a 'nigredo').
+ */
+export const computeDreamPhase = (dream: DreamForPhase): PhaseComputation => {
+  const scores = scoreDreamPhases(dream);
   const totalScore = scores.nigredo + scores.albedo + scores.rubedo;
-  
-  // Se non c'è abbastanza informazione, default a Nigredo (inizio del percorso)
-  if (totalScore < 10) {
-    return 'nigredo';
+
+  // Se non c'è abbastanza informazione, il risultato è cieco (niente default).
+  if (totalScore < PHASE_SIGNAL_THRESHOLD) {
+    return { phase: null, blind: true, reason: 'low_signal' };
   }
 
-  // Trova la fase dominante
-  let dominantPhase: AlchemicalPhase = 'nigredo';
-  let maxScore = scores.nigredo;
-  
-  if (scores.albedo > maxScore) {
-    dominantPhase = 'albedo';
-    maxScore = scores.albedo;
-  }
-  
-  if (scores.rubedo > maxScore) {
-    dominantPhase = 'rubedo';
-    maxScore = scores.rubedo;
+  // Fase dominante = unico massimo. Un pareggio è cieco (prima veniva risolto
+  // silenziosamente a 'nigredo', la fase inizializzata come dominante).
+  const maxScore = Math.max(scores.nigredo, scores.albedo, scores.rubedo);
+  const winners = PHASE_WORDS.filter((p) => scores[p] === maxScore);
+  if (winners.length !== 1) {
+    return { phase: null, blind: true, reason: 'tie' };
   }
 
-  return dominantPhase;
+  return { phase: winners[0], blind: false };
+};
+
+/**
+ * Legacy: come computeDreamPhase ma non restituisce mai null — i casi ciechi
+ * ripiegano su 'nigredo' (comportamento storico). Mantenuto per compatibilità;
+ * le edge function di interpretazione usano computeDreamPhase per poter salvare
+ * null nei casi ciechi.
+ */
+export const calculateDreamPhase = (dream: DreamForPhase): AlchemicalPhase => {
+  return computeDreamPhase(dream).phase ?? 'nigredo';
 };
 
 const PHASE_WORDS: AlchemicalPhase[] = ['nigredo', 'albedo', 'rubedo'];
 
 /**
  * Authoritative phase = the one the AI DECLARED in the closing "✦ Alchimia"
- * section of the interpretation. The dominant phase is the FIRST phase named in
- * that section (the section instruction declares it first, then mentions any
- * secondary openings). Matching ignores surrounding Markdown bold (**Rubedo**)
- * and case. Returns null if no phase is clearly declared, so the caller can fall
- * back to the heuristic calculateDreamPhase().
+ * section. Hardened parser (before/after for cases a-e is in the PR):
+ *   - Requires the ✦ section marker; without it returns null (NEVER scans the
+ *     whole interpretation, so a stray "non è Nigredo ma Rubedo" can't win).
+ *   - Neutralises an echoed options menu ("(Nigredo / Albedo / Rubedo)") so it
+ *     isn't mistaken for a declaration (this was the main nigredo-bias source).
+ *   - Prefers an explicit declaration ("fase ... X" in one sentence, or bold
+ *     **X**) over a bare mention.
+ *   - Returns null on genuine ambiguity (0 or >1 distinct phase words left),
+ *     letting the heuristic decide instead of guessing.
  *
- * This keeps the saved public.dreams.alchemical_phase consistent with the text
- * the user actually reads (fixes the "text says Rubedo, DB says nigredo" mismatch).
+ * Keeps public.dreams.alchemical_phase consistent with the text the user reads.
  */
 export const extractPhaseFromInterpretation = (
   interpretation?: string,
 ): AlchemicalPhase | null => {
   if (!interpretation) return null;
-  const marker = interpretation.indexOf('✦');
-  const section = marker >= 0 ? interpretation.slice(marker) : interpretation;
-  const lower = section.toLowerCase();
 
-  let best: { phase: AlchemicalPhase; at: number } | null = null;
-  for (const p of PHASE_WORDS) {
-    const at = lower.search(new RegExp(`\\b${p}\\b`));
-    if (at >= 0 && (best === null || at < best.at)) best = { phase: p, at };
-  }
-  return best ? best.phase : null;
+  // Require the explicit ✦ section marker.
+  const marker = interpretation.indexOf('✦');
+  if (marker < 0) return null;
+
+  // Strip an echoed options menu: 2-3 phase words separated only by "/" or ","
+  // (e.g. "Nigredo / Albedo / Rubedo" or "nigredo, albedo, rubedo").
+  const section = interpretation
+    .slice(marker)
+    .replace(
+      /\b(?:nigredo|albedo|rubedo)\b(?:\s*[/,]\s*\b(?:nigredo|albedo|rubedo)\b){1,2}/gi,
+      ' ',
+    )
+    .toLowerCase();
+
+  // 1) Explicit declaration wins: "fase ... X" within one sentence, or bold **X**.
+  const declaration =
+    section.match(/fase\b[^.\n]*?\b(nigredo|albedo|rubedo)\b/) ??
+    section.match(/\*\*\s*(nigredo|albedo|rubedo)\s*\*\*/);
+  if (declaration) return declaration[1] as AlchemicalPhase;
+
+  // 2) Otherwise accept a single unambiguous bare mention; 0 or >1 distinct
+  //    phases remaining => ambiguous => null (heuristic decides).
+  const present = PHASE_WORDS.filter((p) => new RegExp(`\\b${p}\\b`).test(section));
+  return present.length === 1 ? present[0] : null;
 };
 
 // Common English emotion words → Italian. Used only to repair stray English mood
