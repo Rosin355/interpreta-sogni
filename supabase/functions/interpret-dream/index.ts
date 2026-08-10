@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { RateLimiter, RATE_LIMITS } from "../_shared/rate-limiter.ts";
 import { interpretDreamSchema } from "../_shared/validation.ts";
 import {
-  calculateDreamPhase,
+  computeDreamPhase,
   extractPhaseFromInterpretation,
   localizeItalianMoodWords,
 } from "../_shared/alchemical-calculator.ts";
@@ -13,6 +13,7 @@ import {
   retrieveKnowledgeContext,
   stripKbCitationMarkers,
 } from "../_shared/knowledge-retrieval.ts";
+import { captureDreamSymbols } from "../_shared/symbol-extraction.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -231,7 +232,7 @@ REGOLE INTERPRETATIVE:
 
 SEZIONE "✦ ALCHIMIA" (OBBLIGATORIA in chiusura dell'interpretazione):
 Includi sempre un paragrafo finale dedicato, introdotto da "✦ Alchimia", in cui:
-1. Dichiari la fase dominante (Nigredo / Albedo / Rubedo) come PRIMA cosa della sezione e la motivi citando i simboli precisi rilevati nel sogno. Questa fase è quella UFFICIALE del sogno e deve restare coerente con tutto il resto del testo (non contraddirla altrove).
+1. Dichiari la fase dominante come PRIMA cosa della sezione: scrivi SOLTANTO il nome della fase — una sola tra Nigredo, Albedo o Rubedo — da solo e SENZA ripetere l'elenco delle tre opzioni; poi motivala citando i simboli precisi rilevati nel sogno. Questa fase è quella UFFICIALE del sogno e deve restare coerente con tutto il resto del testo (non contraddirla altrove).
 2. Riconosci eventuali aperture verso un'altra fase, se presenti.
 3. Espandi liberamente con ciò che ritieni più utile al sognatore: significato della fase nel suo percorso, cosa la fase "chiede" di integrare, suggerimenti di consapevolezza e pratiche di attenzione interiore coerenti.
 4. Se la fase è Nigredo, ricorda esplicitamente che non è un giudizio negativo ma una fase di indifferenziazione (Viveka) necessaria alla trasformazione.
@@ -392,16 +393,26 @@ Fornisci un'interpretazione dettagliata e significativa.`;
 
     // Alchemical phase — single source of truth. The phase the AI DECLARED in the
     // "✦ Alchimia" section wins (so the saved value matches the text the user
-    // reads). Only when the text declares no phase do we fall back to the
-    // heuristic calculateDreamPhase().
+    // reads). Otherwise fall back to the heuristic — but do NOT silently default
+    // to nigredo: on a blind heuristic (low signal or a tie) persist null and log
+    // it, so the phase distribution isn't inflated toward Nigredo.
     const declaredPhase = extractPhaseFromInterpretation(interpretation);
-    const alchemicalPhase = declaredPhase ?? calculateDreamPhase({
-      content: dream.content,
-      mood: dream.mood,
-      tags: dream.tags,
-      interpretation: interpretation
-    });
-    console.log(`[interpret-dream] phase=${alchemicalPhase} source=${declaredPhase ? 'interpretation' : 'heuristic'}`);
+    let alchemicalPhase = declaredPhase;
+    let phaseSource = 'interpretation';
+    if (!alchemicalPhase) {
+      const heuristic = computeDreamPhase({
+        content: dream.content,
+        mood: dream.mood,
+        tags: dream.tags,
+        interpretation: interpretation
+      });
+      alchemicalPhase = heuristic.phase;
+      phaseSource = heuristic.blind ? `heuristic_blind:${heuristic.reason}` : 'heuristic';
+      if (heuristic.blind) {
+        console.warn(`ALCHEMICAL_PHASE_NULL function=interpret-dream reason=${heuristic.reason}`);
+      }
+    }
+    console.log(`[interpret-dream] phase=${alchemicalPhase ?? 'null'} source=${phaseSource}`);
 
     // Salva l'interpretazione e la fase alchemica nel database
     const { error: updateError } = await supabase
@@ -416,6 +427,17 @@ Fornisci un'interpretazione dettagliata e significativa.`;
     if (updateError) {
       console.error('Errore nel salvataggio dell\'interpretazione:', updateError);
     }
+
+    // Symbol capture — background, best-effort. Runs ONLY because the
+    // interpretation succeeded; a failure never blocks or alters it.
+    EdgeRuntime.waitUntil(captureDreamSymbols({
+      supabase,
+      lovableApiKey,
+      dreamId,
+      dreamContent: dream.content,
+      interpretation,
+      functionName: 'interpret-dream',
+    }));
 
     return new Response(
       JSON.stringify({
