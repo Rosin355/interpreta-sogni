@@ -396,7 +396,7 @@ Fornisci un'interpretazione dettagliata e significativa.`;
     // reads). Otherwise fall back to the heuristic — but do NOT silently default
     // to nigredo: on a blind heuristic (low signal or a tie) persist null and log
     // it, so the phase distribution isn't inflated toward Nigredo.
-    const declaredPhase = extractPhaseFromInterpretation(interpretation);
+    const declaredPhase = extractPhaseFromInterpretation(interpretation, 'interpret-dream');
     let alchemicalPhase = declaredPhase;
     let phaseSource = 'interpretation';
     if (!alchemicalPhase) {

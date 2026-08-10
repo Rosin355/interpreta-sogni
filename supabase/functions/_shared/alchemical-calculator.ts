@@ -284,22 +284,32 @@ const PHASE_WORDS: AlchemicalPhase[] = ['nigredo', 'albedo', 'rubedo'];
  */
 export const extractPhaseFromInterpretation = (
   interpretation?: string,
+  functionName?: string, // optional: only tags the diagnostic log line
 ): AlchemicalPhase | null => {
-  if (!interpretation) return null;
+  // INFO-level diagnostics: log WHY the parse returned null, so a missing ✦
+  // marker can be told apart from a missing/ambiguous phase word. No dream
+  // content is logged.
+  const nullReason = (reason: string): null => {
+    if (functionName) console.log(`PHASE_PARSE_NULL function=${functionName} reason=${reason}`);
+    return null;
+  };
+
+  if (!interpretation) return nullReason('empty_interpretation');
 
   // Require the explicit ✦ section marker.
   const marker = interpretation.indexOf('✦');
-  if (marker < 0) return null;
+  if (marker < 0) return nullReason('no_marker');
 
   // Strip an echoed options menu: 2-3 phase words separated only by "/" or ","
   // (e.g. "Nigredo / Albedo / Rubedo" or "nigredo, albedo, rubedo").
-  const section = interpretation
-    .slice(marker)
+  const rawSection = interpretation.slice(marker);
+  const section = rawSection
     .replace(
       /\b(?:nigredo|albedo|rubedo)\b(?:\s*[/,]\s*\b(?:nigredo|albedo|rubedo)\b){1,2}/gi,
       ' ',
     )
     .toLowerCase();
+  const menuStripped = section.length !== rawSection.toLowerCase().length;
 
   // 1) Explicit declaration wins: "fase ... X" within one sentence, or bold **X**.
   const declaration =
@@ -310,7 +320,12 @@ export const extractPhaseFromInterpretation = (
   // 2) Otherwise accept a single unambiguous bare mention; 0 or >1 distinct
   //    phases remaining => ambiguous => null (heuristic decides).
   const present = PHASE_WORDS.filter((p) => new RegExp(`\\b${p}\\b`).test(section));
-  return present.length === 1 ? present[0] : null;
+  if (present.length === 1) return present[0];
+  return nullReason(
+    present.length === 0
+      ? 'no_phase_word'
+      : `ambiguous count=${present.length} menu_stripped=${menuStripped}`,
+  );
 };
 
 // Common English emotion words → Italian. Used only to repair stray English mood
