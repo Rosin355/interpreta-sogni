@@ -336,12 +336,26 @@ serve(async (req) => {
     // 2 PAID RapidAPI requests (transit + moon phase) plus 1-2 AI calls, so we
     // cap at 20/hour per user to bound third-party cost. Fails open if the
     // limiter backend is unavailable (see RateLimiter.checkLimit).
+    const RATE_LIMIT_CONFIG = { maxRequests: 20, windowSeconds: 3600 };
     const rateLimiter = new RateLimiter();
     const rateLimit = await rateLimiter.checkLimit(
       user.id,
       'interpret-dream-with-astrology',
-      { maxRequests: 20, windowSeconds: 3600 }
+      RATE_LIMIT_CONFIG
     );
+
+    // Fail-open visibility: checkLimit ALLOWS the request when its backend
+    // (Upstash) is unreachable, silently dropping the cap on this metered
+    // function. That path returns the full quota as `remaining`, whereas a
+    // genuine allow always decrements by at least 1 — so remaining === the max
+    // uniquely marks a fail-open. Emit a distinct, greppable marker so this
+    // condition is findable in the Edge Function logs instead of invisible.
+    // No user content is logged.
+    if (rateLimit.allowed && rateLimit.remaining === RATE_LIMIT_CONFIG.maxRequests) {
+      console.error(
+        'RATE_LIMITER_UNAVAILABLE function=interpret-dream-with-astrology failed_open=true'
+      );
+    }
 
     if (!rateLimit.allowed) {
       const resetDate = new Date(rateLimit.resetAt);
