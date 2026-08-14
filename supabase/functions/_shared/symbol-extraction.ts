@@ -48,10 +48,18 @@ const isPhraseLikeName = (name: string): boolean => {
   return words.length > 2 || /[.,;:!?]/.test(name);
 };
 
+// Alchemical PHASE names (nigredo/albedo/rubedo) are quoted from the
+// interpretation's ✦ section, not dream symbols — the model sometimes echoes
+// them. Reject any name that is (or contains) one, case-insensitive.
+const PHASE_NAMES = new Set(["nigredo", "albedo", "rubedo"]);
+const isAlchemicalPhaseName = (name: string): boolean =>
+  name.toLowerCase().split(/[^a-zà-ù]+/).some((w) => PHASE_NAMES.has(w));
+
 export interface SymbolValidationStats {
   total: number; // items in the parsed array
   empty: number; // non-object item, or missing/blank name or meaning
   phrase: number; // name rejected as a descriptive phrase (>2 words / punctuation)
+  phase: number; // name rejected as an alchemical phase term (nigredo/albedo/rubedo)
   duplicate: number; // duplicate name
 }
 
@@ -64,7 +72,7 @@ export interface SymbolValidationStats {
 export function validateSymbolsWithStats(
   parsed: unknown,
 ): { symbols: DreamSymbol[]; stats: SymbolValidationStats } {
-  const stats: SymbolValidationStats = { total: 0, empty: 0, phrase: 0, duplicate: 0 };
+  const stats: SymbolValidationStats = { total: 0, empty: 0, phrase: 0, phase: 0, duplicate: 0 };
   if (!Array.isArray(parsed)) return { symbols: [], stats };
   stats.total = parsed.length;
   const out: DreamSymbol[] = [];
@@ -76,6 +84,7 @@ export function validateSymbolsWithStats(
     const meaning = typeof rec.meaning === "string" ? rec.meaning.trim() : "";
     if (!name || !meaning) { stats.empty++; continue; } // both required
     if (isPhraseLikeName(name)) { stats.phrase++; continue; } // descriptive phrase
+    if (isAlchemicalPhaseName(name)) { stats.phase++; continue; } // alchemical phase, not a symbol
     const key = name.toLowerCase();
     if (seen.has(key)) { stats.duplicate++; continue; } // dedupe by name
     seen.add(key);
@@ -111,6 +120,8 @@ export async function extractDreamSymbols(opts: {
       "Estrai i simboli onirici principali dal sogno e dalla sua interpretazione. " +
       "Rispondi SOLO con un array JSON valido, senza testo attorno e senza code fence. " +
       'Formato esatto: [{"name":"...","meaning":"..."}]. ' +
+      "NON estrarre come simboli i nomi delle FASI alchemiche (nigredo, albedo, " +
+      "rubedo): sono fasi del percorso, non simboli onirici. " +
       'REGOLE per "name": deve nominare UN SINGOLO simbolo in 1-2 parole ' +
       '(es. "corvo", "acqua nera", "casa"), MAI una frase descrittiva o un evento ' +
       '(NO "incidente stradale e famiglia ferita"). La spiegazione va in "meaning" ' +
@@ -163,7 +174,7 @@ export async function extractDreamSymbols(opts: {
     if (symbols.length === 0) {
       console.warn(
         `SYMBOLS_ALL_REJECTED function=${functionName} total=${stats.total} ` +
-          `rejEmpty=${stats.empty} rejPhrase=${stats.phrase} rejDuplicate=${stats.duplicate} ` +
+          `rejEmpty=${stats.empty} rejPhrase=${stats.phrase} rejPhase=${stats.phase} rejDuplicate=${stats.duplicate} ` +
           `sample=${sampleOutput(raw)}`,
       );
     }
