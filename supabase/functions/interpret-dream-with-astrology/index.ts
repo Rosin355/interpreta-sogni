@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.75.1";
 import { computeDreamPhase, extractPhaseFromInterpretation } from "../_shared/alchemical-calculator.ts";
 import { RateLimiter } from "../_shared/rate-limiter.ts";
 import { captureDreamSymbols } from "../_shared/symbol-extraction.ts";
+import { recordUsage, rollbackUsage } from "../_shared/usage-ledger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -489,6 +490,15 @@ serve(async (req) => {
           };
 
           console.log('Calling RapidAPI for transit and moon context...');
+          // Record the paid RapidAPI usage optimistically (feature=astrology_transit_api,
+          // calls=2: both transit + moon-phase endpoints fire together here).
+          const transitLedgerId = await recordUsage(supabaseAdmin, user.id, 'astrology_transit_api', {
+            function_name: 'interpret-dream-with-astrology',
+            provider: 'rapidapi',
+            model: 'astrologer.p.rapidapi.com',
+            dream_id_prefix: dreamId.slice(0, 8),
+            calls: 2,
+          });
           const [transRes, moonRes] = await Promise.all([
             fetch('https://astrologer.p.rapidapi.com/api/v5/context/transit', {
               method: 'POST',
@@ -512,6 +522,10 @@ serve(async (req) => {
 
           transitContext = transRes?.context || "";
           moonContext = moonRes?.context || "";
+          if (!transRes && !moonRes) {
+            // Both RapidAPI calls returned nothing → roll back the optimistic record.
+            await rollbackUsage(supabaseAdmin, transitLedgerId, 'interpret-dream-with-astrology');
+          }
           console.log('RapidAPI transit/moon calls completed');
         }
       } catch (e) {
@@ -666,6 +680,15 @@ STILE:
 
     console.log('Calling Lovable AI...');
 
+    // Record the interpretation AI call optimistically (feature=dream_interpretation_astrology).
+    const interpLedgerId = await recordUsage(supabaseAdmin, user.id, 'dream_interpretation_astrology', {
+      function_name: 'interpret-dream-with-astrology',
+      provider: 'lovable',
+      model: 'google/gemini-2.5-flash',
+      dream_id_prefix: dreamId.slice(0, 8),
+      calls: 1,
+    });
+
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -686,6 +709,8 @@ STILE:
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error('Lovable AI error:', aiResponse.status, errorText);
+      // Provider call failed → not billed → roll back the optimistic record.
+      await rollbackUsage(supabaseAdmin, interpLedgerId, 'interpret-dream-with-astrology');
       throw new Error(`Lovable AI request failed: ${aiResponse.status}`);
     }
 
@@ -797,6 +822,7 @@ Riassunto (max 500 caratteri):`;
     EdgeRuntime.waitUntil(captureDreamSymbols({
       supabase: supabaseAdmin,
       lovableApiKey: LOVABLE_API_KEY,
+      userId: user.id,
       dreamId,
       dreamContent,
       interpretation,

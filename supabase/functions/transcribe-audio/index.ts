@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { recordUsage, rollbackUsage } from "../_shared/usage-ledger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -98,6 +99,15 @@ serve(async (req) => {
 
     console.log('Sending to OpenAI Whisper API...');
 
+    // Record the transcription call optimistically (feature=stt; function_name distinguishes providers).
+    const usageAdmin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
+    const sttLedgerId = await recordUsage(usageAdmin, user.id, 'stt', {
+      function_name: 'transcribe-audio',
+      provider: 'openai',
+      model: 'whisper-1',
+      calls: 1,
+    });
+
     // Send to OpenAI
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
@@ -109,6 +119,8 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
+      // Provider call failed → not billed → roll back the optimistic record.
+      await rollbackUsage(usageAdmin, sttLedgerId, 'transcribe-audio');
       console.error('OpenAI API error:', response.status, errorText);
       throw new Error(`OpenAI API error: ${errorText}`);
     }

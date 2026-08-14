@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { recordUsage, rollbackUsage } from "../_shared/usage-ledger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -88,6 +89,16 @@ serve(async (req) => {
               }
             };
 
+            // Record the paid RapidAPI transit usage optimistically, per user
+            // (feature=astrology_transit_api). This is a batch job, so the user
+            // is the profile being processed.
+            const transitLedgerId = await recordUsage(supabaseClient, profile.id, 'astrology_transit_api', {
+              function_name: 'check-astrological-transits',
+              provider: 'rapidapi',
+              model: 'astrologer.p.rapidapi.com',
+              calls: 1,
+            });
+
             const response = await fetch('https://astrologer.p.rapidapi.com/api/v5/context/transit', {
               method: 'POST',
               headers: {
@@ -112,6 +123,9 @@ serve(async (req) => {
                   priority: (aspect.toLowerCase() === 'conjunction' || aspect.toLowerCase() === 'opposition') ? 'high' : 'medium'
                 });
               }
+            } else {
+              // Provider call failed → not billed → roll back this user's record.
+              await rollbackUsage(supabaseClient, transitLedgerId, 'check-astrological-transits');
             }
           } catch (e) {
             console.error(`Error fetching real-time transits for user ${profile.id}:`, e);

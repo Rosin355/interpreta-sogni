@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import { RateLimiter, RATE_LIMITS } from "../_shared/rate-limiter.ts";
 import { generateDreamImageSchema } from "../_shared/validation.ts";
+import { recordUsage, rollbackUsage } from "../_shared/usage-ledger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -314,6 +315,16 @@ Aspect ratio 16:9, high quality, balanced composition.`;
       return url ? { imageUrl: url } : { error: { noImage: true, responsePreview: JSON.stringify(data).slice(0, 500) } };
     };
 
+    // Record the image generation optimistically (feature=dream_image; calls=2
+    // covers the style-determination call + the image call).
+    const imageLedgerId = await recordUsage(supabase, user.id, 'dream_image', {
+      function_name: 'generate-dream-image',
+      provider: 'lovable',
+      model: 'google/gemini-2.5-flash-image',
+      dream_id_prefix: requestBody?.dreamId ? String(requestBody.dreamId).slice(0, 8) : undefined,
+      calls: 2,
+    });
+
     // First attempt
     let result = await callImageApi();
 
@@ -326,6 +337,8 @@ Aspect ratio 16:9, high quality, balanced composition.`;
 
     // Handle final errors
     if (result.error) {
+      // Image generation failed → roll back the optimistic record.
+      await rollbackUsage(supabase, imageLedgerId, 'generate-dream-image');
       if (result.error.status === 429 || (result.error.embedded && result.error.code === 429)) {
         return new Response(
           JSON.stringify({ error: 'Limite richieste API raggiunto. Riprova tra qualche minuto.', errorCode: 'AI_RATE_LIMIT' }),

@@ -14,6 +14,7 @@ import {
   stripKbCitationMarkers,
 } from "../_shared/knowledge-retrieval.ts";
 import { captureDreamSymbols } from "../_shared/symbol-extraction.ts";
+import { recordUsage, rollbackUsage } from "../_shared/usage-ledger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -285,6 +286,15 @@ Fornisci un'interpretazione dettagliata e significativa.`;
     console.log('[interpret-dream] System prompt length:', systemPrompt.length);
     console.log('[interpret-dream] User prompt length:', userPrompt.length);
 
+    // Record the interpretation AI call optimistically (feature=dream_interpretation).
+    const interpLedgerId = await recordUsage(supabase, user.id, 'dream_interpretation', {
+      function_name: 'interpret-dream',
+      provider: 'lovable',
+      model: 'google/gemini-2.5-flash',
+      dream_id_prefix: dreamId.slice(0, 8),
+      calls: 1,
+    });
+
     // Chiama Lovable AI
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -305,6 +315,8 @@ Fornisci un'interpretazione dettagliata e significativa.`;
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error('Errore Lovable AI:', aiResponse.status, errorText);
+      // Provider call failed → not billed → roll back the optimistic record.
+      await rollbackUsage(supabase, interpLedgerId, 'interpret-dream');
 
       if (aiResponse.status === 429) {
         const { notifyQuotaToAdmins } = await import("../_shared/error-response.ts");
@@ -433,6 +445,7 @@ Fornisci un'interpretazione dettagliata e significativa.`;
     EdgeRuntime.waitUntil(captureDreamSymbols({
       supabase,
       lovableApiKey,
+      userId: user.id,
       dreamId,
       dreamContent: dream.content,
       interpretation,
