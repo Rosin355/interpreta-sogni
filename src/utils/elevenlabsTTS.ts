@@ -2,8 +2,37 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { getUserFacingMessage } from "@/utils/edge-error-codes";
 
-// Static cache for generated audio
-const audioCache = new Map<string, Blob>();
+// ---------------------------------------------------------------------------
+// Caching
+//
+// Long interpretations exceed the edge function's ~450-char cap, so audio is
+// generated per sentence-boundary CHUNK. We cache EACH chunk blob individually
+// plus a small MANIFEST that lists the chunk keys and their durations, both
+// keyed off a hash of (text + voiceId). Replaying a cached dream therefore
+// costs zero network calls.
+//
+// Playback plays the chunks as a QUEUE (chunk i, then i+1 on `ended`) through a
+// single reusable <audio> element. This replaces the old approach of byte-
+// concatenating the MP3 blobs into ONE blob — a format iOS Safari only plays
+// for the first segment (~30s). Cache keys are versioned (v3); the v3 IndexedDB
+// upgrade drops the old stores so those broken concatenated blobs are never
+// served again.
+// ---------------------------------------------------------------------------
+
+const CACHE_VERSION = 3;
+const manifestKey = (textHash: string) => `v${CACHE_VERSION}:${textHash}:manifest`;
+const chunkKey = (textHash: string, i: number) => `v${CACHE_VERSION}:${textHash}:c${i}`;
+
+interface ChunkManifest {
+  version: number;
+  voiceId: string;
+  chunkKeys: string[];
+  durations: number[]; // seconds, per chunk (estimated if metadata was unavailable)
+}
+
+// Memory caches (per page session; persistence lives in IndexedDB).
+const memChunks = new Map<string, Blob>(); // chunkKey -> blob
+const memManifests = new Map<string, ChunkManifest>(); // textHash -> manifest
 
 // Simple hash function for caching
 function hashText(text: string): string {
@@ -16,9 +45,42 @@ function hashText(text: string): string {
   return hash.toString(36);
 }
 
+// A short, silent WAV used to UNLOCK the audio element inside a user gesture on
+// iOS Safari. Playing it during the tap ties the element to the gesture, so the
+// real (async-loaded) audio can start later without a NotAllowedError.
+function buildSilentWavDataUri(): string {
+  const sampleRate = 8000;
+  const numSamples = 400; // ~50ms
+  const dataSize = numSamples; // 8-bit mono
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+  const writeStr = (off: number, s: string) => {
+    for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i));
+  };
+  writeStr(0, "RIFF");
+  view.setUint32(4, 36 + dataSize, true);
+  writeStr(8, "WAVE");
+  writeStr(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, 1, true); // mono
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate, true); // byte rate
+  view.setUint16(32, 1, true); // block align
+  view.setUint16(34, 8, true); // bits per sample
+  writeStr(36, "data");
+  view.setUint32(40, dataSize, true);
+  for (let i = 0; i < dataSize; i++) view.setUint8(44 + i, 128); // 8-bit silence
+  let binary = "";
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return "data:audio/wav;base64," + btoa(binary);
+}
+const SILENT_AUDIO = buildSilentWavDataUri();
+
 // IndexedDB management with limits
 const DB_NAME = 'TTSAudioCache';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE_NAME = 'audios';
 const METADATA_STORE = 'metadata';
 const MAX_CACHE_FILES = 100;
@@ -34,21 +96,20 @@ interface CacheMetadata {
 async function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
-    
+
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve(request.result);
-    
-    request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-      
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
-      }
-      
-      if (!db.objectStoreNames.contains(METADATA_STORE)) {
-        const metadataStore = db.createObjectStore(METADATA_STORE, { keyPath: 'key' });
-        metadataStore.createIndex('timestamp', 'timestamp', { unique: false });
-      }
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      // Discard any pre-v3 stores (the old single-blob format) so the broken
+      // concatenated audio is never served from cache after this fix.
+      if (db.objectStoreNames.contains(STORE_NAME)) db.deleteObjectStore(STORE_NAME);
+      if (db.objectStoreNames.contains(METADATA_STORE)) db.deleteObjectStore(METADATA_STORE);
+
+      db.createObjectStore(STORE_NAME);
+      const metadataStore = db.createObjectStore(METADATA_STORE, { keyPath: 'key' });
+      metadataStore.createIndex('timestamp', 'timestamp', { unique: false });
     };
   });
 }
@@ -59,7 +120,7 @@ async function getCacheStats(): Promise<{ count: number; totalSize: number }> {
     const transaction = db.transaction(METADATA_STORE, 'readonly');
     const store = transaction.objectStore(METADATA_STORE);
     const request = store.getAll();
-    
+
     return new Promise((resolve, reject) => {
       request.onsuccess = () => {
         const metadata: CacheMetadata[] = request.result;
@@ -84,41 +145,36 @@ async function cleanupOldestEntries(requiredSpace: number): Promise<void> {
     const transaction = db.transaction([STORE_NAME, METADATA_STORE], 'readwrite');
     const metadataStore = transaction.objectStore(METADATA_STORE);
     const audioStore = transaction.objectStore(STORE_NAME);
-    
+
     const index = metadataStore.index('timestamp');
     const request = index.openCursor();
-    
+
     let freedSpace = 0;
     let deletedCount = 0;
-    
+
     return new Promise((resolve, reject) => {
       request.onsuccess = (event) => {
         const cursor = (event.target as IDBRequest).result;
-        
+
         if (cursor && (freedSpace < requiredSpace || deletedCount < 10)) {
           const metadata: CacheMetadata = cursor.value;
-          
+
           audioStore.delete(metadata.key);
           cursor.delete();
-          
+
           freedSpace += metadata.size;
           deletedCount++;
-          
+
           cursor.continue();
         } else {
           transaction.oncomplete = () => {
             db.close();
             console.log(`Pulizia cache completata: ${deletedCount} file rimossi, ${(freedSpace / 1024 / 1024).toFixed(2)}MB liberati`);
-            toast({
-              title: "Cache TTS pulita",
-              description: `${deletedCount} file audio più vecchi sono stati rimossi`,
-              duration: 3000,
-            });
             resolve();
           };
         }
       };
-      
+
       request.onerror = () => {
         db.close();
         reject(request.error);
@@ -129,37 +185,30 @@ async function cleanupOldestEntries(requiredSpace: number): Promise<void> {
   }
 }
 
-async function saveToIndexedDB(key: string, blob: Blob): Promise<void> {
+async function saveBlobToIndexedDB(key: string, blob: Blob): Promise<void> {
   try {
     const stats = await getCacheStats();
-    
+
     // Check if cleanup is needed
     if (stats.count >= MAX_CACHE_FILES || stats.totalSize + blob.size > MAX_CACHE_SIZE_BYTES) {
       console.log(`Limite cache raggiunto (${stats.count} file, ${(stats.totalSize / 1024 / 1024).toFixed(2)}MB). Avvio pulizia...`);
-      toast({
-        title: "Pulizia cache in corso",
-        description: "Rimozione file audio più vecchi per fare spazio...",
-        duration: 2000,
-      });
       await cleanupOldestEntries(blob.size);
     }
-    
+
     const db = await openDB();
     const transaction = db.transaction([STORE_NAME, METADATA_STORE], 'readwrite');
     const audioStore = transaction.objectStore(STORE_NAME);
     const metadataStore = transaction.objectStore(METADATA_STORE);
-    
-    // Save audio blob
+
     audioStore.put(blob, key);
-    
-    // Save metadata
+
     const metadata: CacheMetadata = {
       key,
       size: blob.size,
       timestamp: Date.now(),
     };
     metadataStore.put(metadata);
-    
+
     return new Promise((resolve, reject) => {
       transaction.oncomplete = () => {
         db.close();
@@ -175,13 +224,13 @@ async function saveToIndexedDB(key: string, blob: Blob): Promise<void> {
   }
 }
 
-async function getFromIndexedDB(key: string): Promise<Blob | null> {
+async function getBlobFromIndexedDB(key: string): Promise<Blob | null> {
   try {
     const db = await openDB();
     const transaction = db.transaction(STORE_NAME, 'readonly');
     const store = transaction.objectStore(STORE_NAME);
     const request = store.get(key);
-    
+
     return new Promise((resolve, reject) => {
       request.onsuccess = () => {
         db.close();
@@ -198,22 +247,48 @@ async function getFromIndexedDB(key: string): Promise<Blob | null> {
   }
 }
 
+async function saveManifestToIndexedDB(textHash: string, manifest: ChunkManifest): Promise<void> {
+  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+  await saveBlobToIndexedDB(manifestKey(textHash), blob);
+}
+
+async function getManifestFromIndexedDB(textHash: string): Promise<ChunkManifest | null> {
+  const blob = await getBlobFromIndexedDB(manifestKey(textHash));
+  if (!blob) return null;
+  try {
+    return JSON.parse(await blob.text()) as ChunkManifest;
+  } catch {
+    return null;
+  }
+}
+
 export class ElevenLabsTTS {
+  // Single reusable audio element. Created lazily and UNLOCKED within a user
+  // gesture (primeAudio), then re-used for every chunk so iOS keeps allowing
+  // programmatic play() across the queue.
   private audio: HTMLAudioElement | null = null;
-  private audioUrl: string | null = null;
-  private currentAudioBlob: Blob | null = null;
-  private currentText: string = '';
-  private isCurrentlyPlaying: boolean = false;
-  private isCurrentlyPaused: boolean = false;
-  private playbackRate: number = 1.0;
+  // Marks that the element is currently holding the silent unlock clip, so its
+  // ended/timeupdate/error events are ignored.
+  private currentSrcIsSilent = false;
+
+  // The current chunk queue.
+  private chunkBlobs: Blob[] = [];
+  private chunkUrls: (string | null)[] = [];
+  private chunkDurations: number[] = []; // seconds per chunk
+  private currentIndex = 0;
+  // Hash (text + voiceId) of the queue currently loaded, so a replay of the
+  // same text restarts the queue instead of re-fetching.
+  private loadedTextHash: string | null = null;
+
+  private isCurrentlyPlaying = false;
+  private isCurrentlyPaused = false;
+  private playbackRate = 1.0;
+
   private onEndedCallback?: () => void;
   private onProgressCallback?: (progress: number) => void;
   private onGenerationProgressCallback?: (current: number, total: number) => void;
   private onTimeUpdateCallback?: (currentTime: number, duration: number) => void;
-  private onErrorCallback?: () => void;
-  // Hash (text + voiceId) of the audio currently loaded in `this.audio`, so a
-  // replay of the same text reuses the element instead of re-fetching.
-  private loadedTextHash: string | null = null;
+  private onErrorCallback?: (message?: string) => void;
 
   setOnEndedCallback(callback: () => void): void {
     this.onEndedCallback = callback;
@@ -231,7 +306,7 @@ export class ElevenLabsTTS {
     this.onTimeUpdateCallback = callback;
   }
 
-  setOnErrorCallback(callback: () => void): void {
+  setOnErrorCallback(callback: (message?: string) => void): void {
     this.onErrorCallback = callback;
   }
 
@@ -246,19 +321,59 @@ export class ElevenLabsTTS {
     return this.playbackRate;
   }
 
+  // Concatenated blob, built on demand ONLY for the download button. (External
+  // players tolerate concatenated MP3 frames; playback in-app uses the queue.)
   getCurrentAudioBlob(): Blob | null {
-    return this.currentAudioBlob;
+    if (this.chunkBlobs.length === 0) return null;
+    return new Blob(this.chunkBlobs, { type: 'audio/mpeg' });
+  }
+
+  private ensureAudioEl(): void {
+    if (this.audio) return;
+    const a = new Audio();
+    a.preload = 'auto';
+    a.addEventListener('ended', () => this.onChunkEnded());
+    a.addEventListener('timeupdate', () => this.onChunkTimeUpdate());
+    a.addEventListener('error', () => {
+      if (this.currentSrcIsSilent) return; // ignore the unlock clip
+      this.isCurrentlyPlaying = false;
+      this.isCurrentlyPaused = false;
+      if (this.onErrorCallback) this.onErrorCallback();
+    });
+    this.audio = a;
+  }
+
+  /**
+   * Unlock audio within a user gesture (iOS Safari). Plays a silent clip on the
+   * element during the tap so the real audio — loaded later, after awaited
+   * cache/network work — can start without a NotAllowedError. Idempotent; safe
+   * to call on every tap.
+   */
+  primeAudio(): void {
+    this.ensureAudioEl();
+    const a = this.audio!;
+    // Don't disrupt audio that is actively playing.
+    if (this.isCurrentlyPlaying && !this.currentSrcIsSilent) return;
+    try {
+      this.currentSrcIsSilent = true;
+      a.src = SILENT_AUDIO;
+      a.playbackRate = 1;
+      const p = a.play();
+      if (p && typeof p.then === 'function') p.catch(() => { /* unlock attempt */ });
+    } catch {
+      /* ignore */
+    }
   }
 
   private splitTextIntoChunks(text: string, maxLength: number = 450): string[] {
     const chunks: string[] = [];
     let currentChunk = '';
-    
+
     const sentences = text.split(/([.!?]\s+)/);
-    
+
     for (let i = 0; i < sentences.length; i++) {
       const sentence = sentences[i];
-      
+
       if ((currentChunk + sentence).length <= maxLength) {
         currentChunk += sentence;
       } else {
@@ -279,11 +394,11 @@ export class ElevenLabsTTS {
         }
       }
     }
-    
+
     if (currentChunk) {
       chunks.push(currentChunk.trim());
     }
-    
+
     // Final safety check: force split any chunk > maxLength
     const finalChunks: string[] = [];
     for (const chunk of chunks) {
@@ -296,158 +411,55 @@ export class ElevenLabsTTS {
         }
       }
     }
-    
+
     return finalChunks.filter(chunk => chunk.length > 0);
   }
 
   async speak(text: string, voiceId: string = 'cnDF6tD6CWVBeLKYlCXW'): Promise<void> {
+    if (!text || text.trim().length === 0) {
+      toast({
+        title: "Errore audio",
+        description: "Nessun testo da leggere.",
+        variant: "destructive",
+      });
+      throw new Error('Testo vuoto');
+    }
+
+    // Capture the user gesture immediately, before any await, so playback
+    // started later (after cache/network) is still tied to this tap.
+    this.primeAudio();
+
+    const textHash = hashText(text + voiceId);
+
     try {
-      if (!text || text.trim().length === 0) {
-        throw new Error('Testo vuoto');
-      }
-
-      const textHash = hashText(text + voiceId);
-
-      // Instant replay: the same audio is already loaded in this.audio (e.g.
-      // after a stop or a natural end). Restart from 0:00 by reusing the
-      // existing element — no cache lookup, no new object URL, no TTS request.
-      if (this.audio && this.loadedTextHash === textHash) {
-        this.currentText = text;
-        this.audio.currentTime = 0;
-        this.audio.playbackRate = this.playbackRate;
-        await this.audio.play();
-        this.isCurrentlyPlaying = true;
-        this.isCurrentlyPaused = false;
+      // Instant replay: the same queue is already loaded in memory (after a
+      // stop or a natural end). Restart from the beginning — no cache lookup,
+      // no TTS request.
+      if (this.loadedTextHash === textHash && this.chunkBlobs.length > 0) {
+        this.startQueue(0);
         console.log('ElevenLabsTTS: Replay istantaneo da 0:00');
         return;
       }
 
-      // Different text (or first play): release the previously loaded audio +
-      // object URL before loading the new one.
-      this.disposeAudio();
-      this.currentText = text;
-
-      // Check memory cache first
-      if (audioCache.has(textHash)) {
-        console.log('ElevenLabsTTS: Audio trovato in cache memoria');
-        toast({
-          title: "Audio caricato",
-          description: "Audio trovato in cache, riproduzione immediata",
-          duration: 2000,
-        });
-        await this.playBlob(audioCache.get(textHash)!, textHash);
-        console.log('ElevenLabsTTS: Riproduzione da cache avviata');
-        return;
-      }
-
-      // Check IndexedDB cache
-      const cachedBlob = await getFromIndexedDB(textHash);
-      if (cachedBlob) {
-        console.log('ElevenLabsTTS: Audio trovato in IndexedDB');
+      // Cached (memory or IndexedDB) → zero network.
+      const cached = await this.loadFromCache(textHash);
+      if (cached) {
+        console.log('ElevenLabsTTS: Audio trovato in cache');
         toast({
           title: "Audio caricato",
           description: "Audio recuperato dalla cache locale",
           duration: 2000,
         });
-        // Also save to memory cache for faster access
-        audioCache.set(textHash, cachedBlob);
-        await this.playBlob(cachedBlob, textHash);
-        console.log('ElevenLabsTTS: Riproduzione da IndexedDB avviata');
+        this.setQueue(cached.blobs, cached.durations, textHash);
+        this.startQueue(0);
         return;
       }
 
-      const chunks = this.splitTextIntoChunks(text);
-
-      console.log(`ElevenLabsTTS: Generazione audio per ${text.length} caratteri in ${chunks.length} blocchi...`);
-      
-      toast({
-        title: "Generazione audio",
-        description: `Generazione di ${chunks.length} ${chunks.length === 1 ? 'blocco' : 'blocchi'} audio...`,
-        duration: 3000,
-      });
-
-      // Generate audio for all chunks
-      const audioBlobs: Blob[] = [];
-      
-      for (let i = 0; i < chunks.length; i++) {
-        console.log(`ElevenLabsTTS: Generazione blocco ${i + 1}/${chunks.length}`);
-        
-        if (chunks.length > 1) {
-          toast({
-            title: "Generazione in corso",
-            description: `Blocco ${i + 1} di ${chunks.length}`,
-            duration: 2000,
-          });
-        }
-        
-        // Notify generation progress
-        if (this.onGenerationProgressCallback) {
-          this.onGenerationProgressCallback(i + 1, chunks.length);
-        }
-        
-        const { data, error } = await supabase.functions.invoke('text-to-speech-elevenlabs', {
-          body: { 
-            text: chunks[i],
-            voiceId 
-          }
-        });
-
-        if (error || data?.errorCode) {
-          // Read the structured { errorCode, error } the edge function returns.
-          // supabase.functions.invoke exposes the error body as a Response on
-          // error.context, so parse that (not error.message, which is only the
-          // generic "non-2xx status code").
-          const parsed = data?.errorCode
-            ? { errorCode: data.errorCode as string, status: undefined as number | undefined }
-            : await this.extractInvokeError(error);
-
-          // The function's own 401 (expired user session) — distinct from an
-          // upstream ElevenLabs key failure (UPSTREAM_AUTH).
-          if (parsed.status === 401 && parsed.errorCode !== 'UPSTREAM_AUTH') {
-            throw new Error('Devi effettuare l\'accesso per usare la lettura audio.');
-          }
-
-          if (parsed.errorCode) {
-            // Neutral, user-safe message per code (never raw upstream detail).
-            throw new Error(
-              getUserFacingMessage(parsed.errorCode, {
-                fallback: 'Servizio audio temporaneamente non disponibile. Riprova tra poco.',
-              })
-            );
-          }
-
-          // Nothing parseable → generic fallback.
-          throw this.mapErrorToUserFriendly(error);
-        }
-
-        if (!data?.audioContent) {
-          throw new Error('Non è stato possibile generare l\'audio per questo testo.');
-        }
-
-        const audioBlob = this.base64ToBlob(data.audioContent, 'audio/mpeg');
-        audioBlobs.push(audioBlob);
-      }
-
-      // Concatenate all audio blobs
-      const combinedBlob = new Blob(audioBlobs, { type: 'audio/mpeg' });
-
-      toast({
-        title: "Salvataggio audio",
-        description: "Audio salvato nella cache locale per riproduzione offline",
-        duration: 2000,
-      });
-
-      // Save to memory cache
-      audioCache.set(textHash, combinedBlob);
-      console.log('ElevenLabsTTS: Audio salvato in cache memoria');
-
-      // Save to IndexedDB for persistence
-      await saveToIndexedDB(textHash, combinedBlob);
-      console.log('ElevenLabsTTS: Audio salvato in IndexedDB');
-
-      await this.playBlob(combinedBlob, textHash);
+      // Generate.
+      const generated = await this.generate(text, voiceId, textHash);
+      this.setQueue(generated.blobs, generated.durations, textHash);
+      this.startQueue(0);
       console.log('ElevenLabsTTS: Riproduzione avviata');
-
     } catch (error) {
       console.error('ElevenLabsTTS speak error:', error);
       const userMessage = error instanceof Error ? error.message : "Impossibile generare l'audio";
@@ -462,60 +474,246 @@ export class ElevenLabsTTS {
   }
 
   /**
-   * Loads a blob into a fresh audio element and starts playback from 0:00.
-   * Records the textHash so a later replay of the same text reuses this element
-   * instead of re-fetching. Assumes any previous element was already released
-   * via disposeAudio().
+   * Load a cached chunk queue for this text, or null on a miss. Checks memory
+   * first, then IndexedDB. A partially-evicted set (manifest present but a chunk
+   * blob missing) is treated as a miss so the caller regenerates cleanly.
    */
-  private async playBlob(blob: Blob, textHash: string): Promise<void> {
-    this.currentAudioBlob = blob;
-    const audioUrl = URL.createObjectURL(blob);
-    this.audioUrl = audioUrl;
-    this.audio = new Audio(audioUrl);
-    this.audio.playbackRate = this.playbackRate;
-    this.loadedTextHash = textHash;
-    this.setupAudioListeners();
-    await this.audio.play();
-    this.isCurrentlyPlaying = true;
-    this.isCurrentlyPaused = false;
+  private async loadFromCache(
+    textHash: string,
+  ): Promise<{ blobs: Blob[]; durations: number[] } | null> {
+    const mem = memManifests.get(textHash);
+    if (mem) {
+      const blobs = mem.chunkKeys.map((k) => memChunks.get(k));
+      if (blobs.every(Boolean)) {
+        return { blobs: blobs as Blob[], durations: mem.durations ?? [] };
+      }
+    }
+
+    const manifest = await getManifestFromIndexedDB(textHash);
+    if (!manifest || !manifest.chunkKeys?.length) return null;
+
+    const blobs: Blob[] = [];
+    for (const k of manifest.chunkKeys) {
+      const b = await getBlobFromIndexedDB(k);
+      if (!b) return null; // partially evicted → regenerate
+      blobs.push(b);
+      memChunks.set(k, b);
+    }
+    memManifests.set(textHash, manifest);
+    return { blobs, durations: manifest.durations ?? [] };
   }
 
-  private setupAudioListeners(): void {
-    if (!this.audio) return;
+  /**
+   * Synthesize every chunk sequentially (one edge call each), measure their
+   * durations, and persist chunk blobs + a manifest to memory and IndexedDB.
+   */
+  private async generate(
+    text: string,
+    voiceId: string,
+    textHash: string,
+  ): Promise<{ blobs: Blob[]; durations: number[] }> {
+    const chunks = this.splitTextIntoChunks(text);
 
-    this.audio.onended = () => {
-      console.log('ElevenLabsTTS: Riproduzione terminata');
-      this.isCurrentlyPlaying = false;
-      this.isCurrentlyPaused = false;
-      // Keep the element + object URL alive and rewind to 0 so pressing play
-      // again replays instantly from the start (no re-fetch). Released on
-      // dispose() (unmount) or when a different text is played.
-      if (this.audio) this.audio.currentTime = 0;
-      if (this.onEndedCallback) {
-        this.onEndedCallback();
+    console.log(`ElevenLabsTTS: Generazione audio per ${text.length} caratteri in ${chunks.length} blocchi...`);
+    toast({
+      title: "Generazione audio",
+      description: `Generazione di ${chunks.length} ${chunks.length === 1 ? 'blocco' : 'blocchi'} audio...`,
+      duration: 3000,
+    });
+
+    const blobs: Blob[] = [];
+
+    for (let i = 0; i < chunks.length; i++) {
+      console.log(`ElevenLabsTTS: Generazione blocco ${i + 1}/${chunks.length}`);
+
+      if (this.onGenerationProgressCallback) {
+        this.onGenerationProgressCallback(i + 1, chunks.length);
       }
-    };
 
-    this.audio.onerror = (e) => {
-      console.error('ElevenLabsTTS: Errore riproduzione audio', e);
-      this.isCurrentlyPlaying = false;
-      this.isCurrentlyPaused = false;
-      if (this.onErrorCallback) {
-        this.onErrorCallback();
-      }
-    };
+      const { data, error } = await supabase.functions.invoke('text-to-speech-elevenlabs', {
+        body: {
+          text: chunks[i],
+          voiceId,
+        },
+      });
 
-    this.audio.ontimeupdate = () => {
-      if (this.audio) {
-        if (this.onProgressCallback) {
-          const progress = (this.audio.currentTime / this.audio.duration) * 100;
-          this.onProgressCallback(progress);
+      if (error || data?.errorCode) {
+        // Read the structured { errorCode, error } the edge function returns.
+        // supabase.functions.invoke exposes the error body as a Response on
+        // error.context, so parse that (not error.message, which is only the
+        // generic "non-2xx status code").
+        const parsed = data?.errorCode
+          ? { errorCode: data.errorCode as string, status: undefined as number | undefined }
+          : await this.extractInvokeError(error);
+
+        // The function's own 401 (expired user session) — distinct from an
+        // upstream ElevenLabs key failure (UPSTREAM_AUTH).
+        if (parsed.status === 401 && parsed.errorCode !== 'UPSTREAM_AUTH') {
+          throw new Error('Devi effettuare l\'accesso per usare la lettura audio.');
         }
-        if (this.onTimeUpdateCallback) {
-          this.onTimeUpdateCallback(this.audio.currentTime, this.audio.duration);
+
+        if (parsed.errorCode) {
+          // Neutral, user-safe message per code (never raw upstream detail).
+          throw new Error(
+            getUserFacingMessage(parsed.errorCode, {
+              fallback: 'Servizio audio temporaneamente non disponibile. Riprova tra poco.',
+            })
+          );
         }
+
+        // Nothing parseable → generic fallback.
+        throw this.mapErrorToUserFriendly(error);
       }
+
+      if (!data?.audioContent) {
+        throw new Error('Non è stato possibile generare l\'audio per questo testo.');
+      }
+
+      blobs.push(this.base64ToBlob(data.audioContent, 'audio/mpeg'));
+    }
+
+    // Measure per-chunk durations (metadata reads on local blobs; no gesture
+    // needed). Fall back to a rate estimate when metadata is unavailable.
+    const measureUrls = blobs.map((b) => URL.createObjectURL(b));
+    const measured = await this.measureDurations(measureUrls);
+    measureUrls.forEach((u) => URL.revokeObjectURL(u));
+    const durations = measured.map((d, i) =>
+      d > 0 ? d : Math.max(1, chunks[i].length / 15) // ~15 chars/sec Italian
+    );
+
+    // Persist (memory + IndexedDB).
+    const keys = blobs.map((_, i) => chunkKey(textHash, i));
+    const manifest: ChunkManifest = {
+      version: CACHE_VERSION,
+      voiceId,
+      chunkKeys: keys,
+      durations,
     };
+    blobs.forEach((b, i) => memChunks.set(keys[i], b));
+    memManifests.set(textHash, manifest);
+
+    toast({
+      title: "Salvataggio audio",
+      description: "Audio salvato nella cache locale per riproduzione offline",
+      duration: 2000,
+    });
+    try {
+      await Promise.all(blobs.map((b, i) => saveBlobToIndexedDB(keys[i], b)));
+      await saveManifestToIndexedDB(textHash, manifest);
+      console.log('ElevenLabsTTS: Audio + manifest salvati in IndexedDB');
+    } catch (e) {
+      console.warn('ElevenLabsTTS: salvataggio cache non riuscito', e);
+    }
+
+    return { blobs, durations };
+  }
+
+  private measureDurations(urls: string[]): Promise<number[]> {
+    return Promise.all(
+      urls.map(
+        (url) =>
+          new Promise<number>((resolve) => {
+            const a = new Audio();
+            a.preload = 'metadata';
+            const finish = (d: number) => {
+              a.onloadedmetadata = null;
+              a.onerror = null;
+              a.src = '';
+              resolve(isFinite(d) && d > 0 ? d : 0);
+            };
+            a.onloadedmetadata = () => finish(a.duration);
+            a.onerror = () => finish(0);
+            a.src = url;
+          })
+      )
+    );
+  }
+
+  /** Install a new chunk queue, releasing any previous object URLs. */
+  private setQueue(blobs: Blob[], durations: number[], textHash: string): void {
+    this.disposeQueue();
+    this.chunkBlobs = blobs;
+    this.chunkDurations = durations.length === blobs.length ? durations : blobs.map(() => 0);
+    this.chunkUrls = blobs.map((b) => URL.createObjectURL(b));
+    this.loadedTextHash = textHash;
+    this.currentIndex = 0;
+  }
+
+  private startQueue(from: number): void {
+    this.currentIndex = from;
+    this.isCurrentlyPlaying = true;
+    this.isCurrentlyPaused = false;
+    this.loadChunk(from, true);
+  }
+
+  private loadChunk(i: number, play: boolean): void {
+    if (!this.audio || !this.chunkUrls[i]) return;
+    this.currentSrcIsSilent = false;
+    this.audio.src = this.chunkUrls[i]!;
+    this.audio.playbackRate = this.playbackRate;
+    if (play) {
+      const p = this.audio.play();
+      if (p && typeof p.then === 'function') p.catch((err) => this.handlePlayError(err));
+    }
+  }
+
+  private handlePlayError(err: unknown): void {
+    this.isCurrentlyPlaying = false;
+    this.isCurrentlyPaused = false;
+    const name = (err as { name?: string })?.name;
+    // Genuinely blocked playback (no gesture): surface a friendly message only,
+    // never the raw platform DOMException text.
+    const message =
+      name === 'NotAllowedError'
+        ? "Tocca di nuovo il pulsante per avviare l'audio."
+        : undefined;
+    if (name !== 'NotAllowedError') console.error('ElevenLabsTTS play error:', err);
+    if (this.onErrorCallback) this.onErrorCallback(message);
+  }
+
+  private onChunkEnded(): void {
+    if (this.currentSrcIsSilent) return; // ignore the unlock clip
+
+    if (this.currentIndex < this.chunkUrls.length - 1) {
+      // Advance to the next chunk (its object URL is already created).
+      this.currentIndex++;
+      this.loadChunk(this.currentIndex, true);
+      return;
+    }
+
+    // Whole queue finished. Rewind to the start so pressing play replays
+    // instantly from 0:00 (no re-fetch).
+    console.log('ElevenLabsTTS: Riproduzione terminata');
+    this.isCurrentlyPlaying = false;
+    this.isCurrentlyPaused = false;
+    this.currentIndex = 0;
+    if (this.audio && this.chunkUrls[0]) {
+      this.currentSrcIsSilent = false;
+      this.audio.src = this.chunkUrls[0]!;
+    }
+    if (this.onEndedCallback) this.onEndedCallback();
+  }
+
+  private onChunkTimeUpdate(): void {
+    if (!this.audio || this.currentSrcIsSilent) return;
+    const total = this.totalDuration();
+    const combined = this.elapsedBefore(this.currentIndex) + (this.audio.currentTime || 0);
+    if (this.onTimeUpdateCallback) this.onTimeUpdateCallback(combined, total);
+    if (this.onProgressCallback && total > 0) {
+      this.onProgressCallback(Math.min(100, (combined / total) * 100));
+    }
+  }
+
+  private elapsedBefore(index: number): number {
+    let sum = 0;
+    for (let k = 0; k < index && k < this.chunkDurations.length; k++) {
+      sum += this.chunkDurations[k] || 0;
+    }
+    return sum;
+  }
+
+  private totalDuration(): number {
+    return this.chunkDurations.reduce((a, b) => a + (b || 0), 0);
   }
 
   pause(): void {
@@ -528,7 +726,8 @@ export class ElevenLabsTTS {
 
   resume(): void {
     if (this.audio && this.isCurrentlyPaused) {
-      this.audio.play();
+      const p = this.audio.play();
+      if (p && typeof p.then === 'function') p.catch((err) => this.handlePlayError(err));
       this.isCurrentlyPaused = false;
       console.log('ElevenLabsTTS: Ripresa');
     }
@@ -537,12 +736,17 @@ export class ElevenLabsTTS {
   stop(): void {
     this.isCurrentlyPlaying = false;
     this.isCurrentlyPaused = false;
+    this.currentIndex = 0;
     if (this.audio) {
       this.audio.pause();
-      // Reset position but KEEP the element + object URL so the next play
-      // replays instantly from 0:00 without re-fetching. Released on dispose()
-      // (unmount) or when a different text is played.
-      this.audio.currentTime = 0;
+      // Reset to the first chunk at 0:00 but KEEP the queue for instant replay.
+      this.currentSrcIsSilent = false;
+      if (this.chunkUrls[0]) this.audio.src = this.chunkUrls[0]!;
+      try {
+        this.audio.currentTime = 0;
+      } catch {
+        /* currentTime not settable until metadata; harmless */
+      }
       console.log('ElevenLabsTTS: Stop (posizione azzerata, audio mantenuto per replay)');
     }
   }
@@ -555,38 +759,75 @@ export class ElevenLabsTTS {
     return this.isCurrentlyPaused;
   }
 
+  /** Seek across the COMBINED timeline (percentage 0-100 of total duration). */
   seek(percentage: number): void {
-    if (this.audio && this.audio.duration) {
-      this.audio.currentTime = (percentage / 100) * this.audio.duration;
+    const total = this.totalDuration();
+    if (!this.audio || total <= 0) return;
+
+    const target = Math.max(0, Math.min(total, (percentage / 100) * total));
+
+    // Map the global position to (chunk index, offset within chunk).
+    let acc = 0;
+    let idx = this.chunkDurations.length - 1;
+    for (let i = 0; i < this.chunkDurations.length; i++) {
+      const d = this.chunkDurations[i] || 0;
+      if (target < acc + d || i === this.chunkDurations.length - 1) {
+        idx = i;
+        break;
+      }
+      acc += d;
+    }
+    const offset = target - acc;
+    const wasPlaying = this.isCurrentlyPlaying && !this.isCurrentlyPaused;
+
+    this.currentIndex = idx;
+    if (!this.chunkUrls[idx]) return;
+
+    this.currentSrcIsSilent = false;
+    this.audio.src = this.chunkUrls[idx]!;
+    this.audio.playbackRate = this.playbackRate;
+    const applyOffset = () => {
+      try {
+        this.audio!.currentTime = offset;
+      } catch {
+        /* ignore */
+      }
+    };
+    // currentTime only sticks once metadata is available for the new src.
+    this.audio.onloadedmetadata = () => {
+      applyOffset();
+      if (this.audio) this.audio.onloadedmetadata = null;
+    };
+    if (wasPlaying) {
+      const p = this.audio.play();
+      if (p && typeof p.then === 'function') p.then(applyOffset).catch((err) => this.handlePlayError(err));
+    } else {
+      applyOffset();
     }
   }
 
-  /**
-   * Releases the current audio element and revokes its object URL. Called when
-   * switching to a different text and by dispose(). Does NOT touch the cached
-   * blob (memory + IndexedDB), so the audio can be reloaded later without a new
-   * TTS request.
-   */
-  private disposeAudio(): void {
-    if (this.audio) {
-      this.audio.pause();
-      this.audio = null;
-    }
-    if (this.audioUrl) {
-      URL.revokeObjectURL(this.audioUrl);
-      this.audioUrl = null;
-    }
+  /** Release the current queue's object URLs. Keeps cached blobs (memory/IDB). */
+  private disposeQueue(): void {
+    this.chunkUrls.forEach((u) => {
+      if (u) URL.revokeObjectURL(u);
+    });
+    this.chunkUrls = [];
+    this.chunkBlobs = [];
+    this.chunkDurations = [];
+    this.currentIndex = 0;
     this.loadedTextHash = null;
   }
 
-  /**
-   * Full teardown for component unmount: stops playback and releases the audio
-   * element + object URL. The cached blob is preserved for future playback.
-   */
+  /** Full teardown for component unmount. Cached blobs are preserved. */
   dispose(): void {
     this.isCurrentlyPlaying = false;
     this.isCurrentlyPaused = false;
-    this.disposeAudio();
+    if (this.audio) {
+      this.audio.pause();
+      this.audio.src = '';
+      this.audio = null;
+    }
+    this.disposeQueue();
   }
 
   /**
@@ -619,7 +860,11 @@ export class ElevenLabsTTS {
 
   private getUserFriendlyMessage(msg: string): string {
     const lower = msg.toLowerCase();
-    
+
+    // Blocked autoplay / lost user gesture — never surface the raw platform text.
+    if (lower.includes('not allowed') || lower.includes('user agent') || lower.includes('notallowed') || lower.includes('gesture')) {
+      return 'Tocca di nuovo il pulsante per avviare l\'audio.';
+    }
     if (lower.includes('dns') || lower.includes('network') || lower.includes('fetch') || lower.includes('failed to fetch') || lower.includes('networkerror')) {
       return 'Problema di connessione. Controlla la tua connessione internet e riprova.';
     }
@@ -641,23 +886,23 @@ export class ElevenLabsTTS {
     if (lower.includes('non valido') || lower.includes('validation')) {
       return 'Il testo inserito non è valido. Verifica e riprova.';
     }
-    
+
     // If the message is already user-friendly (Italian), return as-is
     if (/^[A-ZÀ-Ú]/.test(msg) && !lower.includes('error') && !lower.includes('exception')) {
       return msg;
     }
-    
+
     return 'Errore durante la generazione audio. Riprova.';
   }
 
   private base64ToBlob(base64: string, contentType: string): Blob {
     const byteCharacters = atob(base64);
     const byteNumbers = new Array(byteCharacters.length);
-    
+
     for (let i = 0; i < byteCharacters.length; i++) {
       byteNumbers[i] = byteCharacters.charCodeAt(i);
     }
-    
+
     const byteArray = new Uint8Array(byteNumbers);
     return new Blob([byteArray], { type: contentType });
   }
