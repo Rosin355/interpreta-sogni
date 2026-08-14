@@ -755,7 +755,7 @@ Riassunto (max 500 caratteri):`;
     // casi ciechi (segnale basso o pareggio) NON si ripiega su nigredo: si salva
     // null e si logga, per non gonfiare la distribuzione verso la Nigredo.
     console.log('Calculating alchemical phase...');
-    const declaredPhase = extractPhaseFromInterpretation(interpretation);
+    const declaredPhase = extractPhaseFromInterpretation(interpretation, 'interpret-dream-with-astrology');
     let alchemicalPhase = declaredPhase;
     let phaseSource = 'interpretation';
     if (!alchemicalPhase) {

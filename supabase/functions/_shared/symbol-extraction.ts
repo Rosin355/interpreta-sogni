@@ -46,30 +46,52 @@ const isPhraseLikeName = (name: string): boolean => {
   return words.length > 2 || /[.,;:!?]/.test(name);
 };
 
+export interface SymbolValidationStats {
+  total: number; // items in the parsed array
+  empty: number; // non-object item, or missing/blank name or meaning
+  phrase: number; // name rejected as a descriptive phrase (>2 words / punctuation)
+  duplicate: number; // duplicate name
+}
+
 /**
  * Validate + normalise the parsed model output into at most MAX_SYMBOLS clean
- * {name, meaning}. Drops anything missing a name or meaning, phrase-like names,
- * and duplicates. Never throws.
+ * {name, meaning}, AND report why items were dropped (for diagnostics). Drops
+ * anything missing a name or meaning, phrase-like names, and duplicates. Never
+ * throws. The symbol output is identical to validateSymbols().
  */
-export function validateSymbols(parsed: unknown): DreamSymbol[] {
-  if (!Array.isArray(parsed)) return [];
+export function validateSymbolsWithStats(
+  parsed: unknown,
+): { symbols: DreamSymbol[]; stats: SymbolValidationStats } {
+  const stats: SymbolValidationStats = { total: 0, empty: 0, phrase: 0, duplicate: 0 };
+  if (!Array.isArray(parsed)) return { symbols: [], stats };
+  stats.total = parsed.length;
   const out: DreamSymbol[] = [];
   const seen = new Set<string>();
   for (const item of parsed) {
-    if (!item || typeof item !== "object") continue;
+    if (!item || typeof item !== "object") { stats.empty++; continue; }
     const rec = item as Record<string, unknown>;
     const name = typeof rec.name === "string" ? rec.name.trim() : "";
     const meaning = typeof rec.meaning === "string" ? rec.meaning.trim() : "";
-    if (!name || !meaning) continue; // both required
-    if (isPhraseLikeName(name)) continue; // reject descriptive phrases
+    if (!name || !meaning) { stats.empty++; continue; } // both required
+    if (isPhraseLikeName(name)) { stats.phrase++; continue; } // descriptive phrase
     const key = name.toLowerCase();
-    if (seen.has(key)) continue; // dedupe by name
+    if (seen.has(key)) { stats.duplicate++; continue; } // dedupe by name
     seen.add(key);
     out.push({ name, meaning });
     if (out.length >= MAX_SYMBOLS) break;
   }
-  return out;
+  return { symbols: out, stats };
 }
+
+/** Same as validateSymbolsWithStats but returns only the symbols (unchanged API). */
+export function validateSymbols(parsed: unknown): DreamSymbol[] {
+  return validateSymbolsWithStats(parsed).symbols;
+}
+
+// A short, single-line, truncated sample of MODEL OUTPUT for diagnostics.
+// This is the model's JSON reply, never the dream content that was the input.
+const sampleOutput = (s: string, n = 140): string =>
+  (s ?? "").replace(/\s+/g, " ").trim().slice(0, n);
 
 /**
  * Extract symbols from the interpretation via one dedicated AI call.
@@ -119,7 +141,30 @@ export async function extractDreamSymbols(opts: {
 
     const data = await res.json();
     const raw: string = data?.choices?.[0]?.message?.content ?? "";
-    return validateSymbols(parseSymbolsJson(raw));
+
+    // Diagnostics: distinguish WHY we may end up with zero symbols.
+    const parsed = parseSymbolsJson(raw);
+    if (parsed === null) {
+      console.warn(`SYMBOLS_PARSE_FAILED function=${functionName} sample=${sampleOutput(raw)}`);
+      return [];
+    }
+    if (!Array.isArray(parsed)) {
+      console.warn(`SYMBOLS_NOT_ARRAY function=${functionName} type=${typeof parsed}`);
+      return [];
+    }
+    if (parsed.length === 0) {
+      console.warn(`SYMBOLS_EMPTY_FROM_MODEL function=${functionName}`);
+      return [];
+    }
+    const { symbols, stats } = validateSymbolsWithStats(parsed);
+    if (symbols.length === 0) {
+      console.warn(
+        `SYMBOLS_ALL_REJECTED function=${functionName} total=${stats.total} ` +
+          `rejEmpty=${stats.empty} rejPhrase=${stats.phrase} rejDuplicate=${stats.duplicate} ` +
+          `sample=${sampleOutput(raw)}`,
+      );
+    }
+    return symbols;
   } catch (e) {
     console.warn(
       `SYMBOLS_EXTRACT_ERROR function=${functionName} name=${(e as Error)?.name ?? "Error"}`,
