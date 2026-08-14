@@ -40,6 +40,31 @@ export function parseSymbolsJson(raw: string): unknown {
   }
 }
 
+/**
+ * Salvage a TRUNCATED symbols array (the model's long meanings can cut the JSON
+ * off mid-array). Closes the array at the last complete object — the last "}"
+ * before the truncation point — and re-parses. Returns the recovered array, or
+ * null if nothing usable can be recovered (e.g. not even one object completed).
+ */
+export function salvageTruncatedSymbols(raw: string): unknown[] | null {
+  let text = (raw ?? "").trim();
+  if (text.startsWith("```")) {
+    text = text.replace(/^```[a-zA-Z]*\s*/, "").replace(/```\s*$/, "").trim();
+  }
+  const start = text.indexOf("[");
+  if (start < 0) return null;
+  text = text.slice(start); // from the opening "["
+  const lastBrace = text.lastIndexOf("}"); // end of the last complete object
+  if (lastBrace < 0) return null;
+  const closed = text.slice(0, lastBrace + 1) + "]"; // drop any partial trailing object
+  try {
+    const parsed = JSON.parse(closed);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 // A "name" must name a single symbol in 1-2 words. Reject descriptive phrases
 // like "incidente stradale e famiglia ferita" (the explanation belongs in
 // `meaning`): >2 words, or sentence punctuation, is a phrase, not a name.
@@ -113,8 +138,10 @@ export async function extractDreamSymbols(opts: {
       'Formato esatto: [{"name":"...","meaning":"..."}]. ' +
       'REGOLE per "name": deve nominare UN SINGOLO simbolo in 1-2 parole ' +
       '(es. "corvo", "acqua nera", "casa"), MAI una frase descrittiva o un evento ' +
-      '(NO "incidente stradale e famiglia ferita"). La spiegazione va in "meaning" ' +
-      "(1-2 frasi in italiano). Massimo " + MAX_SYMBOLS + " simboli, i più salienti. " +
+      '(NO "incidente stradale e famiglia ferita"). La spiegazione va in "meaning": ' +
+      "UNA sola frase breve, massimo ~15 parole, in italiano — una didascalia, non un " +
+      "paragrafo (le spiegazioni lunghe stanno nell'interpretazione). Massimo " +
+      MAX_SYMBOLS + " simboli, i più salienti. " +
       "Se non ci sono simboli chiari, rispondi con [].";
     const userPrompt = `SOGNO:\n${dreamContent}\n\nINTERPRETAZIONE:\n${interpretation}`;
 
@@ -131,7 +158,7 @@ export async function extractDreamSymbols(opts: {
           { role: "user", content: userPrompt },
         ],
         temperature: 0.2,
-        max_tokens: 500,
+        max_tokens: 1000,
       }),
     });
 
@@ -146,10 +173,18 @@ export async function extractDreamSymbols(opts: {
     const raw: string = data?.choices?.[0]?.message?.content ?? "";
 
     // Diagnostics: distinguish WHY we may end up with zero symbols.
-    const parsed = parseSymbolsJson(raw);
+    let parsed = parseSymbolsJson(raw);
     if (parsed === null) {
-      console.warn(`SYMBOLS_PARSE_FAILED function=${functionName} sample=${sampleOutput(raw)}`);
-      return { symbols: [], providerOk: true };
+      // The model's long meanings can truncate the JSON mid-array. Recover the
+      // complete objects instead of dropping everything.
+      const salvaged = salvageTruncatedSymbols(raw);
+      if (salvaged) {
+        console.warn(`SYMBOLS_SALVAGED function=${functionName} total=${salvaged.length}`);
+        parsed = salvaged;
+      } else {
+        console.warn(`SYMBOLS_PARSE_FAILED function=${functionName} sample=${sampleOutput(raw)}`);
+        return { symbols: [], providerOk: true };
+      }
     }
     if (!Array.isArray(parsed)) {
       console.warn(`SYMBOLS_NOT_ARRAY function=${functionName} type=${typeof parsed}`);
