@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import { corsHeaders, errorResponse, notifyQuotaToAdmins } from "../_shared/error-response.ts";
+import { recordUsage, rollbackUsage } from "../_shared/usage-ledger.ts";
 
 const ZODIAC_SIGNS = [
   'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
@@ -266,6 +267,14 @@ serve(async (req) => {
     let natalContext: string = "";
     let lastError: Error | null = null;
 
+    // Record the paid RapidAPI natal-chart usage optimistically (feature=astrology_natal_api).
+    const natalLedgerId = await recordUsage(supabaseAdmin, user.id, 'astrology_natal_api', {
+      function_name: 'calculate-natal-chart',
+      provider: 'rapidapi',
+      model: 'astrologer.p.rapidapi.com',
+      calls: 1,
+    });
+
     while (retries > 0) {
       const attempt = 4 - retries;
       try {
@@ -308,6 +317,7 @@ serve(async (req) => {
             functionName: 'calculate-natal-chart',
             technicalMessage: technical,
           }).catch(() => {});
+          await rollbackUsage(supabaseAdmin, natalLedgerId, 'calculate-natal-chart');
           return errorResponse('API_QUOTA_EXCEEDED', technical, { provider: 'rapidapi' });
         }
 
@@ -340,6 +350,7 @@ serve(async (req) => {
 
     if (!chartData) {
       const msg = `Impossibile calcolare il tema natale: ${lastError?.message || 'Errore sconosciuto'}`;
+      await rollbackUsage(supabaseAdmin, natalLedgerId, 'calculate-natal-chart');
       return errorResponse('UPSTREAM_UNAVAILABLE', msg, { provider: 'rapidapi' });
     }
 

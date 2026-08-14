@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.1';
 import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { recordUsage, rollbackUsage } from "../_shared/usage-ledger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -105,6 +106,15 @@ serve(async (req) => {
 
     console.log(`[TTS] Calling ElevenLabs API: ${text.length} chars, voice: ${voiceId}`);
 
+    // Record the TTS call optimistically (feature=tts).
+    const usageAdmin = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
+    const ttsLedgerId = await recordUsage(usageAdmin, user.id, 'tts', {
+      function_name: 'text-to-speech-elevenlabs',
+      provider: 'elevenlabs',
+      model: 'eleven_multilingual_v2',
+      calls: 1,
+    });
+
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
       {
@@ -127,6 +137,8 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
+      // Provider call failed → not billed → roll back the optimistic record.
+      await rollbackUsage(usageAdmin, ttsLedgerId, 'text-to-speech-elevenlabs');
       // Log the upstream detail server-side only. errorText never contains our
       // API key (ElevenLabs does not echo the key back); do NOT put it in the
       // client response.

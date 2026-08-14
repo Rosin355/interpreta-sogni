@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.75.1";
+import { recordUsage, rollbackUsage } from "../_shared/usage-ledger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -189,6 +190,14 @@ Le tue risposte devono:
       );
     }
 
+    // Record the alchemist chat AI call optimistically (feature=advanced_alchemist_message).
+    const chatLedgerId = await recordUsage(supabaseAdmin, user.id, 'advanced_alchemist_message', {
+      function_name: 'chat-with-alchemist',
+      provider: 'lovable',
+      model: 'google/gemini-3-flash-preview',
+      calls: 1,
+    });
+
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -205,6 +214,8 @@ Le tue risposte devono:
     if (!aiResponse.ok) {
       const statusCode = aiResponse.status;
       const errorText = await aiResponse.text().catch(() => "");
+      // Provider call failed → not billed → roll back the optimistic record.
+      await rollbackUsage(supabaseAdmin, chatLedgerId, 'chat-with-alchemist');
       if (statusCode === 429) {
         const { notifyQuotaToAdmins } = await import("../_shared/error-response.ts");
         notifyQuotaToAdmins({

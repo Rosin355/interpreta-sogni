@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { RateLimiter, RATE_LIMITS } from "../_shared/rate-limiter.ts";
 import { suggestTagsSchema } from "../_shared/validation.ts";
+import { recordUsage, rollbackUsage } from "../_shared/usage-ledger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -135,6 +136,15 @@ ${dreamCategories.map(cat => `- ${cat.name}: ${cat.keywords.join(', ')}`).join('
 Identifica temi principali, emozioni, simboli e luoghi. Suggerisci 3-7 tag rilevanti in italiano.
 Ogni tag dovrebbe essere breve (1-3 parole) e pertinente al contenuto del sogno.`;
 
+    // Record the tag-suggestion AI call optimistically (feature=suggest_tags).
+    const usageAdmin = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
+    const tagsLedgerId = await recordUsage(usageAdmin, user.id, 'suggest_tags', {
+      function_name: 'suggest-tags',
+      provider: 'lovable',
+      model: 'google/gemini-2.5-flash',
+      calls: 1,
+    });
+
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -181,6 +191,7 @@ Ogni tag dovrebbe essere breve (1-3 parole) e pertinente al contenuto del sogno.
     });
 
     if (response.status === 429 || response.status === 402) {
+      await rollbackUsage(usageAdmin, tagsLedgerId, 'suggest-tags');
       const code = response.status === 429 ? 'AI_RATE_LIMIT' : 'AI_CREDITS_EXHAUSTED';
       const { notifyQuotaToAdmins } = await import("../_shared/error-response.ts");
       notifyQuotaToAdmins({
@@ -196,6 +207,7 @@ Ogni tag dovrebbe essere breve (1-3 parole) e pertinente al contenuto del sogno.
     }
 
     if (!response.ok) {
+      await rollbackUsage(usageAdmin, tagsLedgerId, 'suggest-tags');
       const errorText = await response.text();
       console.error('[suggest-tags] AI API error:', response.status, errorText);
       console.error('[suggest-tags] Response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));

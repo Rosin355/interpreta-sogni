@@ -6,6 +6,8 @@
 // text the user reads is never affected. interpret-dream and
 // interpret-dream-with-astrology use this identically.
 
+import { recordUsage, rollbackUsage } from "./usage-ledger.ts";
+
 const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MAX_SYMBOLS = 8;
 
@@ -102,7 +104,7 @@ export async function extractDreamSymbols(opts: {
   dreamContent: string;
   interpretation: string;
   functionName: string;
-}): Promise<DreamSymbol[]> {
+}): Promise<{ symbols: DreamSymbol[]; providerOk: boolean }> {
   const { lovableApiKey, dreamContent, interpretation, functionName } = opts;
   try {
     const systemPrompt =
@@ -136,9 +138,10 @@ export async function extractDreamSymbols(opts: {
     if (!res.ok) {
       await res.text().catch(() => undefined); // drain, never log body
       console.warn(`SYMBOLS_EXTRACT_FAILED function=${functionName} code=${res.status}`);
-      return [];
+      return { symbols: [], providerOk: false }; // provider error → not billed
     }
 
+    // From here the provider call returned 2xx (billed) regardless of parse outcome.
     const data = await res.json();
     const raw: string = data?.choices?.[0]?.message?.content ?? "";
 
@@ -146,15 +149,15 @@ export async function extractDreamSymbols(opts: {
     const parsed = parseSymbolsJson(raw);
     if (parsed === null) {
       console.warn(`SYMBOLS_PARSE_FAILED function=${functionName} sample=${sampleOutput(raw)}`);
-      return [];
+      return { symbols: [], providerOk: true };
     }
     if (!Array.isArray(parsed)) {
       console.warn(`SYMBOLS_NOT_ARRAY function=${functionName} type=${typeof parsed}`);
-      return [];
+      return { symbols: [], providerOk: true };
     }
     if (parsed.length === 0) {
       console.warn(`SYMBOLS_EMPTY_FROM_MODEL function=${functionName}`);
-      return [];
+      return { symbols: [], providerOk: true };
     }
     const { symbols, stats } = validateSymbolsWithStats(parsed);
     if (symbols.length === 0) {
@@ -164,12 +167,12 @@ export async function extractDreamSymbols(opts: {
           `sample=${sampleOutput(raw)}`,
       );
     }
-    return symbols;
+    return { symbols, providerOk: true };
   } catch (e) {
     console.warn(
       `SYMBOLS_EXTRACT_ERROR function=${functionName} name=${(e as Error)?.name ?? "Error"}`,
     );
-    return [];
+    return { symbols: [], providerOk: false }; // network/unexpected → not billed
   }
 }
 
@@ -181,20 +184,35 @@ export async function extractDreamSymbols(opts: {
  */
 export async function captureDreamSymbols(opts: {
   // deno-lint-ignore no-explicit-any
-  supabase: any; // service-role or RLS-scoped client with .from().update().eq()
+  supabase: any; // SERVICE-ROLE client (also used for the usage_ledger write)
   lovableApiKey: string;
+  userId: string;
   dreamId: string;
   dreamContent: string;
   interpretation: string;
   functionName: string;
 }): Promise<void> {
+  // Record the symbol-extraction AI call optimistically (feature=symbol_extraction).
+  // This covers BOTH interpret callers, since both route through here.
+  const ledgerId = await recordUsage(opts.supabase, opts.userId, "symbol_extraction", {
+    function_name: opts.functionName,
+    provider: "lovable",
+    model: "google/gemini-2.5-flash",
+    dream_id_prefix: prefix(opts.dreamId),
+    calls: 1,
+  });
   try {
-    const symbols = await extractDreamSymbols({
+    const { symbols, providerOk } = await extractDreamSymbols({
       lovableApiKey: opts.lovableApiKey,
       dreamContent: opts.dreamContent,
       interpretation: opts.interpretation,
       functionName: opts.functionName,
     });
+    // Roll back only when the paid call did NOT go through (network / non-2xx).
+    // A 2xx that yields no usable symbols was still billed — keep the record.
+    if (!providerOk) {
+      await rollbackUsage(opts.supabase, ledgerId, opts.functionName);
+    }
     if (symbols.length === 0) {
       console.warn(
         `SYMBOLS_NONE function=${opts.functionName} dreamIdPrefix=${prefix(opts.dreamId)}`,
