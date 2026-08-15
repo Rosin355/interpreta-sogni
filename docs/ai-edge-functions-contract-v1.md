@@ -69,6 +69,96 @@ optionally surface `kb_sources`.
 KB retrieval failures are **never** surfaced as errors — interpretation still
 succeeds with `kb_context_used=false`.
 
+## interpret-dream-with-astrology
+
+`POST /functions/v1/interpret-dream-with-astrology` · `Authorization: Bearer <user JWT>`
+
+**Canonical source: this repo** (`supabase/functions/interpret-dream-with-astrology/`).
+This is the **unified interpretation endpoint** — a strict superset of
+`interpret-dream`. Web already uses it; iOS switches in a follow-up PR.
+`interpret-dream` remains deployed and unchanged as the fallback until that
+switch is verified.
+
+### Request
+
+```jsonc
+{
+  "dream_id": "uuid",      // iOS snake_case
+  "dreamId": "uuid",       // web camelCase — either is accepted
+  "locale": "string",      // optional, e.g. "it-IT"; defaults to "it"
+  "style": "string",       // optional, advisory (not yet used)
+
+  // legacy web fields — still accepted, now only a FALLBACK.
+  // The dream row is the authoritative source of content/tags/mood.
+  "dreamContent": "string",
+  "dreamTags": ["string"],
+  "dreamMood": "string"
+}
+```
+
+Normalizes to `dreamId = dream_id ?? dreamId`; neither present →
+`400 { error, error_code: "missing_dream_id" }`. A caller may send `dream_id`
+alone — content is read server-side from the ownership-checked `dreams` row.
+
+### Response (200)
+
+```jsonc
+{
+  "interpretation": "string",
+  "interpretation_summary": "string",
+  "alchemical_phase": "nigredo | albedo | rubedo | null",
+  "hasAstrologicalContext": true,   // existing web field, unchanged
+  "success": true,                  // existing web field, unchanged
+
+  // --- additive ---
+  "astrology_included": true,       // mirrors hasAstrologicalContext, snake_case
+  "kb_context_used": false,
+  "kb_result_count": 0,
+  "kb_sources": [{ "title": "string", "domain": "string" }]
+}
+```
+
+Header: `X-RateLimit-Remaining` (additive).
+
+**Astrology is optional.** No natal profile, a profile read error, or a failed
+RapidAPI transit lookup all degrade gracefully: the interpretation still runs
+(without astrological context) and returns `astrology_included: false`. It is
+never an error condition.
+
+**Persistence** (same columns as `interpret-dream`, so iOS
+`CachedRemoteDream` refresh is unaffected): `dreams.interpretation`,
+`dreams.interpretation_summary`, `dreams.alchemical_phase`, and — in the
+background, best-effort — `dreams.ai_symbols`.
+
+### Errors
+
+| Status | Body | Meaning |
+|--------|------|---------|
+| 400 | `{ error, error_code: "missing_dream_id", success: false }` | neither `dream_id` nor `dreamId` provided |
+| 400 | `{ error: "Dati non validi", details, success: false }` | malformed body (e.g. invalid UUID) |
+| 400 | `{ error, success: false }` | generic failure (unchanged from current behavior) |
+| 401 | `{ error, success: false }` | missing / invalid JWT |
+| 403 | `{ error, success: false }` | dream not owned by caller |
+| 404 | `{ error, success: false }` | dream not found |
+| 429 | `{ error, errorCode?, resetAt?, success: false }` | rate limit (20/h) or AI quota (`AI_RATE_LIMIT` / `AI_CREDITS_EXHAUSTED`) |
+
+Rate limit is **20 requests/hour** here (vs 50/h on `interpret-dream`), because
+each call may make up to 2 paid RapidAPI requests plus 1–2 AI calls. Fails open
+with a `RATE_LIMITER_UNAVAILABLE` log line if Upstash is unreachable.
+
+### Observability
+
+One structured, content-free line per successful call:
+
+```
+INTERPRET_UNIFIED function=… dreamIdPrefix=… userIdPrefix=… astrologyIncluded=…
+astrologyReason=… transitContext=… moonContext=… kbEnabled=… kbChunks=…
+kbContextUsed=… provider=… model=… locale=… phase=…
+```
+
+`astrologyReason` ∈ `natal_chart | no_profile | no_natal_chart | profile_error`.
+Plus `ASTROLOGY_PROFILE_UNAVAILABLE …` when the profile read is skipped or fails.
+
 ## Privacy invariants (all AI functions)
 
 - No dream content, KB chunk content, query text, embeddings, JWTs or API keys

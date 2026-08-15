@@ -7,7 +7,8 @@
 
 | Feature | Provider | Status |
 |---|---|---|
-| `interpret-dream` (text) | Anthropic / OpenAI primary, Lovable AI Gateway fallback | **working** |
+| `interpret-dream` (text) | Anthropic / OpenAI primary, Lovable AI Gateway fallback | **working** (fallback while iOS migrates) |
+| `interpret-dream-with-astrology` (**unified endpoint**) | Lovable AI Gateway (Gemini 2.5 Flash) + RapidAPI transits | **working** (web); iOS switch **pending** |
 | `suggest-tags` | Claude / OpenAI / Lovable fallback | **working** |
 | `generate-dream-image` | Lovable AI Gateway (Gemini 2.5 Flash) | **working** (web) |
 | `chat-with-alchemist` | Claude / OpenAI | **working** (basic) |
@@ -15,6 +16,7 @@
 | Knowledge Base embeddings | OpenAI `text-embedding-3-small` | **working** (admin-triggered, not deployed) |
 | `search-knowledge` (KB semantic retrieval) | OpenAI query embedding + pgvector RPC | **working** (deployed) |
 | KB retrieval into `interpret-dream` | OpenAI query embedding + RPC, tester-gated | **working** (not deployed) |
+| KB retrieval into `interpret-dream-with-astrology` | same helper, ported verbatim, tester-gated | **working** (not deployed) |
 | KB retrieval into `chat-with-alchemist` | server-side composition | **planned** |
 
 ## Supabase Edge Functions
@@ -22,7 +24,7 @@
 **Existing** (`supabase/functions/`):
 
 - `interpret-dream` (Lovable AI / Gemini; accepts both `dream_id` (iOS snake_case) and `dreamId` (web camelCase), normalized internally → `400 missing_dream_id` if neither; locale-aware app-native style — Italian mood words, sparse Markdown bold for symbolic keywords, no citations; `alchemical_phase` taken from the phase the interpretation declares (fallback heuristic); **tester-gated** KB retrieval — OpenAI query embedding + `match_knowledge_chunks`, fail-open, additive `kb_*` response metadata; see [details](./interpret-dream-kb-retrieval-v1.md))
-- `interpret-dream-with-astrology`
+- `interpret-dream-with-astrology` — **the unified interpretation endpoint** (web today, iOS next). Superset of `interpret-dream`: accepts both `dream_id` (iOS) and `dreamId` (web); the dream row is the authoritative source of content/tags/mood (legacy `dreamContent`/`dreamTags`/`dreamMood` still accepted as a fallback); **astrology is optional enrichment** — no natal profile, or a failed profile/transit lookup, degrades to a plain interpretation with `astrology_included: false` instead of an error; same tester-gated KB retrieval, citation-marker stripping and locale/mood-word handling as `interpret-dream`; 20 req/h Upstash limit (fail-open, `RATE_LIMITER_UNAVAILABLE`); `usage_ledger` record + rollback; symbols and `alchemical_phase` persisted to the same `dreams` columns. See [contract](./ai-edge-functions-contract-v1.md#interpret-dream-with-astrology).
 - `chat-with-alchemist`
 - `suggest-tags`
 - `generate-dream-image`
@@ -49,9 +51,24 @@
 - `get-user-entitlements` (RevenueCat-backed)
 - `revenuecat-webhook` (subscription state sync)
 
+## Edge Function source ownership
+
+**This repo is the canonical source** for `interpret-dream` and
+`interpret-dream-with-astrology`. Deploy only from here; never edit the deployed
+copy in the Supabase dashboard, and never `supabase functions deploy --all`.
+
+Verified on 2026-08-15 by downloading both deployed functions
+(`supabase functions download <slug> --use-api`) into a throwaway workdir and
+diffing against `main`: **all 9 files byte-identical** (both `index.ts` plus the
+7 shared modules). Repeat that check before any future change to these two.
+
+`interpret-dream` stays deployed unchanged as the working fallback until iOS has
+switched to `interpret-dream-with-astrology` and been verified in production.
+
 ## Supabase Tables (AI / KB-relevant)
 
 - `dreams` — owns persisted AI fields (`interpretation`, `interpretation_summary`, `ai_symbols`, `ai_reflection_questions`, `alchemical_phase`)
+  - ⚠️ `ai_reflection_questions` exists on the table but **no Edge Function currently writes it** — neither interpretation function produces reflection questions today. Clients must treat it as possibly-empty.
 - `usage_ledger` — one row per AI call (`feature`, `user_id`, `metadata`, `rolled_back`)
 - `ai_knowledge_sources` — curated sources (admin-managed)
 - `ai_knowledge_chunks` — chunked text + embeddings (populated by `process-knowledge-source` once built)

@@ -36,6 +36,46 @@ export const interpretDreamSchema = z.object({
   locale: z.string().max(16).optional(),
 });
 
+// interpret-dream-with-astrology is becoming the single interpretation endpoint
+// for web + iOS, so it accepts the same id shapes as interpret-dream
+// (`dream_id` / `dreamId`) plus the legacy web body fields.
+//
+// The legacy fields (`dreamContent` / `dreamTags` / `dreamMood`) are typed as
+// `unknown` ON PURPOSE: the deployed function never validated them, and the dream
+// row is now the authoritative source for all three. Validating them strictly
+// could reject a body the live web app sends today, so they are normalized
+// defensively in the handler instead (see normalizeLegacyDreamFields).
+export const interpretDreamWithAstrologySchema = z.object({
+  dream_id: uuidSchema.optional(),
+  dreamId: uuidSchema.optional(),
+  style: z.string().max(64).optional(),
+  locale: z.string().max(16).optional(),
+  dreamContent: z.unknown().optional(),
+  dreamTags: z.unknown().optional(),
+  dreamMood: z.unknown().optional(),
+});
+
+/**
+ * Coerce the legacy client-supplied dream fields into safe values. Anything that
+ * is not the expected shape degrades to undefined rather than failing the
+ * request — these are only a fallback for the DB row.
+ */
+export const normalizeLegacyDreamFields = (body: {
+  dreamContent?: unknown;
+  dreamTags?: unknown;
+  dreamMood?: unknown;
+}): { content?: string; tags?: string[]; mood?: string } => ({
+  content: typeof body.dreamContent === 'string' && body.dreamContent.trim()
+    ? body.dreamContent
+    : undefined,
+  tags: Array.isArray(body.dreamTags)
+    ? body.dreamTags.filter((t): t is string => typeof t === 'string' && !!t.trim())
+    : undefined,
+  mood: typeof body.dreamMood === 'string' && body.dreamMood.trim()
+    ? body.dreamMood
+    : undefined,
+});
+
 export const generateDreamImageSchema = z.object({
   dreamId: uuidSchema,
   content: z.string().min(1).max(10000),

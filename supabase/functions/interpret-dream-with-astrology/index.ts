@@ -1,9 +1,32 @@
+// Unified dream-interpretation endpoint (web today, iOS next).
+//
+// Astrological context is now OPTIONAL enrichment, not a precondition: a caller
+// with no natal profile — or whose astrology lookup fails — still gets a full
+// interpretation with the same Knowledge Base grounding `interpret-dream`
+// provides. The response reports which happened via `astrology_included`.
+//
+// Privacy: dream content, KB chunk content, the retrieval query and birth data
+// are NEVER logged. Structured logs carry ids-as-prefixes, counts and flags only.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.75.1";
-import { computeDreamPhase, extractPhaseFromInterpretation } from "../_shared/alchemical-calculator.ts";
+import {
+  computeDreamPhase,
+  extractPhaseFromInterpretation,
+  localizeItalianMoodWords,
+} from "../_shared/alchemical-calculator.ts";
+import {
+  buildKbPromptSection,
+  isKbRetrievalEnabledForUser,
+  retrieveKnowledgeContext,
+  stripKbCitationMarkers,
+} from "../_shared/knowledge-retrieval.ts";
 import { RateLimiter } from "../_shared/rate-limiter.ts";
 import { captureDreamSymbols } from "../_shared/symbol-extraction.ts";
 import { recordUsage, rollbackUsage } from "../_shared/usage-ledger.ts";
+import {
+  interpretDreamWithAstrologySchema,
+  normalizeLegacyDreamFields,
+} from "../_shared/validation.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -379,16 +402,48 @@ serve(async (req) => {
       );
     }
 
-    const { dreamId, dreamContent, dreamTags, dreamMood } = await req.json();
+    // Input validation — accept BOTH the iOS snake_case `dream_id` and the web
+    // camelCase `dreamId`, exactly like interpret-dream. The legacy web fields
+    // (dreamContent/dreamTags/dreamMood) stay accepted but are only a fallback:
+    // the dream row is authoritative, so iOS can call with `dream_id` alone.
+    const requestBody = await req.json();
+    const validation = interpretDreamWithAstrologySchema.safeParse(requestBody);
 
-    console.log('Interpreting dream with astrology for user:', user.id);
-
-    if (!dreamContent) {
-      throw new Error('Dream content is required');
+    if (!validation.success) {
+      console.error(
+        '[interpret-dream-with-astrology] Validation failed:',
+        validation.error.issues.map((i) => i.message).join(', ')
+      );
+      return new Response(
+        JSON.stringify({
+          error: 'Dati non validi',
+          details: validation.error.issues.map((i) => i.message).join(', '),
+          success: false
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
+    const body = validation.data;
+    const dreamId = body.dream_id ?? body.dreamId;
+    const legacy = normalizeLegacyDreamFields(body);
+
+    // Locale drives the output language. Default to Italian (app-native), which
+    // is exactly what the web app gets today since it sends no locale.
+    const locale = (body.locale ?? 'it').trim() || 'it';
+    const isItalian = locale.toLowerCase().startsWith('it');
+
+    // Safe request log — never the dream content; the id is truncated to a prefix.
+    console.log(
+      `[interpret-dream-with-astrology] request dreamIdPrefix=${dreamId ? dreamId.slice(0, 8) : 'none'} ` +
+      `locale=${body.locale ?? 'none'} hasDreamIdSnake=${!!body.dream_id} hasDreamIdCamel=${!!body.dreamId}`
+    );
+
     if (!dreamId) {
-      throw new Error('Dream ID is required');
+      return new Response(
+        JSON.stringify({ error: 'dream_id mancante', error_code: 'missing_dream_id', success: false }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Carica il sogno con un client service-role, così il controllo di
@@ -400,7 +455,7 @@ serve(async (req) => {
 
     const { data: dream, error: dreamError } = await supabaseAdmin
       .from('dreams')
-      .select('user_id, created_at')
+      .select('user_id, created_at, title, content, tags, mood, dream_date')
       .eq('id', dreamId)
       .single();
 
@@ -422,26 +477,65 @@ serve(async (req) => {
       );
     }
 
-    // Carica il profilo con i dati del tema natale e del contesto
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('natal_chart_data, natal_context, gender, birth_date, birth_time, birth_latitude, birth_longitude, birth_timezone')
-      .eq('id', user.id)
-      .single();
+    // Il sogno salvato è la fonte autoritativa di contenuto/tag/mood. I campi
+    // legacy inviati dal web restano accettati come fallback, così il client
+    // attuale continua a funzionare senza modifiche e iOS può inviare il solo id.
+    const dreamContent = (typeof dream.content === 'string' && dream.content.trim())
+      ? dream.content
+      : (legacy.content ?? '');
+    const dreamTags = (Array.isArray(dream.tags) && dream.tags.length > 0)
+      ? dream.tags
+      : (legacy.tags ?? []);
+    const dreamMood = dream.mood ?? legacy.mood ?? null;
 
-    if (profileError) {
-      console.error('Error loading profile:', profileError);
+    if (!dreamContent) {
+      return new Response(
+        JSON.stringify({ error: 'Dream content is required', success: false }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Profilo natale — OPZIONALE. Letto con il client service-role (sempre e solo
+    // la riga dell'utente autenticato) così l'assenza di un profilo, o un errore
+    // di lettura, degrada a "nessun contesto astrologico" invece di far fallire
+    // l'interpretazione. Nessun dato di nascita viene mai loggato.
+    // deno-lint-ignore no-explicit-any
+    let profile: any = null;
+    let astrologyReason = 'natal_chart';
+    try {
+      const { data: profileRow, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('natal_chart_data, natal_context, gender, birth_date, birth_time, birth_latitude, birth_longitude, birth_timezone')
+        .eq('id', user.id)
+        .single();
+      if (profileError) {
+        // PGRST116 = no row: l'utente semplicemente non ha ancora un profilo.
+        astrologyReason = profileError.code === 'PGRST116' ? 'no_profile' : 'profile_error';
+        console.warn(
+          `ASTROLOGY_PROFILE_UNAVAILABLE function=interpret-dream-with-astrology reason=${astrologyReason} pg=${profileError.code ?? 'unknown'}`
+        );
+      } else {
+        profile = profileRow;
+      }
+    } catch (e) {
+      astrologyReason = 'profile_error';
+      console.warn(
+        `ASTROLOGY_PROFILE_UNAVAILABLE function=interpret-dream-with-astrology reason=profile_error name=${(e as Error)?.name ?? 'Error'}`
+      );
     }
 
     const natalChartData = profile?.natal_chart_data;
     const natalContext = profile?.natal_context;
-    const hasNatalChart = natalChartData && natalChartData.planets;
+    const hasNatalChart = !!(natalChartData && natalChartData.planets);
+    if (!hasNatalChart && astrologyReason === 'natal_chart') {
+      astrologyReason = profile ? 'no_natal_chart' : 'no_profile';
+    }
 
     // Recupera transiti e fase lunare in tempo reale (RapidAPI)
     let transitContext = "";
     let moonContext = "";
 
-    if (hasNatalChart && profile.birth_latitude && profile.birth_longitude) {
+    if (hasNatalChart && profile?.birth_latitude && profile?.birth_longitude) {
       try {
         const rapidApiKey = Deno.env.get('RAPIDAPI_KEY');
         if (rapidApiKey) {
@@ -533,9 +627,73 @@ serve(async (req) => {
       }
     }
 
+    // Legacy symbol table — identica a interpret-dream.
+    const { data: knowledgeEntries } = await supabaseAdmin
+      .from('dream_knowledge_base')
+      .select('*')
+      .limit(20);
+
+    const knowledgeContext = knowledgeEntries && knowledgeEntries.length > 0
+      ? knowledgeEntries
+          .map((entry) => `Simbolo: ${entry.symbol}\nCategoria: ${entry.category}\nInterpretazione: ${entry.interpretation}`)
+          .join('\n\n')
+      : 'Nessuna conoscenza specifica disponibile.';
+
+    // KB semantic retrieval (tester-gated, FAIL-OPEN) — portata da interpret-dream
+    // senza modifiche. Non blocca mai l'interpretazione: qualsiasi errore prosegue
+    // con kb_context_used=false. La query è costruita dal contenuto del sogno ma
+    // NON viene mai loggata né salvata nel retrieval log (query = NULL nell'helper).
+    let kbSection = "";
+    let kbContextUsed = false;
+    let kbResultCount = 0;
+    let kbSources: { title: string; domain: string }[] = [];
+    const kbEnabled = isKbRetrievalEnabledForUser(user.id);
+    if (kbEnabled) {
+      const queryText = [
+        dream.title,
+        dreamTags?.join(", "),
+        dreamContent,
+      ].filter(Boolean).join("\n").slice(0, 2000);
+
+      const kb = await retrieveKnowledgeContext({
+        supabaseAdmin,
+        userId: user.id,
+        queryText,
+        domain: null, // search across all active sources for first rollout
+        language: "it",
+        matchCount: 3,
+        matchThreshold: 0.40,
+      });
+      if (kb.chunks.length > 0) {
+        kbSection = buildKbPromptSection(kb.chunks);
+        kbContextUsed = true;
+        kbResultCount = kb.resultCount;
+        kbSources = kb.chunks.map((c) => ({ title: c.sourceTitle, domain: c.domain }));
+      }
+    }
+
+    // Convenzioni di stile/lingua condivise con interpret-dream, così un utente
+    // senza tema natale riceve la stessa qualità di output che riceve oggi.
+    const sharedConventions = `KNOWLEDGE BASE SIMBOLICA:
+${knowledgeContext}
+${kbSection ? `\n${kbSection}\n` : ''}
+STILE E LINGUA:
+- Scrivi ${isItalian ? 'esclusivamente in italiano' : `nella lingua dell'utente (locale "${locale}")`}.
+- Usa SEMPRE le parole emotive nella lingua dell'utente (es. "gioia", mai "Joy"; "paura", mai "Fear").
+- Tono intimo, poetico, simbolico, caldo e umano: chiaro, mai clinico, mai generico, mai prolisso.
+- Evita le formule fatte da assistente generico (es. "Caro sognatore", "merita di essere esplorato con attenzione") salvo quando davvero necessario.
+- Parla al sognatore in modo diretto e naturale, come una guida simbolica, non come un chatbot.
+
+EMFASI E FORMATTAZIONE:
+- Puoi usare il grassetto Markdown (**parola**) SOLO per pochi termini simbolici chiave, con parsimonia.
+- Non mettere in grassetto intere frasi.
+- Niente titoli/heading Markdown (#, ##), niente elenchi puntati salvo esplicita necessità.
+- Niente citazioni, riferimenti a fonti o marcatori tra parentesi quadre ([1], [2], "Fonte ...").
+- Non menzionare mai meccanismi interni, retrieval o Knowledge Base.`;
+
     // Costruisci il blocco del tema natale (fallback se manca natal_context)
     const natalContextBlock = natalContext ? `TEMA NATALE DELL'UTENTE:\n${natalContext}` : buildAstrologicalContext(natalChartData);
-    
+
     // Aggiungi informazioni sul genere se disponibili
     const genderContext = profile?.gender ? `\n\nIl sognatore è di genere ${profile.gender}. Considera questo aspetto nelle tue interpretazioni quando rilevante per archetipi, simbolismi o dinamiche psicologiche.` : '';
 
@@ -622,7 +780,9 @@ STILE:
 - Usa metafore e linguaggio evocativo
 - Bilancia profondità psicologica con praticità
 - Integra astrologia in modo sottile, non didascalico
-- Enfatizza crescita personale e consapevolezza` : `Sei un'esperta interprete di sogni che usa simbolismo, archetipi junghiani e psicologia dei sogni.
+- Enfatizza crescita personale e consapevolezza
+
+${sharedConventions}` : `Sei un'esperta interprete di sogni che usa simbolismo, archetipi junghiani e psicologia dei sogni.
 ${genderContext}
 
 LESSICO SIMBOLICO ALCHEMICO (griglia di lettura, non tassonomia rigida):
@@ -660,14 +820,21 @@ ISTRUZIONI:
 STILE:
 - Usa metafore e linguaggio evocativo
 - Bilancia profondità psicologica con praticità
-- Enfatizza crescita personale e consapevolezza`;
+- Enfatizza crescita personale e consapevolezza
 
-    let userPrompt = `Interpreta questo sogno:\n\n${dreamContent}`;
-    
+${sharedConventions}`;
+
+    let userPrompt = `Interpreta questo sogno:
+
+Locale utente: ${locale}${dream.title ? `\nTitolo: ${dream.title}` : ''}${dream.dream_date ? `\nData: ${dream.dream_date}` : ''}
+
+Contenuto:
+${dreamContent}`;
+
     if (dreamTags && dreamTags.length > 0) {
       userPrompt += `\n\nTag del sogno: ${dreamTags.join(", ")}`;
     }
-    
+
     if (dreamMood) {
       userPrompt += `\n\nUmore/sensazione al risveglio: ${dreamMood}`;
     }
@@ -687,6 +854,7 @@ STILE:
       model: 'google/gemini-2.5-flash',
       dream_id_prefix: dreamId.slice(0, 8),
       calls: 1,
+      astrology_included: hasNatalChart,
     });
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -711,17 +879,44 @@ STILE:
       console.error('Lovable AI error:', aiResponse.status, errorText);
       // Provider call failed → not billed → roll back the optimistic record.
       await rollbackUsage(supabaseAdmin, interpLedgerId, 'interpret-dream-with-astrology');
+
+      // Quota mapping ported from interpret-dream so clients keep receiving the
+      // same machine-readable `errorCode` on 429/402 instead of a generic error.
+      if (aiResponse.status === 429 || aiResponse.status === 402) {
+        const errorCode = aiResponse.status === 429 ? 'AI_RATE_LIMIT' : 'AI_CREDITS_EXHAUSTED';
+        const { notifyQuotaToAdmins } = await import("../_shared/error-response.ts");
+        notifyQuotaToAdmins({
+          provider: "lovable-ai",
+          errorCode,
+          functionName: "interpret-dream-with-astrology",
+          technicalMessage: `Lovable AI ${aiResponse.status}: ${errorText}`,
+        }).catch(() => {});
+        return new Response(
+          JSON.stringify({ errorCode, error: `Lovable AI ${errorCode}: ${errorText}`, success: false }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       throw new Error(`Lovable AI request failed: ${aiResponse.status}`);
     }
 
     const aiData = await aiResponse.json();
-    const interpretation = aiData.choices?.[0]?.message?.content;
+    const rawInterpretation = aiData.choices?.[0]?.message?.content;
 
-    if (!interpretation) {
+    if (!rawInterpretation) {
       throw new Error('No interpretation generated');
     }
 
-    console.log(`Dream interpretation with astrology generated: ${interpretation.length} characters`);
+    // Defensive cleanup ported from interpret-dream: strip any internal KB
+    // citation markers ([1], [Fonte A]) the model may have echoed, then (Italian
+    // locale only) repair stray English mood words. Neither removes dream text
+    // nor valid Markdown bold.
+    const cleanedInterpretation = stripKbCitationMarkers(rawInterpretation);
+    const interpretation = isItalian
+      ? localizeItalianMoodWords(cleanedInterpretation)
+      : cleanedInterpretation;
+
+    console.log(`Dream interpretation generated: ${interpretation.length} characters`);
 
     // Genera riassunto intelligente se > 500 caratteri
     let interpretationSummary = interpretation;
@@ -735,6 +930,8 @@ STILE:
 - Il tono empatico
 - Le conclusioni importanti
 IMPORTANTE: termina sempre con una frase completa e significativa.
+Scrivi ${isItalian ? 'esclusivamente in italiano' : `nella lingua del locale "${locale}"`}, mantenendo le parole emotive nella stessa lingua.
+Niente citazioni, niente riferimenti a fonti, niente parentesi quadre.
 
 Interpretazione completa:
 ${interpretation}
@@ -759,8 +956,12 @@ Riassunto (max 500 caratteri):`;
 
       if (summaryResponse.ok) {
         const summaryData = await summaryResponse.json();
-        const generatedSummary = summaryData.choices?.[0]?.message?.content?.trim();
-        
+        const rawSummary = summaryData.choices?.[0]?.message?.content?.trim();
+        const cleanedSummary = rawSummary ? stripKbCitationMarkers(rawSummary) : rawSummary;
+        const generatedSummary = cleanedSummary && isItalian
+          ? localizeItalianMoodWords(cleanedSummary)
+          : cleanedSummary;
+
         if (generatedSummary && generatedSummary.length <= 500) {
           interpretationSummary = generatedSummary;
           console.log(`Summary generated: ${interpretationSummary.length} characters`);
@@ -801,9 +1002,12 @@ Riassunto (max 500 caratteri):`;
     // Salva nel database
     console.log('Saving interpretation to database...');
 
-    const { error: updateError } = await supabase
+    // Scrittura con il client service-role (la proprietà è già stata verificata
+    // sopra): stesse colonne di interpret-dream, così il refresh di
+    // CachedRemoteDream su iOS continua a funzionare invariato.
+    const { error: updateError } = await supabaseAdmin
       .from('dreams')
-      .update({ 
+      .update({
         interpretation,
         interpretation_summary: interpretationSummary,
         alchemical_phase: alchemicalPhase
@@ -891,16 +1095,38 @@ Riassunto (max 500 caratteri):`;
       EdgeRuntime.waitUntil(precacheTTS());
     }
 
+    // Structured summary log — safe by construction: ids as 8-char prefixes,
+    // booleans and counts only. No dream content, no KB chunk text, no birth data.
+    console.log(
+      `INTERPRET_UNIFIED function=interpret-dream-with-astrology ` +
+      `dreamIdPrefix=${dreamId.slice(0, 8)} userIdPrefix=${user.id.slice(0, 8)} ` +
+      `astrologyIncluded=${hasNatalChart} astrologyReason=${astrologyReason} ` +
+      `transitContext=${!!transitContext} moonContext=${!!moonContext} ` +
+      `kbEnabled=${kbEnabled} kbChunks=${kbResultCount} kbContextUsed=${kbContextUsed} ` +
+      `provider=lovable model=google/gemini-2.5-flash locale=${locale} phase=${alchemicalPhase ?? 'null'}`
+    );
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         interpretation,
         interpretation_summary: interpretationSummary,
         alchemical_phase: alchemicalPhase,
+        // Existing web contract — kept verbatim so the live app needs zero changes.
         hasAstrologicalContext: hasNatalChart,
-        success: true 
+        success: true,
+        // --- additive fields (older clients simply ignore them) ---
+        astrology_included: hasNatalChart,
+        // KB metadata: source titles/domains only — never chunk content or IDs.
+        kb_context_used: kbContextUsed,
+        kb_result_count: kbResultCount,
+        kb_sources: kbSources
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'X-RateLimit-Remaining': rateLimit.remaining.toString()
+        },
       }
     );
 
