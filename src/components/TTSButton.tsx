@@ -55,7 +55,7 @@ export const TTSButton = ({
       setDuration(total);
     });
 
-    tts.setOnErrorCallback(() => {
+    tts.setOnErrorCallback((message) => {
       // Keep the button/UI in sync if the audio element errors mid-playback.
       setIsPlaying(false);
       setIsPaused(false);
@@ -66,7 +66,9 @@ export const TTSButton = ({
       setDuration(0);
       toast({
         title: "Errore audio",
-        description: "Riproduzione interrotta. Riprova.",
+        // `message` is set for genuinely-blocked playback (e.g. lost gesture);
+        // otherwise a generic interruption notice.
+        description: message ?? "Riproduzione interrotta. Riprova.",
         variant: "destructive",
       });
     });
@@ -93,6 +95,10 @@ export const TTSButton = ({
         setIsPaused(false);
         return;
       }
+
+      // Capture the user gesture synchronously (iOS Safari): unlock the audio
+      // element within this tap, before speak()'s awaited cache/network work.
+      tts.primeAudio();
 
       setIsLoading(true);
       setGenerationProgress(null);
