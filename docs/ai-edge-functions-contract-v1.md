@@ -111,19 +111,28 @@ alone — content is read server-side from the ownership-checked `dreams` row.
   "success": true,                  // existing web field, unchanged
 
   // --- additive ---
-  "astrology_included": true,       // mirrors hasAstrologicalContext, snake_case
+  "astrology_included": true,        // mirrors hasAstrologicalContext, snake_case
+  "live_transits_included": true,    // live RapidAPI transit/moon enrichment
   "kb_context_used": false,
   "kb_result_count": 0,
   "kb_sources": [{ "title": "string", "domain": "string" }]
 }
 ```
 
-Header: `X-RateLimit-Remaining` (additive).
+Header: `X-RateLimit-Remaining` (additive; reflects the 50/h interpretation tier).
 
 **Astrology is optional.** No natal profile, a profile read error, or a failed
 RapidAPI transit lookup all degrade gracefully: the interpretation still runs
 (without astrological context) and returns `astrology_included: false`. It is
 never an error condition.
+
+**`astrology_included` vs `live_transits_included`** are independent:
+
+| | `astrology_included` | `live_transits_included` |
+|---|---|---|
+| natal chart + transits fetched | `true` | `true` |
+| natal chart, paid-call budget spent / provider down / no `RAPIDAPI_KEY` | `true` | `false` |
+| no natal profile | `false` | `false` |
 
 **Persistence** (same columns as `interpret-dream`, so iOS
 `CachedRemoteDream` refresh is unaffected): `dreams.interpretation`,
@@ -140,11 +149,28 @@ background, best-effort — `dreams.ai_symbols`.
 | 401 | `{ error, success: false }` | missing / invalid JWT |
 | 403 | `{ error, success: false }` | dream not owned by caller |
 | 404 | `{ error, success: false }` | dream not found |
-| 429 | `{ error, errorCode?, resetAt?, success: false }` | rate limit (20/h) or AI quota (`AI_RATE_LIMIT` / `AI_CREDITS_EXHAUSTED`) |
+| 429 | `{ error, errorCode?, resetAt?, success: false }` | rate limit (50/h) or AI quota (`AI_RATE_LIMIT` / `AI_CREDITS_EXHAUSTED`) |
 
-Rate limit is **20 requests/hour** here (vs 50/h on `interpret-dream`), because
-each call may make up to 2 paid RapidAPI requests plus 1–2 AI calls. Fails open
-with a `RATE_LIMITER_UNAVAILABLE` log line if Upstash is unreachable.
+### Rate limiting — two tiers
+
+Only part of a call costs third-party money, so the caps are split:
+
+| Tier | Redis key suffix | Limit | Covers | On exceed |
+|---|---|---|---|---|
+| Interpretation | `interpret-dream-with-astrology` | **50/h** (`RATE_LIMITS.DREAM_OPERATIONS`) | every call — parity with `interpret-dream` | **429** |
+| Paid astrology | `interpret-dream-with-astrology:transits` | **20/h** | only the RapidAPI transit + moon-phase pair | **degrade, no error** |
+
+The 20/h counter is consumed **only immediately before the paid RapidAPI pair
+actually fires** — so a caller with no natal chart (or with no `RAPIDAPI_KEY`
+configured) never touches it. When that budget is exhausted the request still
+succeeds: the interpretation runs on the cached natal chart and returns
+`astrology_included: true, live_transits_included: false`. RapidAPI spend stays
+capped at 20/h/user, while a user *with* birth data is never served worse than a
+user without.
+
+Both tiers fail open independently if Upstash is unreachable, each with its own
+marker: `RATE_LIMITER_UNAVAILABLE … tier=interpretation` /
+`… tier=astrology_transits`.
 
 ### Observability
 
@@ -152,12 +178,15 @@ One structured, content-free line per successful call:
 
 ```
 INTERPRET_UNIFIED function=… dreamIdPrefix=… userIdPrefix=… astrologyIncluded=…
-astrologyReason=… transitContext=… moonContext=… kbEnabled=… kbChunks=…
+astrologyReason=… liveTransits=… transitsReason=… kbEnabled=… kbChunks=…
 kbContextUsed=… provider=… model=… locale=… phase=…
 ```
 
-`astrologyReason` ∈ `natal_chart | no_profile | no_natal_chart | profile_error`.
-Plus `ASTROLOGY_PROFILE_UNAVAILABLE …` when the profile read is skipped or fails.
+- `astrologyReason` ∈ `natal_chart | no_profile | no_natal_chart | profile_error`
+- `transitsReason` ∈ `ok | rate_limited | no_api_key | no_birth_coords | no_natal_chart | provider_error`
+
+Plus `ASTROLOGY_PROFILE_UNAVAILABLE …` when the profile read is skipped or fails,
+and `ASTROLOGY_TRANSITS_SKIPPED … reason=rate_limited` when the paid tier degrades.
 
 ## Privacy invariants (all AI functions)
 

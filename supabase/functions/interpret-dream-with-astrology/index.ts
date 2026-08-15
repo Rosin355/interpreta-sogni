@@ -20,7 +20,7 @@ import {
   retrieveKnowledgeContext,
   stripKbCitationMarkers,
 } from "../_shared/knowledge-retrieval.ts";
-import { RateLimiter } from "../_shared/rate-limiter.ts";
+import { RateLimiter, RATE_LIMITS } from "../_shared/rate-limiter.ts";
 import { captureDreamSymbols } from "../_shared/symbol-extraction.ts";
 import { recordUsage, rollbackUsage } from "../_shared/usage-ledger.ts";
 import {
@@ -357,11 +357,21 @@ serve(async (req) => {
       );
     }
 
-    // Rate limiting — stricter than interpret-dream (50/h). Each call makes up to
-    // 2 PAID RapidAPI requests (transit + moon phase) plus 1-2 AI calls, so we
-    // cap at 20/hour per user to bound third-party cost. Fails open if the
-    // limiter backend is unavailable (see RateLimiter.checkLimit).
-    const RATE_LIMIT_CONFIG = { maxRequests: 20, windowSeconds: 3600 };
+    // Rate limiting — TWO TIERS, because only part of a call costs third-party money.
+    //
+    //   Tier 1 (here, 50/h): the interpretation itself. Identical to
+    //     interpret-dream (RATE_LIMITS.DREAM_OPERATIONS) so this endpoint is at
+    //     parity for every caller, with or without a natal chart. Exceeding it
+    //     is a hard 429.
+    //   Tier 2 (later, 20/h): the PAID RapidAPI transit + moon-phase calls only,
+    //     charged against a separate counter and checked immediately before those
+    //     requests fire — see ASTRO_TRANSIT_RATE_LIMIT below. Exceeding it does
+    //     NOT fail the request: it skips the live transit enrichment and the
+    //     interpretation still runs on the (free, cached) natal chart.
+    //
+    // Net effect: RapidAPI spend stays capped at 20/h/user exactly as before,
+    // while a user WITH birth data is never served worse than one without.
+    const RATE_LIMIT_CONFIG = RATE_LIMITS.DREAM_OPERATIONS;
     const rateLimiter = new RateLimiter();
     const rateLimit = await rateLimiter.checkLimit(
       user.id,
@@ -378,7 +388,7 @@ serve(async (req) => {
     // No user content is logged.
     if (rateLimit.allowed && rateLimit.remaining === RATE_LIMIT_CONFIG.maxRequests) {
       console.error(
-        'RATE_LIMITER_UNAVAILABLE function=interpret-dream-with-astrology failed_open=true'
+        'RATE_LIMITER_UNAVAILABLE function=interpret-dream-with-astrology tier=interpretation failed_open=true'
       );
     }
 
@@ -531,14 +541,50 @@ serve(async (req) => {
       astrologyReason = profile ? 'no_natal_chart' : 'no_profile';
     }
 
-    // Recupera transiti e fase lunare in tempo reale (RapidAPI)
+    // Transiti e fase lunare in tempo reale (RapidAPI) — arricchimento OPZIONALE
+    // e A PAGAMENTO. Questo è l'unico punto del flusso che costa denaro a terzi,
+    // quindi è l'unico protetto dal secondo tier di rate limiting (20/h). Se il
+    // budget è esaurito NON si fallisce: si salta l'arricchimento e si interpreta
+    // comunque con il tema natale (gratuito, già in cache su profiles).
+    const ASTRO_TRANSIT_RATE_LIMIT = { maxRequests: 20, windowSeconds: 3600 };
     let transitContext = "";
     let moonContext = "";
+    let liveTransitsIncluded = false;
+    let transitsReason = hasNatalChart ? 'no_birth_coords' : 'no_natal_chart';
 
     if (hasNatalChart && profile?.birth_latitude && profile?.birth_longitude) {
       try {
         const rapidApiKey = Deno.env.get('RAPIDAPI_KEY');
-        if (rapidApiKey) {
+        // Il contatore del tier 2 viene consumato SOLO quando la chiamata a
+        // pagamento sta davvero per partire: senza chiave non si spende nulla e
+        // non si intacca il budget.
+        const transitRateLimit = rapidApiKey
+          ? await rateLimiter.checkLimit(
+              user.id,
+              'interpret-dream-with-astrology:transits',
+              ASTRO_TRANSIT_RATE_LIMIT
+            )
+          : null;
+
+        if (
+          transitRateLimit?.allowed &&
+          transitRateLimit.remaining === ASTRO_TRANSIT_RATE_LIMIT.maxRequests
+        ) {
+          console.error(
+            'RATE_LIMITER_UNAVAILABLE function=interpret-dream-with-astrology tier=astrology_transits failed_open=true'
+          );
+        }
+
+        if (!rapidApiKey) {
+          transitsReason = 'no_api_key';
+        } else if (!transitRateLimit?.allowed) {
+          // Budget a pagamento esaurito → degrada, non blocca.
+          transitsReason = 'rate_limited';
+          console.warn(
+            `ASTROLOGY_TRANSITS_SKIPPED function=interpret-dream-with-astrology reason=rate_limited ` +
+            `userIdPrefix=${user.id.slice(0, 8)}`
+          );
+        } else {
           const dreamDate = new Date(dream.created_at);
           const [bYear, bMonth, bDay] = (profile.birth_date || "").split('-').map(Number);
           const [bHour, bMinute] = (profile.birth_time || "12:00").split(':').map(Number);
@@ -619,10 +665,15 @@ serve(async (req) => {
           if (!transRes && !moonRes) {
             // Both RapidAPI calls returned nothing → roll back the optimistic record.
             await rollbackUsage(supabaseAdmin, transitLedgerId, 'interpret-dream-with-astrology');
+            transitsReason = 'provider_error';
+          } else {
+            liveTransitsIncluded = true;
+            transitsReason = 'ok';
           }
           console.log('RapidAPI transit/moon calls completed');
         }
       } catch (e) {
+        transitsReason = 'provider_error';
         console.error('Error fetching live astro context:', e);
       }
     }
@@ -1101,7 +1152,7 @@ Riassunto (max 500 caratteri):`;
       `INTERPRET_UNIFIED function=interpret-dream-with-astrology ` +
       `dreamIdPrefix=${dreamId.slice(0, 8)} userIdPrefix=${user.id.slice(0, 8)} ` +
       `astrologyIncluded=${hasNatalChart} astrologyReason=${astrologyReason} ` +
-      `transitContext=${!!transitContext} moonContext=${!!moonContext} ` +
+      `liveTransits=${liveTransitsIncluded} transitsReason=${transitsReason} ` +
       `kbEnabled=${kbEnabled} kbChunks=${kbResultCount} kbContextUsed=${kbContextUsed} ` +
       `provider=lovable model=google/gemini-2.5-flash locale=${locale} phase=${alchemicalPhase ?? 'null'}`
     );
@@ -1116,6 +1167,10 @@ Riassunto (max 500 caratteri):`;
         success: true,
         // --- additive fields (older clients simply ignore them) ---
         astrology_included: hasNatalChart,
+        // Live RapidAPI transit/moon enrichment. false (with astrology_included
+        // still true) means the interpretation used the cached natal chart only —
+        // e.g. the 20/h paid-call budget was spent, or the provider failed.
+        live_transits_included: liveTransitsIncluded,
         // KB metadata: source titles/domains only — never chunk content or IDs.
         kb_context_used: kbContextUsed,
         kb_result_count: kbResultCount,
