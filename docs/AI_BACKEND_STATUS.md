@@ -8,7 +8,7 @@
 | Feature | Provider | Status |
 |---|---|---|
 | `interpret-dream` (text) | Anthropic / OpenAI primary, Lovable AI Gateway fallback | **working** (fallback while iOS migrates) |
-| `interpret-dream-with-astrology` (**unified endpoint**) | Lovable AI Gateway (Gemini 2.5 Flash) + RapidAPI transits | **working** (web); iOS switch **pending** |
+| `interpret-dream-with-astrology` (**unified endpoint**) | Lovable AI Gateway (Gemini 2.5 Flash) + RapidAPI transits | **deployed** (web live); iOS switch **pending** |
 | `suggest-tags` | Claude / OpenAI / Lovable fallback | **working** |
 | `generate-dream-image` | Lovable AI Gateway (Gemini 2.5 Flash) | **working** (web) |
 | `chat-with-alchemist` | Claude / OpenAI | **working** (basic) |
@@ -16,7 +16,7 @@
 | Knowledge Base embeddings | OpenAI `text-embedding-3-small` | **working** (admin-triggered, not deployed) |
 | `search-knowledge` (KB semantic retrieval) | OpenAI query embedding + pgvector RPC | **working** (deployed) |
 | KB retrieval into `interpret-dream` | OpenAI query embedding + RPC, tester-gated | **working** (not deployed) |
-| KB retrieval into `interpret-dream-with-astrology` | same helper, ported verbatim, tester-gated | **working** (not deployed) |
+| KB retrieval into `interpret-dream-with-astrology` | same helper, ported verbatim, tester-gated | **deployed** (gated off unless `AI_KB_RETRIEVAL_ENABLED=true` + tester allowlist) |
 | KB retrieval into `chat-with-alchemist` | server-side composition | **planned** |
 
 ## Supabase Edge Functions
@@ -64,6 +64,14 @@ diffing against `main`: **all 9 files byte-identical** (both `index.ts` plus the
 
 `interpret-dream` stays deployed unchanged as the working fallback until iOS has
 switched to `interpret-dream-with-astrology` and been verified in production.
+
+⚠️ **Production is currently ahead of `main`.**
+`interpret-dream-with-astrology` was deployed on 2026-08-16 from the
+`feat/unified-interpretation-endpoint` branch (PR #21) so the test plan could be
+run against the real runtime. Production matches that branch exactly (re-verified
+by download + diff after deploying). Merge PR #21 to bring `main` back in line —
+until then, do NOT redeploy this function from `main`, as that would silently
+revert the unified-endpoint work.
 
 ## Supabase Tables (AI / KB-relevant)
 
