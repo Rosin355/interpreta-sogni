@@ -24,6 +24,17 @@ retrieval are still to be built.
 - [x] Manual end-to-end test guide for `ingest-knowledge-source`
 - [x] Dream draft autosave resilience — local + cloud, restore dialog,
       mobile close handlers ([`dream-draft-autosave-v1.md`](./dream-draft-autosave-v1.md))
+- [x] **Unified interpretation endpoint** — `interpret-dream-with-astrology` is now
+      the single endpoint for web + iOS (PR #21, merged and deployed 2026-08-16,
+      verified on the live web app). Ports `interpret-dream`'s tester-gated KB
+      retrieval verbatim; astrology became optional enrichment (no natal profile →
+      `astrology_included: false`, never an error); accepts both `dream_id` and
+      `dreamId` with the `dreams` row as the authoritative content source;
+      two-tier rate limiting (50/h interpretation, hard 429 — parity with
+      `interpret-dream`; separate 20/h on the *paid* RapidAPI transit pair, which
+      degrades to `live_transits_included: false` instead of failing). Response is
+      a strict superset, so the web app needed zero changes. See
+      [contract](./ai-edge-functions-contract-v1.md#interpret-dream-with-astrology).
 
 ## Current TODOs
 
@@ -88,7 +99,10 @@ retrieval are still to be built.
       `AI_KB_TEST_USER_IDS`; match_count 3 / threshold 0.40; additive `kb_*`
       response metadata, no iOS break) — vedi
       [`interpret-dream-kb-retrieval-v1.md`](./interpret-dream-kb-retrieval-v1.md).
-      **Da deployare**: `npx supabase functions deploy interpret-dream`.
+      **Deployato** (verificato 2026-08-15 via download + diff: la copia in
+      produzione è identica a `main`). Gate attivo per 2 tester dal 2026-08-16.
+- [x] Wire retrieval into `interpret-dream-with-astrology` — stesso helper,
+      portato invariato; deployato 2026-08-16 (vedi task nella sezione Completed).
 - [ ] Wire retrieval into `chat-with-alchemist`
 - [~] Celeste astrology backend per [`astrologer-api-integration-plan-v1.md`](./astrologer-api-integration-plan-v1.md)
       — preserves current Celeste UI; builds on existing Astrologer/RapidAPI; no API keys in iOS:
@@ -104,6 +118,28 @@ retrieval are still to be built.
   - [ ] Phase 3: `get-current-transits` ("Cielo del momento")
 - [ ] `astrology-insight` Edge Function with KB-grounded context
 - [ ] Community moderation tools (report queue, soft-hide)
+
+### Unified-endpoint follow-ups (backlog)
+
+Known gaps left open by PR #21 — neither blocks the iOS switch.
+
+- [ ] **Write `ai_reflection_questions` from the unified function.** The column
+      exists on `dreams` and iOS reads it, but **no Edge Function currently
+      writes it** (verified 2026-08-16) — so it is always empty today. Add
+      generation + persistence in `interpret-dream-with-astrology`, following the
+      `captureDreamSymbols` pattern in `_shared/symbol-extraction.ts`:
+      background / `EdgeRuntime.waitUntil`, best-effort, never blocking or
+      altering the interpretation, with its own `usage_ledger` record + rollback.
+- [ ] **Retire `interpret-dream` and drop the TTS pre-cache** — only *after* iOS
+      has switched to `interpret-dream-with-astrology` and been verified in
+      production. Two separate steps:
+      - remove the `precacheTTS` block in
+        `supabase/functions/interpret-dream-with-astrology/index.ts` (fires two
+        `text-to-speech-elevenlabs` calls per interpretation, in the background);
+      - retire `interpret-dream` itself (delete the function + its
+        `config.toml` entry) once no client calls it. Confirm via Edge Function
+        logs that invocations have hit zero first — the App Store long tail means
+        old iOS builds may keep calling it for a while after release.
 
 
 ## Files / Areas to Inspect

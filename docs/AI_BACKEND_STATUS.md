@@ -7,16 +7,16 @@
 
 | Feature | Provider | Status |
 |---|---|---|
-| `interpret-dream` (text) | Anthropic / OpenAI primary, Lovable AI Gateway fallback | **working** (fallback while iOS migrates) |
-| `interpret-dream-with-astrology` (**unified endpoint**) | Lovable AI Gateway (Gemini 2.5 Flash) + RapidAPI transits | **working** (web); iOS switch **pending** |
+| `interpret-dream` (text) | Anthropic / OpenAI primary, Lovable AI Gateway fallback | **deployed** — kept as the fallback while iOS migrates |
+| `interpret-dream-with-astrology` (**unified endpoint**) | Lovable AI Gateway (Gemini 2.5 Flash) + RapidAPI transits | **deployed + merged + verified on the live web app** (2026-08-16); iOS switch **pending** |
 | `suggest-tags` | Claude / OpenAI / Lovable fallback | **working** |
 | `generate-dream-image` | Lovable AI Gateway (Gemini 2.5 Flash) | **working** (web) |
 | `chat-with-alchemist` | Claude / OpenAI | **working** (basic) |
 | `audio-reflection` (TTS) | ElevenLabs (Jessica voice clone) | working for `text-to-speech-elevenlabs`; iOS UI **planned** |
 | Knowledge Base embeddings | OpenAI `text-embedding-3-small` | **working** (admin-triggered, not deployed) |
 | `search-knowledge` (KB semantic retrieval) | OpenAI query embedding + pgvector RPC | **working** (deployed) |
-| KB retrieval into `interpret-dream` | OpenAI query embedding + RPC, tester-gated | **working** (not deployed) |
-| KB retrieval into `interpret-dream-with-astrology` | same helper, ported verbatim, tester-gated | **working** (not deployed) |
+| KB retrieval into `interpret-dream` | OpenAI query embedding + RPC, tester-gated | **deployed** (present in the deployed bundle; verified by download + diff 2026-08-15) |
+| KB retrieval into `interpret-dream-with-astrology` | same helper, ported verbatim, tester-gated | **deployed** (2026-08-16) |
 | KB retrieval into `chat-with-alchemist` | server-side composition | **planned** |
 
 ## Supabase Edge Functions
@@ -57,10 +57,40 @@
 `interpret-dream-with-astrology`. Deploy only from here; never edit the deployed
 copy in the Supabase dashboard, and never `supabase functions deploy --all`.
 
-Verified on 2026-08-15 by downloading both deployed functions
-(`supabase functions download <slug> --use-api`) into a throwaway workdir and
-diffing against `main`: **all 9 files byte-identical** (both `index.ts` plus the
-7 shared modules). Repeat that check before any future change to these two.
+**Verification recipe** — download into a *throwaway* workdir (the default target
+is `supabase/functions/<slug>`, which would overwrite repo sources) and diff:
+
+```bash
+supabase functions download <slug> --project-ref <ref> --use-api --workdir /tmp/deployed
+```
+
+Run this before changing either function, and again after deploying. Done twice
+so far: 2026-08-15 (pre-change, all 9 files byte-identical to `main`) and
+2026-08-16 (post-deploy, production matches `main`; `interpret-dream` unchanged).
+
+### Each function bundles its own copy of `_shared`
+
+Verified during the 2026-08-16 deploy: deploying
+`interpret-dream-with-astrology` uploaded its `index.ts` **plus its own copies**
+of the 7 `_shared` modules it imports. The deployed `interpret-dream` was
+afterwards still byte-identical to its pre-deploy snapshot — **including its
+copy of `_shared/validation.ts`, which had changed in the repo**.
+
+Two consequences:
+
+1. **Editing a shared module changes nothing in production until each function
+   that imports it is individually redeployed.** A `_shared` change is safe to
+   land on `main` without immediately touching every consumer — but the flip side
+   is that consumers silently keep running the old copy, so track which functions
+   still need a redeploy.
+2. **Deployed functions can drift from each other**, each pinned to the `_shared`
+   snapshot from its last deploy. When diffing production, always compare a
+   function's *own* bundled `_shared` copies, never a single shared baseline.
+
+`_shared/knowledge-retrieval.ts` is bundled by **both** interpretation functions,
+so the KB-gate secrets (`AI_KB_RETRIEVAL_ENABLED`, `AI_KB_TEST_USER_IDS`) apply
+to both at once — those are project-wide config, not per-function, and take
+effect on the next invocation with no redeploy.
 
 `interpret-dream` stays deployed unchanged as the working fallback until iOS has
 switched to `interpret-dream-with-astrology` and been verified in production.
@@ -92,8 +122,28 @@ Configured in Supabase Edge Functions secrets:
 - `FREE_ASTROLOGY_API_KEY` / `RAPIDAPI_KEY`
 - `WONDERPUSH_APPLICATION_ID` / `WONDERPUSH_ACCESS_TOKEN`
 - `KB_ADMIN_USER_IDS` *(optional, comma-separated UUID allowlist for KB ingest)*
-- `AI_KB_RETRIEVAL_ENABLED` *(optional, `"true"`/`"false"`; master switch for KB retrieval in `interpret-dream`, default off)*
+- `AI_KB_RETRIEVAL_ENABLED` *(optional, `"true"`/`"false"`; master switch for KB retrieval in **both** interpretation functions, default off)*
 - `AI_KB_TEST_USER_IDS` *(optional, CSV UUID allowlist for KB retrieval; falls back to `AI_PROVIDER_TEST_USER_IDS`)*
+
+### KB retrieval gate — config state as of 2026-08-16
+
+Retrieval requires **both** conditions; either one alone leaves it off.
+
+| Secret | State | Note |
+|---|---|---|
+| `AI_KB_RETRIEVAL_ENABLED` | `true` | Already `true` since 2026-06-19 — re-setting it on 2026-08-16 left the digest unchanged, confirming the value never differed. The master switch was never what kept retrieval off. |
+| `AI_KB_TEST_USER_IDS` | **2 tester UUIDs** | Replaced on 2026-08-16 (digest changed). This was the effective gate. |
+
+⚠️ `supabase secrets set` **replaces, it does not extend** — writing
+`AI_KB_TEST_USER_IDS` drops every UUID not in the new value. Always pass the
+complete intended list. (UUIDs are deliberately not recorded here; read them from
+the Supabase secrets UI.)
+
+Because `_shared/knowledge-retrieval.ts` is bundled by both interpretation
+functions, these two secrets enable retrieval in `interpret-dream` **and**
+`interpret-dream-with-astrology` simultaneously, for the listed testers only.
+Useful when comparing the two functions' output: with the gate on, both sides
+have KB grounding, so a comparison no longer isolates the retrieval port.
 
 **Later**:
 
